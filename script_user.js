@@ -9,6 +9,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @require      https://code.jquery.com/jquery-3.7.1.js
+// @requier      https://raw.githubusercontent.com/alexgomezg/Stats-Xente-Script/main/main.js
 // ==/UserScript==
 
 (function() {
@@ -175,12 +176,6 @@
     window.cats=cats;
 
 
-
-    function getCookie(nombre) {
-        var regex = new RegExp("(?:(?:^|.*;\\s*)" + nombre + "\\s*\\=\\s*([^;]*).*$)|^.*$");
-        var valorCookie = document.cookie.replace(regex, "$1");
-        return decodeURIComponent(valorCookie);
-    }
     var langs = new Map();
     langs.set('es', 'SPANISH');
     langs.set('ar', 'SPANISH')
