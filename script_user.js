@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         New Userscript
+// @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
 // @version      0.4
 // @description  Example of description of statsxente
