@@ -8,7 +8,6 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=managerzone.com
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
-// @require      https://statsxente.com/MZ1/View/JS/tm_functions.js
 // @require      https://code.jquery.com/jquery-3.7.1.js
 // ==/UserScript==
 
