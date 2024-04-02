@@ -386,9 +386,15 @@
 
                         var nuevaColumna = document.createElement("td");
 
-                        var valor= new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id]["valor"]))
+
+                        if (jsonResponse[id] && jsonResponse[id]["valor"] !== undefined) {
+                            var valor = new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id]["valor"]))
+                        }else{
+                            var valor=0;
+                        }
                         nuevaColumna.innerHTML=valor
                         filasDatos[i].appendChild(nuevaColumna);
+
 
 
 
