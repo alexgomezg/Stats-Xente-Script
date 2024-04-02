@@ -16,7 +16,7 @@
 
 
     GM_addStyle(`
-     /* The Modal (background) */
+     /* The Modal (background) test*/
   .modal {
     display: none;
     /* Hidden by default */
