@@ -2,7 +2,7 @@
 // @name         New Userscript
 // @namespace    http://tampermonkey.net/
 // @version      0.3
-// @description  try to take over the world!
+// @description  Example of description of statsxente
 // @author       You
 // @match        https://www.managerzone.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=managerzone.com
