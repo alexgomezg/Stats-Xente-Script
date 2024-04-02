@@ -9,7 +9,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @require      https://code.jquery.com/jquery-3.7.1.js
-// @requier      https://raw.githubusercontent.com/alexgomezg/Stats-Xente-Script/main/main.js
+// @require      https://raw.githubusercontent.com/alexgomezg/Stats-Xente-Script/main/utils.js
 // ==/UserScript==
 
 (function() {
