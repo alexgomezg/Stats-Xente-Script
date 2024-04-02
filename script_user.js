@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         New Userscript
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  Example of description of statsxente
 // @author       You
 // @match        https://www.managerzone.com/*
