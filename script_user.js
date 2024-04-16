@@ -9,6 +9,8 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @require      https://code.jquery.com/jquery-3.7.1.js
+// @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
+// @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
 // ==/UserScript==
 
 (function() {
@@ -213,9 +215,46 @@
 
             leagues();
 
+        }
+
+        if((urlParams.has('p')) && (urlParams.get('p') === 'federations')&& (urlParams.get('sub') === 'clash')){
+
+
+            clash();
 
         }
+
+
     });
+
+
+    function clash(){
+
+        var badges = document.getElementsByClassName("fed_badge");
+        var regex = /fid=(\d+)/;
+        var srcLocal = badges[0].getAttribute('src');
+        var local_id = srcLocal.match(regex);
+        var src_away = badges[1].getAttribute('src');
+        var away_id = src_away.match(regex);
+
+        var names = document.getElementsByClassName("name-score name-score--desktop text-ellipsis")
+
+
+
+
+        var elems = document.getElementsByClassName("mainContent top-pane top-pane--desktop");
+        var tabla = elems[0]
+
+        var contenidoNuevo="</br><center><table><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><center><img id=clashCompare src='https://i.imgur.com/G76Jm71.png' style='width:45px; height:45px;'/></center></td></tr></table></center>";
+        tabla.insertAdjacentHTML('beforeend', contenidoNuevo)
+
+        document.getElementById("clashCompare").addEventListener('click', function () {
+            var link = "https://statsxente.com/MZ1/Functions/loadClashFederationData.php?tamper=yes&fid="+local_id[1]+"&fid1="+away_id[1]+"&fede="+encodeURIComponent(names[0].innerText)+"&fede1="+encodeURIComponent(names[1].innerText)+"&idioma=SPANISH&divisa=EUR&sport=soccer";
+            openWindow(link,0.95,1.25);
+        });
+
+    }
+
 
     var teams_data="";
 
@@ -232,6 +271,8 @@
 
             var elems = document.getElementsByClassName("nice_table");
             var tabla = elems[0]
+            var thSegundo = tabla.querySelector("thead th:nth-child(2)");
+            thSegundo.style.width = "250px";
 
 
             var values = new Map();
@@ -470,7 +511,7 @@
         var thSegundo = tabla.querySelector("thead th:nth-child(2)");
 
 // Cambiar el ancho del segundo th
-        thSegundo.style.width = "320px";
+        thSegundo.style.width = "250px";
 
 // Iterar sobre cada fila
         for (var i = 0; i < filas.length; i++) {
@@ -556,27 +597,30 @@
                 // Obtener los elementos a comparar, uno de la columna actual y otro de la siguiente
                 x = filas[i].getElementsByTagName("td")[columna];
                 y = filas[i + 1].getElementsByTagName("td")[columna];
-                // Comparar los elementos según la dirección de orden y el tipo de datos
+                // Eliminar los separadores de miles y convertir a números
+                var xValue = parseFloat(x.innerHTML.replace(/[^0-9.-]+/g,""));
+                var yValue = parseFloat(y.innerHTML.replace(/[^0-9.-]+/g,""));
+                // Comparar los elementos según la dirección de orden
                 if (direccion == "ascendente") {
-                    if (isNaN(parseInt(x.innerHTML))) {
+                    if (isNaN(xValue)) {
                         if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
                             debeCambiar = true;
                             break;
                         }
                     } else {
-                        if (parseInt(x.innerHTML) > parseInt(y.innerHTML)) {
+                        if (xValue > yValue) {
                             debeCambiar = true;
                             break;
                         }
                     }
                 } else if (direccion == "descendente") {
-                    if (isNaN(parseInt(x.innerHTML))) {
+                    if (isNaN(xValue)) {
                         if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
                             debeCambiar = true;
                             break;
                         }
                     } else {
-                        if (parseInt(x.innerHTML) < parseInt(y.innerHTML)) {
+                        if (xValue < yValue) {
                             debeCambiar = true;
                             break;
                         }
@@ -598,6 +642,7 @@
                 }
             }
         }
+
 
 
         filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
