@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.68
+// @version      0.69
 // @description  Example of description of statsxente
 // @author       xente
 // @match        https://www.managerzone.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=managerzone.com
+// @icon         https://statsxente.com/MZ1/View/Images/etiqueta_bota.png
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @require      https://code.jquery.com/jquery-3.7.1.js
 // @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
 // @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
@@ -161,9 +163,90 @@
         cursor: pointer;
     }
 
+
+
+     .mazyar-flex-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        max-height: 100%;
+    }
+
+    .mazyar-flex-container-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .legend {
+    position: fixed;
+    bottom: 57%;
+    right: 1px;
+    border: 1px solid #2bacf5;
+  padding-right: 13px;
+    padding-left: 3px;
+    padding-top: 3px;
+    width: 14px;
+    font-size: 13px;
+    border-radius: 4px;
+    text-shadow: 1px 1px 3px #676767;
+    background-color: #246355;
+    color: #246355;
+    cursor: default;
+}
+
      `);
 
 
+
+
+    var nuevoElemento = document.createElement("div");
+    nuevoElemento.className="legend";
+// Agregar texto al nuevo elemento
+    nuevoElemento.innerHTML='<div style="writing-mode: tb-rl;-webkit-writing-mode: vertical-rl;"><center><img src="https://statsxente.com/MZ1/View/Images/etiqueta_bota.png" style="width:25px;height:25px;"/></center></div>';
+
+
+
+// Obtener el elemento body
+    var body = document.body;
+
+// Agregar el nuevo elemento al final del body
+    body.appendChild(nuevoElemento);
+
+    console.log(document.getElementById("header-username").innerText);
+
+
+    if(GM_getValue("MZCURRENCY")===undefined){
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "http://www.managerzone.com/xml/team_playerlist.php?sport_id=1&team_id=771617",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function(response) {
+                console.log(response.responseText);
+
+                var parser = new DOMParser();
+
+// Parsear el XML
+                var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+
+// Acceder a los elementos del XML
+                var fruits = xmlDoc.getElementsByTagName("TeamPlayers");
+                console.log(fruits[0].getAttribute("teamCurrency"));
+
+
+                GM_setValue("MZCURRENCY",fruits[0].getAttribute("teamCurrency"))
+
+            }});
+
+    }else{
+        console.log("aaaa")
+    }
 
     var cats = {};
     cats["senior"] = "senior";
@@ -195,7 +278,7 @@
     }
 
     console.log(window.lang)
-
+    console.log(GM_getValue("transfer_options_hide"))
 
 // Ejemplo de uso
     var sportCookie = getCookie("MZSPORT");
@@ -224,9 +307,78 @@
 
         }
 
+        if((urlParams.has('p')) && (urlParams.get('p') === 'match')&& (urlParams.get('sub') === 'result')){
+
+
+            match();
+
+        }
+
 
     });
 
+    function match(){
+
+        setTimeout(function() {
+
+            var elems = document.getElementsByClassName("hitlist soccer statsLite marker tablesorter");
+            var tabla = elems[0]
+
+            var filas = tabla.getElementsByTagName("tr");
+            var fila = filas[1];
+            var dato = document.createElement("td");
+            /* dato.textContent = "";
+            fila.appendChild(dato);
+
+                            dato = document.createElement("td");
+             dato.textContent = "";
+            fila.appendChild(dato);
+
+                     fila = filas[0];
+                    dato = document.createElement("td");
+             dato.textContent = "";
+            fila.appendChild(dato);*/
+
+
+            var tfoot = tabla.querySelector("tfoot");
+
+// Obtener la primera fila (<tr>) del <tfoot>
+            var primeraFilaTfoot = tfoot.querySelector("tr");
+
+// Obtener el primer <td> de la primera fila del <tfoot>
+            var primerTDTfoot = primeraFilaTfoot.querySelector("td");
+
+// Cambiar el atributo colspan del primer <td> del <tfoot> a 9
+            primerTDTfoot.setAttribute("colspan", "9");
+
+            var elems2 = document.getElementsByClassName("listHeadColor");
+            var lista = elems2[0]
+
+            var nuevoElementoDD = document.createElement("dd");
+
+// Agregar contenido al nuevo elemento <dd>
+            nuevoElementoDD.textContent = "Nuevo elemento";
+            nuevoElementoDD.className="c6"
+
+// Añadir el nuevo elemento <dd> al final de la lista de definición
+            lista.appendChild(nuevoElementoDD);
+
+            var id=1516;
+            for (var i = 2; i < filas.length-1; i++) {
+                fila = filas[i];
+                dato = document.createElement("td");
+                // var iner = "<img src='https://statsxente.com/MZ1/View/Images/detail.png' width='20px' height='20px' onclick=\"openModalStatsEquiposHistoricoFiltro1("+id+",'team_"+id+"','z_hola',77,77,'soccer')\"/>";
+                var iner = "<img src='https://statsxente.com/MZ1/View/Images/etiqueta_bota.png' width='20px' height='20px' id='but"+id+"' style='cursor:pointer;'/>";
+                //iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px' id='but1"+id+"' style='cursor:pointer;'/>";
+                //iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px' onclick=\"openModalStatsEquiposHistoricoFiltro1("+id+",'team_"+id+"','z_hola',77,77,'soccer')\"/>";
+                //var cat = cats[urlParams.get('type')]
+                dato.innerHTML=iner
+                fila.appendChild(dato);
+            }
+
+        }, 3000);
+
+    }
 
     function clash(){
 
@@ -259,6 +411,7 @@
     var teams_data="";
 
     function leagues(){
+
         var initialValues = {};
         initialValues["senior"] = "valor";
         initialValues["world"] = "valor";
@@ -278,6 +431,9 @@
         nameInitialValues["u23_world"] = "Value U23";
         nameInitialValues["u21_world"] = "Value U21";
         nameInitialValues["u18_world"] = "Value U18";
+
+
+
 
         var linkIds=""
         var urlParams = new URLSearchParams(window.location.search);
@@ -369,6 +525,10 @@
             for (var i = 0; i < filasDatos.length; i++) {
                 var celda = tabla.rows[i+1].cells[1];
 
+
+
+
+
                 var equipo=celda.textContent.trim()
                 var iniIndex = celda.innerHTML.indexOf("tid=");
                 var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
@@ -416,6 +576,7 @@
 
             }
 
+
             console.log(linkIds)
             GM_xmlhttpRequest({
                 method: "GET",
@@ -459,8 +620,6 @@
 
 
                     var thead=document.getElementsByClassName("seriesHeader")[0]
-
-                    console.log(thead)
                     var ths = thead.querySelectorAll("th");
 
                     // Agregar event listener a cada th
@@ -683,4 +842,3 @@
 
     // Your code here...
 })();
-
