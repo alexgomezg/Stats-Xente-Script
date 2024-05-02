@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.67
+// @version      0.68
 // @description  Example of description of statsxente
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -259,11 +259,25 @@
     var teams_data="";
 
     function leagues(){
+        var initialValues = {};
+        initialValues["senior"] = "valor";
+        initialValues["world"] = "valor";
+        initialValues["u23"] = "valor23";
+        initialValues["u21"] = "valor21";
+        initialValues["u18"] = "valor18";
+        initialValues["u23_world"] = "valor23";
+        initialValues["u21_world"] = "valor21";
+        initialValues["u18_world"] = "valor18";
 
-
-
-
-
+        var nameInitialValues = {};
+        nameInitialValues["senior"] = "Value";
+        nameInitialValues["world"] = "Value";
+        nameInitialValues["u23"] = "Value U23";
+        nameInitialValues["u21"] = "Value U21";
+        nameInitialValues["u18"] = "Value U18";
+        nameInitialValues["u23_world"] = "Value U23";
+        nameInitialValues["u21_world"] = "Value U21";
+        nameInitialValues["u18_world"] = "Value U18";
 
         var linkIds=""
         var urlParams = new URLSearchParams(window.location.search);
@@ -343,7 +357,7 @@
 
 
             nuevaCeldaEncabezado = document.createElement("th");
-            nuevaCeldaEncabezado.textContent = "Value";
+            nuevaCeldaEncabezado.textContent = nameInitialValues[urlParams.get('type')];
             nuevaCeldaEncabezado.style.backgroundColor="#246355"
             nuevaCeldaEncabezado.style.color="white"
             ser = document.getElementsByClassName("seriesHeader")
@@ -405,7 +419,7 @@
             console.log(linkIds)
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://bdstatsxente.sytes.net/MZ1/View/test6.php?team_id=771617&deporte=soccer&world=yes"+linkIds,
+                url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?sport="+sport+linkIds,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -428,8 +442,8 @@
                         var nuevaColumna = document.createElement("td");
 
 
-                        if (jsonResponse[id] && jsonResponse[id]["valor"] !== undefined) {
-                            var valor = new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id]["valor"]))
+                        if (jsonResponse[id] && jsonResponse[id][initialValues[urlParams.get('type')]] !== undefined) {
+                            var valor = new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id][initialValues[urlParams.get('type')]]))
                         }else{
                             var valor=0;
                         }
@@ -669,3 +683,4 @@
 
     // Your code here...
 })();
+
