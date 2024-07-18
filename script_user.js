@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.69
+// @version      0.70
 // @description  Example of description of statsxente
 // @author       xente
 // @match        https://www.managerzone.com/*
