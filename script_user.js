@@ -255,7 +255,91 @@ border-radius:7px;
   -webkit-transform: rotate(45deg);
   -ms-transform: rotate(45deg);
   transform: rotate(45deg);
-}`)
+}
+#showMenu {
+    text-align: left;
+    border-collapse: collapse;
+    width: 75%;
+    font-size: 14px;
+    font-family: 'Roboto', sans-serif
+  }
+
+  #showMenu th,
+  td {
+    padding: 4px;
+  }
+
+  #showMenu td {
+    background-color: white;
+  }
+
+  #showMenu thead {
+    background-color: #246355;
+    border-bottom: solid 2px #0F362D;
+    color: white;
+  }
+
+  #showMenu tfoot {
+    font-family: 'Righteous', cursive;
+    background-color: #246355;
+    border-bottom: solid 5px #0F362D;
+    font-size: 13px;
+    color: white;
+  }
+
+
+
+  #showMenu tr td,
+  th {
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  #showMenu th:first-child {
+    border-top-left-radius: 5px;
+  }
+
+  #showMenu th:last-child {
+    border-top-right-radius: 5px;
+  }
+
+  #showMenu tr {
+    background-color: transparent;
+    border-color: transparent;
+    font-family: 'Roboto';
+  }
+
+  #show3{
+
+  width: 75%;
+  background-color: transparent;
+      border-collapse: separate;
+    border-spacing: 0;
+  }
+
+
+
+  #show3 td {
+    background-color: white;
+  }
+
+ #show3 tr:last-child td:last-child {
+    border-bottom-right-radius: 5px;
+}
+
+
+#show3 tr:last-child td:first-child {
+    border-bottom-left-radius: 5px;
+}
+
+  `)
+
+    var link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css?family=Roboto&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link)
 
     createModalMenu()
     createModalEventListeners()
@@ -367,13 +451,7 @@ border-radius:7px;
                     dato.innerHTML = iner
                     fila.appendChild(dato);
                 }
-
             }
-
-
-
-
-
         }, 3000);
 
     }
@@ -386,12 +464,7 @@ border-radius:7px;
         var local_id = srcLocal.match(regex);
         var src_away = badges[1].getAttribute('src');
         var away_id = src_away.match(regex);
-
         var names = document.getElementsByClassName("name-score name-score--desktop text-ellipsis")
-
-
-
-
         var elems = document.getElementsByClassName("mainContent top-pane top-pane--desktop");
         var tabla = elems[0]
 
@@ -444,42 +517,54 @@ border-radius:7px;
 
 
             var values = new Map();
-
-// Agregar elementos al mapa
-            values.set('valor23', 'Value U23');
-            values.set('valor21', 'Value U21');
-            values.set('valor18', 'Value U18');
-            values.set('valorUPSenior', 'Value LM');
-            values.set('valorUPSUB23', 'Value LM U23');
-            values.set('valorUPSUB21', 'Value LM U21');
-            values.set('valorUPSUB18', 'Value LM U18');
+            values.set('valor23', 'U23 Value');
+            values.set('valor21', 'U21 Value');
+            values.set('valor18', 'U18 Value');
+            values.set('salario', 'Salary');
+            values.set('valorUPSenior', 'LM Value');
+            values.set('valorUPSUB23', 'U23 LM Value');
+            values.set('valorUPSUB21', 'U21 LM Value');
+            values.set('valorUPSUB18', 'U18 LM Value');
+            values.set('edad', 'Age');
             values.set('valor11', 'TOP 11');
-            values.set('valor11_23', 'TOP 11 U23');
-            values.set('valor11_21', 'TOP 11 U21');
-            values.set('valor11_18', 'TOP 11 U18');
+            values.set('valor11_23', 'U23 TOP 11');
+            values.set('valor11_21', 'U21 TOP 11');
+            values.set('valor11_18', 'U18 TOP 11');
+            values.set('noNac', 'Foreigners value');
             values.set('elo', 'ELO Score');
-            values.set('elo23', 'ELO Score U23');
-            values.set('elo21', 'ELO Score U21');
-            values.set('elo18', 'ELO Score U18');
+            values.set('elo23', 'U23 ELO Score');
+            values.set('elo21', 'U21 ELO Score');
+            values.set('elo18', 'U18 ELO Score');
+            values.set('numJugadores', 'Number of players');
 
-            var contenidoNuevo = '<div id=testClick><center><table><tr><td><label><input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+            var contenidoNuevo = '<div id=testClick><center>'
+
+            contenidoNuevo+="<center><table id=showMenu border=1><thead><tr><th align=center>Stats</th><th align=center>Graph</th>";
+            contenidoNuevo+="<th align=center>History</th></tr></thead>";
+            contenidoNuevo+= "<tr>";
+            contenidoNuevo+= "<td><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "</tr></table></center>";
+
+            contenidoNuevo+='<table id=show3 border="0"><tr><td><label><input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
             values.forEach(function(valor, clave) {
-                /*if(clave=="valorUPSenior"){
+
+                if(clave=="valorUPSenior"){
                     contenidoNuevo+="</tr><tr>";
-                }*/
+                }
+
                 if(clave=="valor11"){
                     contenidoNuevo+="</tr><tr>";
                 }
-                /* if(clave=="elo"){
-                     contenidoNuevo+="</tr><tr>";
-                 }*/
+                if(clave=="elo"){
+                    contenidoNuevo+="</tr><tr>";
+                }
                 contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
 
             });
-
-
-
-            contenidoNuevo+="</tr></table></center></div>";
+            contenidoNuevo+="</tr></table></center>"
+            contenidoNuevo+="</div></br>";
 
 
             values.set('valor', 'Value');
@@ -498,35 +583,27 @@ border-radius:7px;
                 elemento.addEventListener('click', handleClick);
 
             });
-
-
-
-            // Añadir una nueva celda en la fila de encabezados
             var nuevaCeldaEncabezado = document.createElement("th");
             nuevaCeldaEncabezado.textContent = "Stats Xente";
             nuevaCeldaEncabezado.style.backgroundColor="#246355"
             nuevaCeldaEncabezado.style.color="white"
+            nuevaCeldaEncabezado.style.textAlign = 'center';
             var ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
-
 
             nuevaCeldaEncabezado = document.createElement("th");
             nuevaCeldaEncabezado.textContent = nameInitialValues[urlParams.get('type')];
             nuevaCeldaEncabezado.style.backgroundColor="#246355"
             nuevaCeldaEncabezado.style.color="white"
+            nuevaCeldaEncabezado.style.textAlign = 'center';
             ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
 
-            // Añadir una nueva columna al final de cada fila de datos
+
             var contIds=0
             var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
             for (var i = 0; i < filasDatos.length; i++) {
                 var celda = tabla.rows[i+1].cells[1];
-
-
-
-
-
                 var equipo=celda.textContent.trim()
                 var iniIndex = celda.innerHTML.indexOf("tid=");
                 var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
@@ -536,11 +613,7 @@ border-radius:7px;
                 contIds++
                 celda.innerHTML+="<input type='hidden' id='team_"+id+"' value='"+equipo+"'/>"
 
-
-
-
                 var nuevaColumna = document.createElement("td");
-                // var iner = "<img src='https://statsxente.com/MZ1/View/Images/detail.png' width='20px' height='20px' onclick=\"openModalStatsEquiposHistoricoFiltro1("+id+",'team_"+id+"','z_hola',77,77,'soccer')\"/>";
                 var iner = "<center><img src='https://statsxente.com/MZ1/View/Images/detail.png' width='20px' height='20px' id='but"+id+"' style='cursor:pointer;'/>";
                 iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px' id='but1"+id+"' style='cursor:pointer;'/>";
                 iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px' id='but2"+id+"' style='cursor:pointer;'/>";
@@ -549,14 +622,7 @@ border-radius:7px;
                 var cat = cats[urlParams.get('type')]
                 nuevaColumna.innerHTML=iner
                 filasDatos[i].appendChild(nuevaColumna);
-
                 nuevaColumna = document.createElement("td");
-
-
-//var link="https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo=276402&modal=yes&idioma=SPANISH&divisa=EUR&deporte=F"
-
-
-
                 (function (currentId,currentLSport,lang) {
                     document.getElementById("but1" + currentId).addEventListener('click', function () {
                         var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa=EUR&deporte="+currentLSport;
@@ -568,7 +634,6 @@ border-radius:7px;
                 (function (currentId,currentLSport,lang) {
                     document.getElementById("but2" + currentId).addEventListener('click', function () {
                         var link="https://statsxente.com/MZ1/View/filtroGraficoLinealEquiposHistorico.php?idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=A4p+FC+Gad"
-                        //var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa=EUR&deporte="+currentLSport;
                         openWindow(link,0.95,1.25);
                     });
                 })(id,window.lsport,window.lang);
@@ -598,20 +663,15 @@ border-radius:7px;
                 },
                 onload: function(response) {
                     var jsonResponse = JSON.parse(response.responseText);
-
                     teams_data=jsonResponse;
                     var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
                     for (var i = 0; i < filasDatos.length; i++) {
                         var celda = tabla.rows[i+1].cells[1];
-
                         var equipo=celda.textContent.trim()
                         var iniIndex = celda.innerHTML.indexOf("tid=");
                         var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
                         var data=String(celda.innerHTML)
                         var id=data.substring(iniIndex+4,lastIndex)
-
-
-
                         var nuevaColumna = document.createElement("td");
                         var valor=0;
 
@@ -619,6 +679,7 @@ border-radius:7px;
                             valor = new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id][initialValues[urlParams.get('type')]]))
                         }
                         nuevaColumna.innerHTML=valor
+                        nuevaColumna.style.textAlign = 'center';
                         filasDatos[i].appendChild(nuevaColumna);
 
                         var eloType=1
@@ -641,12 +702,6 @@ border-radius:7px;
                         if(jsonResponse[id]["elo21"]>0){flagSub21=1}
                         if(jsonResponse[id]["elo18"]>0){flagSub18=1}
 
-
-
-
-
-
-
                         (function (currentId, type,currentCat,currentSport,lang,flagS,flagS23,flagS21,flagS18) {
                             document.getElementById("but3" + currentId).addEventListener('click', function () {
                                 var link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?team_id="+currentId+"&idioma="+lang+"&deporte="+currentSport+"&type="+type+"&cat="+currentCat+"&flagSenior="+
@@ -654,42 +709,17 @@ border-radius:7px;
                                 openWindow(link,0.95,1.25);
                             });
                         })(id, eloType,cats_elo[cat],window.sport,window.lang,flagSenior,flagSub23,flagSub21,flagSub18);
-
-
-
-
-
                     }
-
-
-
-
                     var thead=document.getElementsByClassName("seriesHeader")[0]
                     var ths = thead.querySelectorAll("th");
-
-                    // Agregar event listener a cada th
                     ths.forEach(function(th, index) {
                         th.addEventListener("click", function() {
                             ordenarTabla(index);
                         });
                     });
-
-
-
                 }
             });
-
-
-
-
-
         }, 3000);
-
-
-
-
-
-
     }
 
 
@@ -700,17 +730,12 @@ border-radius:7px;
     function openWindow(link,porAncho,porAlto){
         var ventanaAncho=(window.innerWidth)*porAncho
         var ventanaAlto= (window.innerHeight)*porAlto
-        console.log(ventanaAlto)
-        // Calcular las coordenadas para centrar la ventana
         var ventanaIzquierda = (window.innerWidth - ventanaAncho) / 2;
         var ventanaArriba = (window.innerHeight - ventanaAlto) / 2;
-
-        // Opciones de la ventana (puedes ajustar según tus necesidades)
         var opcionesVentana = "width=" + ventanaAncho +
             ",height=" + ventanaAlto +
             ",left=" + ventanaIzquierda +
             ",top=" + ventanaArriba;
-        // Abrir la nueva ventana en el centro
         window.open(link, "_blank", opcionesVentana);
     }
     function handleClick(event) {
@@ -720,19 +745,9 @@ border-radius:7px;
         var elems = document.getElementsByClassName("nice_table");
         var tabla = elems[0]
         var filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
-
-// Obtener el segundo th del thead
         var thSegundo = tabla.querySelector("thead th:nth-child(2)");
-
-// Cambiar el ancho del segundo th
         thSegundo.style.width = "250px";
-
-// Iterar sobre cada fila
         for (var i = 0; i < filas.length; i++) {
-            // Obtener todas las celdas de la fila
-
-
-
             var celda = tabla.rows[i+1].cells[1];
 
             var equipo=celda.textContent.trim()
@@ -743,8 +758,6 @@ border-radius:7px;
 
 
             var celdas = filas[i].getElementsByTagName("td");
-
-            // Obtener la última celda de la fila
             var ultimaCelda = celdas[celdas.length - 1];
 
             var valor=0;
@@ -752,31 +765,22 @@ border-radius:7px;
             if(teams_data[id]===undefined){
                 valor=0
             }else{
-                valor= new Intl.NumberFormat("es-ES").format(Math.round(teams_data[id][event.target.id]))
+                if(event.target.id=="edad"){
+                    valor=new Intl.NumberFormat("es-ES",{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                }else{
+                    valor= new Intl.NumberFormat("es-ES").format(Math.round(teams_data[id][event.target.id]))
+                }
 
             }
 
             ultimaCelda.innerHTML = valor;
         }
         var checkboxes = document.querySelectorAll('.statsxente');
-
-
-
         var ultimaFilaEncabezado = tabla.querySelector("thead tr:last-child");
-
-// Obtener la última celda de encabezado (<th>) dentro de la última fila de encabezado
         var ultimaCeldaEncabezado = ultimaFilaEncabezado.querySelector("th:last-child");
-
-// Cambiar el texto de la última celda de encabezado
         ultimaCeldaEncabezado.textContent = event.target.value;
-
-
-// Iterar sobre los elementos
         checkboxes.forEach(function(checkbox) {
-            console.log(checkbox.id )
-            // Verificar si el checkbox no tiene el ID "hola"
             if (checkbox.id !== event.target.id) {
-                // Deseleccionar el checkbox
                 checkbox.checked = false;
             }
         });
@@ -862,13 +866,8 @@ border-radius:7px;
 
 
         filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
-
-// Recorrer todas las filas
         for ( i = 0; i < filas.length; i++) {
-            // Obtener el primer td de la fila
             var primerTd = filas[i].querySelector("td");
-
-            // Establecer el contenido del primer td
             primerTd.innerHTML = (i+1);
         }
     }
