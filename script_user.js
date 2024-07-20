@@ -106,24 +106,54 @@
     position:relative;
 border-radius:7px;
         background-color: #fefefe00;
-        width: 20%;
-        height: 20%;
+        width: 90%;
+        height: 40%;
         display: flex;
         justify-content: center;
         align-items: center;
     }
 
-    .btn {
-    color: white;
-    background-color: #bf3535;
-    border: 0;
-    outline: none;
-    width: 7em;
-    border: solid 1px #ccc;
-    padding: 10px;
-    font-size:1em;
-    border-radius:5px;
-    }
+
+.btn-save{
+width:8em;
+border-color:transparent;
+border-radius: 3px;
+  display: inline-block;
+  padding: 10px 5px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  cursor:pointer;
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  background-color: #3CC93F;/*Color de fondo*/
+}
+.btn-save:hover{
+  background-color: #37B839;/*Color de fondo*/
+}
+.btn-save:active{
+  background-color: #29962A;/*Color de fondo*/
+}
+
+.btn-delete{
+width:8em;
+border-color:transparent;
+border-radius: 3px;
+  display: inline-block;
+  padding: 10px 5px;
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  cursor:pointer;
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  background-color: #e6413e;/*Color de fondo*/
+}
+.btn-delete:hover{
+  background-color: #C93832;/*Color de fondo*/
+}
+.btn-delete:active{
+  background-color: #ad2a24;/*Color de fondo*/
+}
 
     .cerrar {
     position: absolute;
@@ -264,10 +294,9 @@ border-radius:7px;
     font-family: 'Roboto', sans-serif
   }
 
-  #showMenu th,
-  td {
+ /* #showMenu th,td {
     padding: 4px;
-  }
+  }*/
 
   #showMenu td {
     background-color: white;
@@ -334,12 +363,38 @@ border-radius:7px;
     border-bottom-left-radius: 5px;
 }
 
+.caja_mensaje_50 {
+    font-family: 'Roboto', sans-serif;
+    background: #98D398;
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 4px;
+    text-align: center;
+    width: 50%;
+    font-size: 2.0em;
+    border-radius: 5px;
+}
+
+.modal_div_content_main{
+
+background-color: #f2f2f2;
+    min-height: 115px;
+    border-radius: 5px;
+}
+
   `)
 
     var link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css?family=Roboto&display=swap';
     link.rel = 'stylesheet';
+
+    var link1 = document.createElement('link');
+    link1.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css';
+    link1.rel = 'stylesheet';
+
+
     document.head.appendChild(link)
+    document.head.appendChild(link1)
 
     createModalMenu()
     createModalEventListeners()
@@ -356,35 +411,8 @@ border-radius:7px;
     window.cats=cats;
 
 
-    var langs = new Map();
-    langs.set('es', 'SPANISH');
-    langs.set('ar', 'SPANISH')
-    langs.set('en', 'ENGLISH');
-    langs.set('br', 'PORTUGUES');
-    langs.set('pt', 'PORTUGUES');
-    langs.set('pl', 'POLISH');
-    langs.set('ro', 'ROMANIAN');
-    langs.set('tr', 'TURKISH');
-
-    var lanCookie = getCookie("MZLANG");
-    if(langs.has(lanCookie)){
-        window.lang=langs.get(lanCookie);
-    }else{
-        window.lang="ENGLISH";
-    }
-
-    console.log(window.lang)
-    console.log(GM_getValue("transfer_options_hide"))
-
-// Ejemplo de uso
-    var sportCookie = getCookie("MZSPORT");
-    console.log(sportCookie);
-    var lsport="F"
-    if(sportCookie=="hockey"){
-        lsport="H";
-    }
-    window.sport=sportCookie;
-    window.lsport=lsport;
+    setLangAndSport()
+    getUsernameData()
 
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -539,12 +567,16 @@ border-radius:7px;
 
             var contenidoNuevo = '<div id=testClick><center>'
 
-            contenidoNuevo+="<center><table id=showMenu border=1><thead><tr><th align=center>Stats</th><th align=center>Graph</th>";
-            contenidoNuevo+="<th align=center>History</th></tr></thead>";
+
+            getNativeTableStyles();
+
+            contenidoNuevo+="<center><table id=showMenu border=1><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
+            contenidoNuevo+='<th align=center style="padding:4px;">Stats</th><th align=center style="padding:4px;">Graph</th>';
+            contenidoNuevo+="<th align=center style='padding:4px;'>History</th></tr></thead>";
             contenidoNuevo+= "<tr>";
-            contenidoNuevo+= "<td><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
-            contenidoNuevo+= "<td><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
-            contenidoNuevo+= "<td><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
             contenidoNuevo+= "</tr></table></center>";
 
             contenidoNuevo+='<table id=show3 border="0"><tr><td><label><input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
@@ -585,16 +617,16 @@ border-radius:7px;
             });
             var nuevaCeldaEncabezado = document.createElement("th");
             nuevaCeldaEncabezado.textContent = "Stats Xente";
-            nuevaCeldaEncabezado.style.backgroundColor="#246355"
-            nuevaCeldaEncabezado.style.color="white"
+            //nuevaCeldaEncabezado.style.backgroundColor="#246355"
+            //nuevaCeldaEncabezado.style.color="white"
             nuevaCeldaEncabezado.style.textAlign = 'center';
             var ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
 
             nuevaCeldaEncabezado = document.createElement("th");
             nuevaCeldaEncabezado.textContent = nameInitialValues[urlParams.get('type')];
-            nuevaCeldaEncabezado.style.backgroundColor="#246355"
-            nuevaCeldaEncabezado.style.color="white"
+            //nuevaCeldaEncabezado.style.backgroundColor="#246355"
+            //nuevaCeldaEncabezado.style.color="white"
             nuevaCeldaEncabezado.style.textAlign = 'center';
             ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
@@ -631,16 +663,24 @@ border-radius:7px;
                 })(id,window.lsport,window.lang);
 
 
-                (function (currentId,currentLSport,lang) {
+                (function (currentId,currentLSport,lang,currentCat) {
                     document.getElementById("but2" + currentId).addEventListener('click', function () {
-                        var link="https://statsxente.com/MZ1/View/filtroGraficoLinealEquiposHistorico.php?idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=A4p+FC+Gad"
+                        var src="filtroGraficoEquiposHistoricoHockey";
+                        if(currentLSport=="F"){
+                            src="filtroGraficoLinealEquiposHistorico";
+                        }
+
+                        var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=A4p+FC+Gad"
                         openWindow(link,0.95,1.25);
                     });
-                })(id,window.lsport,window.lang);
+                })(id,window.lsport,window.lang,cat);
 
 
                 (function (currentId, currentEquipo,currentCat,currentSport,lang) {
                     document.getElementById("but" + currentId).addEventListener('click', function () {
+
+
+
                         var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=yes&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
                         openWindow(link,0.95,1.25);
                     });
@@ -657,7 +697,7 @@ border-radius:7px;
             console.log(linkIds)
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?sport="+sportCookie+linkIds,
+                url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?sport="+window.sport+linkIds,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -704,7 +744,7 @@ border-radius:7px;
 
                         (function (currentId, type,currentCat,currentSport,lang,flagS,flagS23,flagS21,flagS18) {
                             document.getElementById("but3" + currentId).addEventListener('click', function () {
-                                var link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?team_id="+currentId+"&idioma="+lang+"&deporte="+currentSport+"&type="+type+"&cat="+currentCat+"&flagSenior="+
+                                var link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?tamper=yes&team_id="+currentId+"&idioma="+lang+"&deporte="+currentSport+"&type="+type+"&cat="+currentCat+"&flagSenior="+
                                     flagS+"&flagSub23="+flagS23+"&flagSub21="+flagS21+"&flagSub18="+flagS18;
                                 openWindow(link,0.95,1.25);
                             });
@@ -723,10 +763,6 @@ border-radius:7px;
     }
 
 
-
-
-
-
     function openWindow(link,porAncho,porAlto){
         var ventanaAncho=(window.innerWidth)*porAncho
         var ventanaAlto= (window.innerHeight)*porAlto
@@ -739,9 +775,6 @@ border-radius:7px;
         window.open(link, "_blank", opcionesVentana);
     }
     function handleClick(event) {
-
-
-
         var elems = document.getElementsByClassName("nice_table");
         var tabla = elems[0]
         var filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
@@ -784,43 +817,23 @@ border-radius:7px;
                 checkbox.checked = false;
             }
         });
-
-
-
-
-
-
-
         var columna=12
-
-
-
     }
     function ordenarTabla(columna){
-
-
         var elems = document.getElementsByClassName("nice_table");
         var tabla = elems[0]
-
         var filas, switching, i, x, y, debeCambiar, direccion, cambioRealizado;
-
         switching = true;
-        // Establecer la dirección de orden inicial a ascendente
         direccion = "descendente";
-        // Continuar ordenando hasta que no haya más cambios realizados
         while (switching) {
             switching = false;
             filas = tabla.rows;
-            // Recorrer todas las filas excepto la primera (encabezados)
             for (i = 1; i < (filas.length - 1); i++) {
                 debeCambiar = false;
-                // Obtener los elementos a comparar, uno de la columna actual y otro de la siguiente
                 x = filas[i].getElementsByTagName("td")[columna];
                 y = filas[i + 1].getElementsByTagName("td")[columna];
-                // Eliminar los separadores de miles y convertir a números
                 var xValue = parseFloat(x.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
                 var yValue = parseFloat(y.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
-                // Comparar los elementos según la dirección de orden
                 if (direccion == "ascendente") {
                     if (isNaN(xValue)) {
                         if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
@@ -848,14 +861,10 @@ border-radius:7px;
                 }
             }
             if (debeCambiar) {
-                // Si debe cambiar, marcarlo y cambiar el orden de las filas
                 filas[i].parentNode.insertBefore(filas[i + 1], filas[i]);
                 switching = true;
-                // Marcar que se realizó un cambio
                 cambioRealizado = true;
             } else {
-                // Si no se realizó ningún cambio y se estaba ordenando de forma ascendente,
-                // cambiar a orden descendente y volver a empezar
                 if (!cambioRealizado && direccion == "descendente") {
                     direccion = "ascendente";
                     switching = true;
@@ -876,7 +885,6 @@ border-radius:7px;
         var valorCookie = document.cookie.replace(regex, "$1");
         return decodeURIComponent(valorCookie);
     }
-
 
     function createModalMenu() {
         setTimeout(function () {
@@ -908,20 +916,24 @@ border-radius:7px;
             if (GM_getValue("federationFlag")) federationFlag = "checked"
             if (GM_getValue("matchFlag")) matchFlag = "checked"
             if (GM_getValue("leagueFlag")) leagueFlag = "checked"
-
-            document.getElementById("contenido_modal_cargando").innerHTML += '<label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span>'
-            document.getElementById("contenido_modal_cargando").innerHTML += '<label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span>'
-            document.getElementById("contenido_modal_cargando").innerHTML += '<label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span>'
-            document.getElementById("modal_content_div_cargando").innerHTML += '<span class="cerrar"><img id="closeButton" src="' + close_image + '" style="width:20px; height;20px"/></span>'
+            var newContent='<center><img id="closeButton" src="' + close_image + '" style="width:40px; height:40px; cursor:ppinter;"/></br><div id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"></br><table border=0><tbody><tr>';
+            newContent+= '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+            newContent+= '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+            newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+            newContent+="</tr></tbody></table>"
+            newContent+='<button class="btn-save"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button><button class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button>'
+            newContent+='</div></center></br></br>qqq';
+            document.getElementById("contenido_modal_cargando").innerHTML=newContent
+            document.getElementById("contenido_modal_cargando").style.width="50%";
             document.getElementById("myModal_cargando").style.display = "none"
+            getNativeTableStyles()
 
+            document.getElementById("alert_tittle").style.backgroundColor=GM_getValue("bg_native")
 
             document.getElementById("legendDiv").addEventListener('click', function () {
 
                 if (document.getElementById("myModal_cargando").style.display == "none") {
                     document.getElementById("myModal_cargando").style.display = "flex";
-                    document.getElementById("modal_content_div_cargando").style.backgroundColor = "#f2f2f2";
-
                 } else {
                     document.getElementById("myModal_cargando").style.display = "none";
                 }
@@ -937,6 +949,24 @@ border-radius:7px;
         }, 3000);
 
     }
+
+
+    function getNativeTableStyles(){
+        var elemento = document.querySelector('.subheader.clearfix');
+        if (elemento) {
+            var estilo = getComputedStyle(elemento);
+            var bg=estilo.backgroundColor
+            var color="white"
+            if(estilo.backgroundColor=="rgba(0, 0, 0, 0)"){
+                bg="#a9b0b4"
+            }
+            GM_setValue("bg_native",bg)
+            GM_setValue("color_native",color)
+        }
+
+
+    }
+
 
     function createModalEventListeners() {
         setTimeout(function () {
@@ -956,6 +986,80 @@ border-radius:7px;
             });
 
         }, 5000);
+
+    }
+
+    function setLangAndSport(){
+
+        var langs = new Map();
+        langs.set('es', 'SPANISH');
+        langs.set('ar', 'SPANISH')
+        langs.set('en', 'ENGLISH');
+        langs.set('br', 'PORTUGUES');
+        langs.set('pt', 'PORTUGUES');
+        langs.set('pl', 'POLISH');
+        langs.set('ro', 'ROMANIAN');
+        langs.set('tr', 'TURKISH');
+
+        var lanCookie = getCookie("MZLANG");
+        if(langs.has(lanCookie)){
+            window.lang=langs.get(lanCookie);
+        }else{
+            window.lang="ENGLISH";
+        }
+
+        var sportCookie = getCookie("MZSPORT");
+        console.log(sportCookie);
+        var lsport="F"
+        var sport_id=1;
+        if(sportCookie=="hockey"){
+            lsport="H";
+            sport_id=2;
+        }
+        window.sport=sportCookie;
+        window.lsport=lsport;
+        window.sport_id=sport_id;
+
+    }
+
+    function getUsernameData(){
+        if (GM_getValue("currency") === undefined) {
+            var username=document.getElementById("header-username").innerText
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "http://www.managerzone.com/xml/manager_data.php?sport_id=1&username="+username,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function(response) {
+
+                    var parser = new DOMParser();
+                    var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                    var userTeamsData = xmlDoc.getElementsByTagName("Team");
+                    GM_xmlhttpRequest({
+                        method: "GET",
+                        url: "http://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+userTeamsData[0].getAttribute("teamId"),
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        onload: function(response) {
+
+                            var parser = new DOMParser();
+                            var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                            var team_data = xmlDoc.getElementsByTagName("TeamPlayers");
+                            GM_setValue("currency",team_data[0].getAttribute("teamCurrency"))
+                        }
+                    });
+
+
+
+
+
+                }
+            });
+
+        }
+
 
     }
 
