@@ -414,6 +414,8 @@ background-color: #f2f2f2;
     setLangAndSport()
     getUsernameData()
 
+    GM_setValue("currency","SEK");
+
 
     document.addEventListener("DOMContentLoaded", function() {
         var urlParams = new URLSearchParams(window.location.search);
@@ -500,7 +502,7 @@ background-color: #f2f2f2;
         tabla.insertAdjacentHTML('beforeend', contenidoNuevo)
 
         document.getElementById("clashCompare").addEventListener('click', function () {
-            var link = "https://statsxente.com/MZ1/Functions/loadClashFederationData.php?tamper=yes&fid="+local_id[1]+"&fid1="+away_id[1]+"&fede="+encodeURIComponent(names[0].innerText)+"&fede1="+encodeURIComponent(names[1].innerText)+"&idioma=SPANISH&divisa=EUR&sport="+sport;
+            var link = "https://statsxente.com/MZ1/Functions/loadClashFederationData.php?tamper=yes&fid="+local_id[1]+"&fid1="+away_id[1]+"&fede="+encodeURIComponent(names[0].innerText)+"&fede1="+encodeURIComponent(names[1].innerText)+"&idioma="+window.lang+"&divisa="+GM_getValue("currency")+"&sport="+window.sport;
             openWindow(link,0.95,1.25);
         });
 
@@ -657,7 +659,7 @@ background-color: #f2f2f2;
                 nuevaColumna = document.createElement("td");
                 (function (currentId,currentLSport,lang) {
                     document.getElementById("but1" + currentId).addEventListener('click', function () {
-                        var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa=EUR&deporte="+currentLSport;
+                        var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
                         openWindow(link,0.95,1.25);
                     });
                 })(id,window.lsport,window.lang);
@@ -670,7 +672,7 @@ background-color: #f2f2f2;
                             src="filtroGraficoLinealEquiposHistorico";
                         }
 
-                        var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=A4p+FC+Gad"
+                        var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
                         openWindow(link,0.95,1.25);
                     });
                 })(id,window.lsport,window.lang,cat);
@@ -679,17 +681,10 @@ background-color: #f2f2f2;
                 (function (currentId, currentEquipo,currentCat,currentSport,lang) {
                     document.getElementById("but" + currentId).addEventListener('click', function () {
 
-
-
                         var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=yes&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
                         openWindow(link,0.95,1.25);
                     });
                 })(id, equipo,cat,window.sport,window.lang);
-
-
-
-
-
 
             }
 
@@ -697,7 +692,7 @@ background-color: #f2f2f2;
             console.log(linkIds)
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?sport="+window.sport+linkIds,
+                url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency="+GM_getValue("currency")+"&sport="+window.sport+linkIds,
                 headers: {
                     "Content-Type": "application/json"
                 },
