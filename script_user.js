@@ -446,7 +446,7 @@ background-color: #f2f2f2;
 
     (function () {
         document.getElementById("league_tab_table").addEventListener('click', function () {
-            if(document.getElementById("showMenu")===undefined) {
+            if(document.getElementById("showMenu")===null) {
                 leagues()
             }
         });
