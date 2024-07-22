@@ -443,6 +443,18 @@ background-color: #f2f2f2;
 
     });
 
+
+    (function () {
+        document.getElementById("league_tab_table").addEventListener('click', function () {
+            if(document.getElementById("showMenu")===undefined) {
+                leagues()
+            }
+        });
+    })();
+
+
+
+
     function match(){
 
         setTimeout(function() {
@@ -572,16 +584,29 @@ background-color: #f2f2f2;
 
             getNativeTableStyles();
 
+            var idProgress="noProgress";
+            if(urlParams.get('type')=="senior"){
+                idProgress="divProgress"
+            }
+
+///MENU TABLE
             contenidoNuevo+="<center><table id=showMenu border=1><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
             contenidoNuevo+='<th align=center style="padding:4px;">Stats</th><th align=center style="padding:4px;">Graph</th>';
             contenidoNuevo+="<th align=center style='padding:4px;'>History</th></tr></thead>";
             contenidoNuevo+= "<tr>";
             contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
             contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
-            contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
             contenidoNuevo+= "</tr></table></center>";
 
-            contenidoNuevo+='<table id=show3 border="0"><tr><td><label><input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+            contenidoNuevo+='<table id=show3 border="0"><tr><td><label>';
+
+            if((urlParams.get('type')=='senior')||(urlParams.get('type')=='world')){
+                contenidoNuevo+='<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
+            }else{
+                contenidoNuevo+='<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+            }
+
             values.forEach(function(valor, clave) {
 
                 if(clave=="valorUPSenior"){
@@ -594,8 +619,12 @@ background-color: #f2f2f2;
                 if(clave=="elo"){
                     contenidoNuevo+="</tr><tr>";
                 }
-                contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
 
+                if(clave==initialValues[urlParams.get('type')]){
+                    contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" checked value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
+                }else{
+                    contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
+                }
             });
             contenidoNuevo+="</tr></table></center>"
             contenidoNuevo+="</div></br>";
@@ -619,16 +648,12 @@ background-color: #f2f2f2;
             });
             var nuevaCeldaEncabezado = document.createElement("th");
             nuevaCeldaEncabezado.textContent = "Stats Xente";
-            //nuevaCeldaEncabezado.style.backgroundColor="#246355"
-            //nuevaCeldaEncabezado.style.color="white"
             nuevaCeldaEncabezado.style.textAlign = 'center';
             var ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
 
             nuevaCeldaEncabezado = document.createElement("th");
             nuevaCeldaEncabezado.textContent = nameInitialValues[urlParams.get('type')];
-            //nuevaCeldaEncabezado.style.backgroundColor="#246355"
-            //nuevaCeldaEncabezado.style.color="white"
             nuevaCeldaEncabezado.style.textAlign = 'center';
             ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
@@ -687,6 +712,28 @@ background-color: #f2f2f2;
                 })(id, equipo,cat,window.sport,window.lang);
 
             }
+
+
+            var enlace = document.getElementById('league_tab_schedule');
+            var href = enlace.href;
+            var url = new URL(href);
+            var league_id = url.searchParams.get('sid');
+
+
+
+            ///DIV PROGRESS
+
+            (function (currentId,currentLSport,lang) {
+                document.getElementById("divProgress").addEventListener('click', function () {
+
+                    var link = " https://statsxente.com/MZ1/Graficos/graficoProgresoDivision.php?idLiga="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
+                    openWindow(link,0.95,1.25);
+                });
+            })(league_id,window.lsport,window.lang);
+
+
+
+
 
 
             console.log(linkIds)
