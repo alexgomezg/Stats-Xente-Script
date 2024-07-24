@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.70
+// @version      0.71
 // @description  Example of description of statsxente
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -462,6 +462,15 @@ background-color: #f2f2f2;
 
 
             clashLeagues();
+
+        }
+
+
+        if((urlParams.has('p')) && (urlParams.get('p') === 'players')&&(GM_getValue("federationFlag"))){
+
+
+
+            playersPage();
 
         }
 
@@ -1311,7 +1320,6 @@ background-color: #f2f2f2;
                 },
                 onload: function(response) {
                     var jsonResponse = JSON.parse(response.responseText);
-                    console.log(jsonResponse)
                     teams_data=jsonResponse;
                     var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
                     for (var i = 0; i < filasDatos.length; i++) {
@@ -1338,6 +1346,9 @@ background-color: #f2f2f2;
                         filasDatos[i].appendChild(nuevaColumna);
 
 
+
+
+
                         (function (currentId,currentSport,lang) {
                             document.getElementById("but" + currentId).addEventListener('click', function () {
 
@@ -1350,6 +1361,17 @@ background-color: #f2f2f2;
 
 
                     }
+
+
+
+
+
+
+
+
+
+
+
 
 
                 }
@@ -1373,7 +1395,23 @@ background-color: #f2f2f2;
 
         }, 3000);
 
+
+
+        /*var thead=document.getElementsByClassName("nice_table")[0].querySelector('thead')
+        var ths = thead.querySelectorAll("th");
+        ths.forEach(function(th, index) {
+
+            console.log(th.innerHTML+" "+index)
+
+            th.addEventListener("click", function() {
+                ordenarTabla(index);
+            });
+        });*/
+
+
     }
+
+
 
 
 
@@ -1423,6 +1461,288 @@ background-color: #f2f2f2;
         var columna=12
     }
 
+
+
+    var players=[]
+    var lines=[]
+    var gk_line=""
+    var skills_names=[]
+
+    function playersPage(){
+        setTimeout(function () {
+            var elementos = document.getElementsByClassName('playerContainer');
+
+            var player_values={}
+            var tactics_list=[]
+
+            var habil=elementos[0].getElementsByClassName("clippable")
+            for (var q = 1; q < habil.length; q++) {
+                skills_names.push(habil[q].textContent)
+            }
+
+
+            for (var i = 0; i < elementos.length; i++) {
+
+                var age_div=elementos[i].getElementsByClassName('dg_playerview_info');
+                var age_table = age_div[0].getElementsByTagName('table')[0];
+
+                var ini_age = age_table.getElementsByTagName('td')[0].textContent.indexOf(":")
+                var age = age_table.getElementsByTagName('td')[0].textContent.substring(ini_age+2,ini_age+4);
+
+
+
+
+
+
+                var ids=elementos[i].getElementsByClassName('player_id_span');
+                var tactics=elementos[i].getElementsByClassName('player_tactic gradientSunriseIcon');
+
+                player_values={"id":ids[0].textContent,"skills":[],"lines":[],"tactics-position":{},"tactics":[],"age":parseInt(age)}
+
+                for (var j = 0; j < tactics.length; j++) {
+                    var fin=0;
+                    var line=""
+                    var ini = tactics[j].textContent.indexOf('(');
+                    var tactic = tactics[j].textContent.substring(0, ini-1);
+
+                    if(!tactics[j].textContent.includes(":")){
+                        ini=tactics[j].textContent.indexOf('(');
+                        fin=tactics[j].textContent.indexOf(')');
+                        line = tactics[j].textContent.substring(ini+2, fin-1);
+                        gk_line=line;
+                    }else{
+
+                        ini=tactics[j].textContent.indexOf('(');
+                        fin=tactics[j].textContent.indexOf(':');
+                        line = tactics[j].textContent.substring(ini+2, fin);
+                    }
+
+                    if(!player_values['lines'].includes(line)){
+                        player_values['lines'].push(line);
+                    }
+                    if(!player_values['tactics'].includes(tactic)){
+                        player_values['tactics'].push(tactic);
+                    }
+
+                    player_values['tactics-position'][tactic]=line
+
+
+                    if(!lines.includes(line)){
+                        lines.push(line);
+                    }
+
+                    if(!tactics_list.includes(tactic)){
+                        tactics_list.push(tactic);
+                    }
+
+
+                }
+
+
+                var skills = elementos[i].getElementsByClassName('skillval');
+
+                for (j = 1; j < skills.length; j++) {
+
+                    var cleanedText = skills[j].textContent.replace(')', '');
+                    cleanedText = cleanedText.replace('(', '');
+                    let number = parseInt(cleanedText, 10);
+                    player_values['skills'].push(number);
+                }
+
+
+                players.push(player_values)
+            }
+
+
+
+            var tables=document.getElementsByClassName("clearfix");
+            const container=document.getElementById("player-filters-wrapper")
+            const firstChild = container.firstChild;
+
+            var contenidoNuevo="</br><center>"
+            contenidoNuevo+="<div id=selectDiv>Choose Tactic: <select id=tactics_select>"
+
+            for(var x=0;x<tactics_list.length;x++){
+                contenidoNuevo+="<option value='"+tactics_list[x]+"'>"+tactics_list[x]+"</option>"
+            }
+            contenidoNuevo+="</select></div></br><div id=divMenu></div></center>"
+
+
+
+            container.innerHTML+=contenidoNuevo;
+
+
+
+
+            skillDistrib("Senior");
+
+
+            document.getElementById("tactics_select").addEventListener('change', function () {
+                console.log("eo")
+                var select = document.getElementById('tactics_select');
+                var valorSeleccionado = select.value;
+                console.log(valorSeleccionado)
+                document.getElementById("divMenu").innerHTML=""
+                skillDistrib(valorSeleccionado)
+                /*document.getElementById("showMenu").remove()
+                         skillDistrib(valorSeleccionado);*/
+            });
+
+
+
+
+
+
+        }, 1000);
+    }
+
+
+    function skillDistrib(tactic){
+
+        var t=tactic
+
+        var l=[0,0,0,0,0,0,0,0,0,0]
+        var li_t={}
+        for (var i = 0; i < lines.length; i++) {
+            li_t[lines[i]]=[0,0,0,0,0,0,0,0,0,0,0];
+        }
+
+        var no_gk_line="Tactic -("+gk_line+")"
+        li_t["Team"]=[0,0,0,0,0,0,0,0,0,0,0];
+        li_t["U23"]=[0,0,0,0,0,0,0,0,0,0,0];
+        li_t["U21"]=[0,0,0,0,0,0,0,0,0,0,0];
+        li_t["U18"]=[0,0,0,0,0,0,0,0,0,0,0];
+
+        li_t["Tactic"]=[0,0,0,0,0,0,0,0,0,0,0];
+        li_t[no_gk_line]=[0,0,0,0,0,0,0,0,0,0,0];
+
+
+
+        for (i = 0; i < players.length; i++) {
+
+            if(players[i]['tactics'].includes(t)){
+                for(var j=0;j<players[i]['skills'].length;j++){
+                    li_t[players[i]['tactics-position'][t]][j]+=players[i]['skills'][j]
+                    li_t['Tactic'][j]+=players[i]['skills'][j]
+                    if(players[i]['tactics-position'][t]!="Po"){
+                        li_t[no_gk_line][j]+=players[i]['skills'][j]
+                    }
+                }
+                li_t[players[i]['tactics-position'][t]][j]+=1
+                li_t['Tactic'][j]+=1
+
+                if(players[i]['tactics-position'][t]!="Po"){
+                    li_t[no_gk_line][j]+=1
+                }
+
+            }else{
+
+                for(j=0;j<players[i]['skills'].length;j++){
+
+                    if(players[i]['age']<=23){
+                        li_t['U23'][j]+=players[i]['skills'][j]
+                    }
+
+                    if(players[i]['age']<=23){
+                        li_t['U21'][j]+=players[i]['skills'][j]
+                    }
+
+
+                    if(players[i]['age']<=23){
+                        li_t['U18'][j]+=players[i]['skills'][j]
+                    }
+
+                    li_t['Team'][j]+=players[i]['skills'][j]
+                }
+
+
+                if(players[i]['age']<=23){
+                    li_t['U23'][li_t["U23"].length-1]+=1
+                }
+
+
+                if(players[i]['age']<=21){
+                    li_t['U21'][li_t["U21"].length-1]+=1
+                }
+
+                if(players[i]['age']<=18){
+                    li_t['U18'][li_t["U18"].length-1]+=1
+                }
+
+                li_t['Team'][li_t["Team"].length-1]+=1
+            }
+
+
+        }
+
+
+
+        const container=document.getElementById("divMenu")
+
+
+        var contenidoNuevo="<center><table id=showMenu border=1 style='width:95%;font-size:13px;'><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
+        contenidoNuevo+='<th align=center style="padding:4px;"><strong>Line</strong></th>'
+        for(var q=0;q<skills_names.length;q++){
+            contenidoNuevo+='<th align=center style="padding:4px;"><b>aaa'+skills_names[q]+'</b></th>'
+        }
+        contenidoNuevo+='</tr></thead>';
+
+
+
+        var l_aux=lines
+
+
+// Crear un nuevo array excluyendo el elemento a eliminar
+        l_aux = l_aux.filter(item => item !== gk_line);
+
+        l_aux.sort((a, b) => {
+            let numA = parseInt(a.substring(1), 10);
+            let numB = parseInt(b.substring(1), 10);
+            return numA - numB;
+        });
+
+        l_aux.unshift(gk_line);
+        l_aux.push("Tactic");
+        l_aux.push(no_gk_line);
+
+        if(t=="All Team"){
+            l_aux=["Team","U23","U21","U18"]
+        }
+
+        for (var w=0;w<l_aux.length;w++) {
+            var key=l_aux[w]
+            if (li_t.hasOwnProperty(key)) { // Opcional, asegura que la propiedad sea propia del objeto y no heredada
+                contenidoNuevo+= "<tr>";
+                contenidoNuevo+= "<td align=center style='padding:2px;'>"+key+"</td>";
+                for(var x=0;x<li_t[key].length-1;x++){
+                    contenidoNuevo+= "<td align=center style='padding:2px;'>"+ Math.round(li_t[key][x]/li_t[key][li_t[key].length-1] * 100) / 100+"</td>";
+                }
+                contenidoNuevo+= "</tr>";
+
+            }
+        }
+
+        container.innerHTML+=contenidoNuevo;
+
+    }
+
+
+
+
+    // Función para añadir una clave principal con propiedades anidadas
+    function addPropertyToMap(mapa, clavePrincipal, propiedades) {
+        // Si la clave principal no existe, crearla como un objeto vacío
+        if (!mapa[clavePrincipal]) {
+            mapa[clavePrincipal] = {};
+        }
+
+        // Añadir las propiedades al objeto anidado
+        for (var key in propiedades) {
+            if (propiedades.hasOwnProperty(key)) {
+                mapa[clavePrincipal][key] = propiedades[key];
+            }
+        }
+    }
 
 
 })();
