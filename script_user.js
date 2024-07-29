@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.72
+// @version      0.73
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -423,7 +423,7 @@ background-color: #f2f2f2;
         }
 
         if((urlParams.has('p')) && (urlParams.get('p') === 'match')&& (urlParams.get('sub') === 'result')&&(GM_getValue("matchFlag"))){
-            match();
+            //match();
         }
 
 
