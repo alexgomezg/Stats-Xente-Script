@@ -388,7 +388,7 @@ background-color: #f2f2f2;
 
     var keys = GM_listValues();
     keys.forEach(function(key) {
-        console.log(GM_getValue(key))
+        console.log(key+" "+GM_getValue(key))
     });
 
     var link = document.createElement('link');
@@ -1215,9 +1215,7 @@ background-color: #f2f2f2;
     }
 
     function getUsernameData(){
-        if (GM_getValue("currency") === undefined) {
-            console.log("here")
-            console.log("http://www.managerzone.com/xml/manager_data.php?sport_id="+window.sport_id+"&username="+username)
+        if ((GM_getValue("currency") === undefined)||(GM_getValue("currency") =="")) {
             var username=document.getElementById("header-username").innerText
             GM_xmlhttpRequest({
                 method: "GET",
@@ -1230,9 +1228,13 @@ background-color: #f2f2f2;
                     var parser = new DOMParser();
                     var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
                     var userTeamsData = xmlDoc.getElementsByTagName("Team");
+                    var index=1;
+                    if(userTeamsData[0].getAttribute("teamId")==window.sport){
+                        index=0;
+                    }
                     GM_xmlhttpRequest({
                         method: "GET",
-                        url: "http://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+userTeamsData[0].getAttribute("teamId"),
+                        url: "http://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+userTeamsData[index].getAttribute("teamId"),
                         headers: {
                             "Content-Type": "application/json"
                         },
