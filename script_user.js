@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.74
+// @version      0.75
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -412,7 +412,7 @@ background-color: #f2f2f2;
 
 
 
-    document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(function () {
         var urlParams = new URLSearchParams(window.location.search);
         if((urlParams.has('p')) && (urlParams.get('p') === 'league')&&(GM_getValue("leagueFlag"))){
             leagues();
@@ -450,7 +450,7 @@ background-color: #f2f2f2;
 
 
 
-    });
+    }, 3000);
 
 
     (function () {
