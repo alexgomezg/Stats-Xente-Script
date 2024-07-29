@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.71
-// @description  Example of description of statsxente
+// @version      0.72
+// @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
 // @icon         https://statsxente.com/MZ1/View/Images/etiqueta_bota.png
@@ -393,41 +393,20 @@ background-color: #f2f2f2;
     var link1 = document.createElement('link');
     link1.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css';
     link1.rel = 'stylesheet';
-
-
     document.head.appendChild(link)
     document.head.appendChild(link1)
 
     createModalMenu()
     createModalEventListeners()
 
-    var cats = {};
-    cats["senior"] = "senior";
-    cats["world"] = "seniorw";
-    cats["u23"] = "SUB23";
-    cats["u21"] = "SUB21";
-    cats["u18"] = "SUB18";
-    cats["u23_world"] = "SUB23w";
-    cats["u21_world"] = "SUB21w";
-    cats["u18_world"] = "SUB18w";
-    window.cats=cats;
-
-
-    setLangAndSport()
+    setLangSportCats()
     getUsernameData()
-
-    GM_setValue("currency","EUR");
-
-
-
 
 
     var inputHidden = document.createElement('input');
     inputHidden.type = 'hidden';
     inputHidden.id = 'ord_table';
     inputHidden.value = 'descendente';
-
-    // Obtener el <body> y añadir el input al final
     document.body.appendChild(inputHidden);
 
 
@@ -436,43 +415,39 @@ background-color: #f2f2f2;
     document.addEventListener("DOMContentLoaded", function() {
         var urlParams = new URLSearchParams(window.location.search);
         if((urlParams.has('p')) && (urlParams.get('p') === 'league')&&(GM_getValue("leagueFlag"))){
-
-
             leagues();
-
         }
 
         if((urlParams.has('p')) && (urlParams.get('p') === 'federations')&& (urlParams.get('sub') === 'clash')&&(GM_getValue("federationFlag"))){
-
-
             clash();
-
         }
 
         if((urlParams.has('p')) && (urlParams.get('p') === 'match')&& (urlParams.get('sub') === 'result')&&(GM_getValue("matchFlag"))){
-
-
             match();
-
         }
 
 
         if((urlParams.has('p')) && (urlParams.get('p') === 'federations')&& (urlParams.get('sub') === 'league')&&(GM_getValue("federationFlag"))){
-
-
-
             clashLeagues();
-
         }
 
 
-        if((urlParams.has('p')) && (urlParams.get('p') === 'players')&&(GM_getValue("federationFlag"))){
-
-
-
+        if((urlParams.has('p')) && (urlParams.get('p') === 'players')&&(GM_getValue("playersFlag"))){
             playersPage();
-
         }
+
+
+        if((urlParams.has('p')) && (urlParams.get('p') === 'rank')&&(urlParams.get('sub') === 'countryrank')
+            &&(GM_getValue("countryRankFlag"))){
+            countryRank();
+        }
+
+        if((urlParams.has('p')) && (urlParams.get('p') === 'clubhouse')){
+            nextMatchesClubhouse()
+        }
+
+
+
 
 
     });
@@ -649,8 +624,12 @@ background-color: #f2f2f2;
             contenidoNuevo+="<th align=center style='padding:4px;'>History</th></tr></thead>";
             contenidoNuevo+= "<tr>";
             contenidoNuevo+= "<td style='padding:4px;'><center><img id='detailDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
-            contenidoNuevo+= "<td style='padding:4px;'><center><img style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
-            contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px;'><center><img id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
+            if(idProgress=="noProgress"){
+                contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph_disabled.png width=25 height=25/></center></td>";
+            }else{
+                contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
+            }
             contenidoNuevo+= "</tr></table></center>";
 
             contenidoNuevo+='<table id=show3 border="0"><tr><td><label>';
@@ -728,7 +707,7 @@ background-color: #f2f2f2;
                 celda.innerHTML+="<input type='hidden' id='team_"+id+"' value='"+equipo+"'/>"
 
             }
-
+            var cat = cats[urlParams.get('type')]
 
             var enlace = document.getElementById('league_tab_schedule');
             var href = enlace.href;
@@ -738,31 +717,51 @@ background-color: #f2f2f2;
 
 
             ///DIV PROGRESS
+            setTimeout(function() {
 
-            (function (currentId,currentLSport,lang) {
-                document.getElementById("divProgress").addEventListener('click', function () {
 
-                    var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoDivision.php?idLiga="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
-                    openWindow(link,0.95,1.25);
-                });
-            })(league_id,window.lsport,window.lang);
+                if(idProgress!="noProgress"){
+                    (function (currentId,currentLSport,lang) {
+                        document.getElementById("divProgress").addEventListener('click', function () {
 
-            (function (currentId,currentLSport,lang) {
-                document.getElementById("detailDivision").addEventListener('click', function () {
+                            var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoDivision.php?idLiga="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
+                            openWindow(link,0.95,1.25);
+                        });
+                    })(league_id,window.lsport,window.lang);
 
-                    var link = "https://statsxente.com/MZ1/Functions/lecturaStatsDivisionesHistorico2.0.php?modal=yes&idLiga=13181&idioma=SPANISH&categoria=senior&season=75&season_actual=75";
-                    openWindow(link,0.95,1.25);
-                });
-            })(league_id,window.lsport,window.lang);
+                }
 
 
 
 
+                (function (currentId,currentLSport,lang,currentCat) {
+                    document.getElementById("detailDivision").addEventListener('click', function () {
+                        var url_="https://statsxente.com/MZ1/Functions/lecturaStatsDivisionesHistorico2.0.php"
+                        if(window.sport=="hockey"){
+                            url_="https://statsxente.com/MZ1/Functions/lecturaStatsDivisionesHockeyHistorico.php"
+                        }
+
+                        var link = url_+"?tamper=yes&modal=yes&idLiga="+currentId+"&idioma=SPANISH&categoria="+currentCat+"&season=75&season_actual=75";
+                        openWindow(link,0.95,1.25);
+                    });
+                })(league_id,window.lsport,window.lang,cat);
 
 
+                (function (currentId,currentLSport,lang,currentCat) {
+                    document.getElementById("graphDivision").addEventListener('click', function () {
+                        var url_sport=""
+                        if(window.sport=="hockey"){
+                            url_sport="Hockey"
+                        }
+                        var link = "https://statsxente.com/MZ1/View/filtroGraficoLinealDivisiones"+url_sport+".php?tamper=yes&idLiga="+currentId+"&idioma="+lang+"&categoria="+currentCat+"&season=75&season_actual=75&modal=yes&valor=nota";
+                        openWindow(link,0.95,1.25);
+                    });
+                })(league_id,window.lsport,window.lang,cat);
 
 
-            console.log(linkIds)
+            }, 1000);
+
+
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency="+GM_getValue("currency")+"&sport="+window.sport+linkIds,
@@ -785,7 +784,7 @@ background-color: #f2f2f2;
                         var valor=0;
 
                         if (jsonResponse[id] && jsonResponse[id][initialValues[urlParams.get('type')]] !== undefined) {
-                            valor = new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id][initialValues[urlParams.get('type')]]))
+                            valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[id][initialValues[urlParams.get('type')]]))
                         }
                         nuevaColumna.innerHTML=valor
                         nuevaColumna.style.textAlign = 'center';
@@ -873,7 +872,7 @@ background-color: #f2f2f2;
                     var ths = thead.querySelectorAll("th");
                     ths.forEach(function(th, index) {
                         th.addEventListener("click", function() {
-                            ordenarTabla(index);
+                            ordenarTabla(index,true,"nice_table");
                         });
                     });
                 }
@@ -918,9 +917,9 @@ background-color: #f2f2f2;
                 valor=0
             }else{
                 if(event.target.id=="edad"){
-                    valor=new Intl.NumberFormat("es-ES",{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                    valor=new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
                 }else{
-                    valor= new Intl.NumberFormat("es-ES").format(Math.round(teams_data[id][event.target.id]))
+                    valor= new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
                 }
 
             }
@@ -938,14 +937,18 @@ background-color: #f2f2f2;
                 checkbox.checked = false;
             }
         });
-        var columna=12
     }
-    function ordenarTabla(columna){
-        var elems = document.getElementsByClassName("nice_table");
-        var tabla = elems[0]
+    function ordenarTabla(columna,byClassName,param){
+        if(byClassName){
+            var elems = document.getElementsByClassName(param);
+            var tabla = elems[0]
+        }else{
+            tabla=document.getElementById(param)
+        }
         var filas, switching, i, x, y, debeCambiar, direccion, cambioRealizado;
         switching = true;
         direccion = document.getElementById("ord_table").value
+        console.log(columna)
         while (switching) {
             switching = false;
             filas = tabla.rows;
@@ -1040,15 +1043,30 @@ background-color: #f2f2f2;
             GM_setValue("federationFlag", true)
         }
 
-        var leagueFlag = "", matchFlag = "", federationFlag = ""
+        if (GM_getValue("playersFlag") === undefined) {
+            GM_setValue("playersFlag", true)
+        }
+
+        if (GM_getValue("countryRankFlag") === undefined) {
+            GM_setValue("countryRankFlag", true)
+        }
+
+
+
+
+        var leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag="",countryRankFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
         if (GM_getValue("leagueFlag")) leagueFlag = "checked"
+        if (GM_getValue("playersFlag")) playersFlag = "checked"
+        if (GM_getValue("countryRankFlag")) countryRankFlag = "checked"
         var newContent='<center><img id="closeButton" src="' + close_image + '" style="width:40px; height:40px; cursor:ppinter;"/></br><div id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"></br><table border=0><tbody><tr>';
         newContent+= '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent+= '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent+="</tr></tbody></table>"
         newContent+='<button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button><button id="deleteButton"class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button>'
         newContent+='</div></center></br></br>qqq';
@@ -1133,11 +1151,19 @@ background-color: #f2f2f2;
                 GM_setValue("matchFlag", !GM_getValue("matchFlag"))
             });
 
+            document.getElementById('playersSelect').addEventListener('click', function () {
+                GM_setValue("playersFlag", !GM_getValue("playersFlag"))
+            });
+
+            document.getElementById('countryRankSelect').addEventListener('click', function () {
+                GM_setValue("countryRankFlag", !GM_getValue("countryRankFlag"))
+            });
+
         }, 5000);
 
     }
 
-    function setLangAndSport(){
+    function setLangSportCats(){
 
         var langs = new Map();
         langs.set('es', 'SPANISH');
@@ -1163,9 +1189,23 @@ background-color: #f2f2f2;
             lsport="H";
             sport_id=2;
         }
+
+        var cats = {};
+        cats["senior"] = "senior";
+        cats["world"] = "seniorw";
+        cats["u23"] = "SUB23";
+        cats["u21"] = "SUB21";
+        cats["u18"] = "SUB18";
+        cats["u23_world"] = "SUB23w";
+        cats["u21_world"] = "SUB21w";
+        cats["u18_world"] = "SUB18w";
+
+
+        window.cats=cats;
         window.sport=sportCookie;
         window.lsport=lsport;
         window.sport_id=sport_id;
+        window.userLocal=navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
 
     }
 
@@ -1210,34 +1250,20 @@ background-color: #f2f2f2;
 
     }
 
-
-
-
-
-
     function clashLeagues(){
-
-
-        var linkIds=""
         var urlParams = new URLSearchParams(window.location.search);
         setTimeout(function() {
-
             var elems = document.getElementsByClassName("nice_table");
             var tabla = elems[0]
             var thSegundo = tabla.querySelector("thead th:nth-child(2)");
             thSegundo.style.width = "250px";
-
-
             var values = new Map();
             values.set('valueLM', 'LM Value');
             values.set('elo', 'ELO Score');
             values.set('teams_count', 'Number of teams');
 
             var contenidoNuevo = '<div id=testClick><center>'
-
-
             getNativeTableStyles();
-
             var idProgress="noProgress";
             if(urlParams.get('type')=="senior"){
                 idProgress="divProgress"
@@ -1248,27 +1274,19 @@ background-color: #f2f2f2;
             contenidoNuevo+='<th align=center style="padding:4px;" colspan="3">Values</th></tr></thead>';
             contenidoNuevo+= "<tr>";
             contenidoNuevo+= "</tr></table></center>";
-
             contenidoNuevo+='<table id=show3 border="0"><tr><td><label>';
-
             contenidoNuevo+='<input class="statsxente" type="checkbox" checked id="value" value="Value">Value</label></td>';
 
 
             values.forEach(function(valor, clave) {
-
                 contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
-
             });
             contenidoNuevo+="</tr></table></center>"
             contenidoNuevo+="</div></br>";
 
-
             values.set('value', 'Value');
-
             elems = document.getElementsByClassName("nice_table");
             tabla = elems[0]
-
-
             tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
 
 
@@ -1297,7 +1315,6 @@ background-color: #f2f2f2;
             var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
             for (var i = 0; i < filasDatos.length; i++) {
                 var celda = tabla.rows[i+1].cells[1];
-                var equipo=celda.textContent.trim()
                 var imagen = celda.querySelector('img');
                 var url = new URL(imagen.src);
                 var id = url.searchParams.get('fid');
@@ -1307,11 +1324,6 @@ background-color: #f2f2f2;
             }
 
 
-
-
-
-
-            console.log("https://statsxente.com/MZ1/Functions/tamper_federations.php?currency="+GM_getValue("currency")+"&sport="+window.sport+linkIds)
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://statsxente.com/MZ1/Functions/tamper_federations.php?currency="+GM_getValue("currency")+"&sport="+window.sport+linkIds,
@@ -1324,7 +1336,6 @@ background-color: #f2f2f2;
                     var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
                     for (var i = 0; i < filasDatos.length; i++) {
                         var celda = tabla.rows[i+1].cells[1];
-                        var equipo=celda.textContent.trim()
                         var imagen = celda.querySelector('img');
                         var url = new URL(imagen.src);
                         var id = url.searchParams.get('fid');
@@ -1332,7 +1343,7 @@ background-color: #f2f2f2;
                         var nuevaColumna = document.createElement("td");
                         var valor=0
 
-                        valor = new Intl.NumberFormat("es-ES").format(Math.round(jsonResponse[id]["value"]))
+                        valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[id]["value"]))
                         nuevaColumna.innerHTML=valor
                         nuevaColumna.style.textAlign = 'center';
                         filasDatos[i].appendChild(nuevaColumna);
@@ -1361,19 +1372,6 @@ background-color: #f2f2f2;
 
 
                     }
-
-
-
-
-
-
-
-
-
-
-
-
-
                 }
             });
 
@@ -1387,7 +1385,7 @@ background-color: #f2f2f2;
             var ths = thead.querySelectorAll("th");
             ths.forEach(function(th, index) {
                 th.addEventListener("click", function() {
-                    ordenarTabla(index);
+                    ordenarTabla(index,true,"nice_table");
                 });
             });
 
@@ -1395,25 +1393,7 @@ background-color: #f2f2f2;
 
         }, 3000);
 
-
-
-        /*var thead=document.getElementsByClassName("nice_table")[0].querySelector('thead')
-        var ths = thead.querySelectorAll("th");
-        ths.forEach(function(th, index) {
-
-            console.log(th.innerHTML+" "+index)
-
-            th.addEventListener("click", function() {
-                ordenarTabla(index);
-            });
-        });*/
-
-
     }
-
-
-
-
 
     function handleClickClash(event) {
         var elems = document.getElementsByClassName("nice_table");
@@ -1423,7 +1403,6 @@ background-color: #f2f2f2;
         thSegundo.style.width = "250px";
         for (var i = 0; i < filas.length; i++) {
             var celda = tabla.rows[i+1].cells[1];
-            var equipo=celda.textContent.trim()
             var imagen = celda.querySelector('img');
             var url = new URL(imagen.src);
             var id = url.searchParams.get('fid');
@@ -1438,9 +1417,9 @@ background-color: #f2f2f2;
                 valor=0
             }else{
                 if(event.target.id=="edad"){
-                    valor=new Intl.NumberFormat("es-ES",{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                    valor=new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
                 }else{
-                    valor= new Intl.NumberFormat("es-ES").format(Math.round(teams_data[id][event.target.id]))
+                    valor= new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
                 }
 
             }
@@ -1451,7 +1430,6 @@ background-color: #f2f2f2;
         var thead = tabla.querySelector('thead');
         var tr = thead.querySelectorAll('tr');
         var td = tr[0].querySelectorAll('th');
-        var ultimaCeldaEncabezado = td[td.length - 2];
         td[td.length - 2].textContent = event.target.value;
         checkboxes.forEach(function(checkbox) {
             if (checkbox.id !== event.target.id) {
@@ -1467,6 +1445,7 @@ background-color: #f2f2f2;
     var lines=[]
     var gk_line=""
     var skills_names=[]
+    var su_line="unsetted";
 
     function playersPage(){
         setTimeout(function () {
@@ -1475,14 +1454,27 @@ background-color: #f2f2f2;
             var player_values={}
             var tactics_list=[]
 
-            var habil=elementos[0].getElementsByClassName("clippable")
-            for (var q = 1; q < habil.length; q++) {
-                skills_names.push(habil[q].textContent)
+            var habil_container=elementos[0].getElementsByClassName("player_skills")
+            var habil=habil_container[0].getElementsByClassName("clippable")
+
+            if(window.sport=="hockey"){
+                for (var q = 1; q < habil.length; q++) {
+                    skills_names.push(habil[q].textContent)
+                }
+            }else{
+
+                for (q = 0; q < habil.length-1; q++) {
+                    skills_names.push(habil[q].textContent)
+                }
+
+                var player_images=document.getElementsByClassName("player-image soccer")
+
             }
 
 
-            for (var i = 0; i < elementos.length; i++) {
 
+            for (var i = 0; i < elementos.length; i++) {
+                var flag_gk=false;
                 var age_div=elementos[i].getElementsByClassName('dg_playerview_info');
                 var age_table = age_div[0].getElementsByTagName('table')[0];
 
@@ -1491,7 +1483,9 @@ background-color: #f2f2f2;
 
 
 
-
+                if ((window.sport=="soccer")&&(player_images[i].innerHTML.includes("gk=1"))) {
+                    flag_gk=true
+                }
 
 
                 var ids=elementos[i].getElementsByClassName('player_id_span');
@@ -1505,16 +1499,31 @@ background-color: #f2f2f2;
                     var ini = tactics[j].textContent.indexOf('(');
                     var tactic = tactics[j].textContent.substring(0, ini-1);
 
-                    if(!tactics[j].textContent.includes(":")){
+                    if(window.sport=="hockey"){
+
+                        if(!tactics[j].textContent.includes(":")){
+                            ini=tactics[j].textContent.indexOf('(');
+                            fin=tactics[j].textContent.indexOf(')');
+                            line = tactics[j].textContent.substring(ini+2, fin-1);
+                            gk_line=line;
+                        }else{
+                            ini=tactics[j].textContent.indexOf('(');
+                            fin=tactics[j].textContent.indexOf(':');
+                            line = tactics[j].textContent.substring(ini+2, fin);
+                        }
+
+                    }else{
                         ini=tactics[j].textContent.indexOf('(');
                         fin=tactics[j].textContent.indexOf(')');
                         line = tactics[j].textContent.substring(ini+2, fin-1);
-                        gk_line=line;
-                    }else{
-
-                        ini=tactics[j].textContent.indexOf('(');
-                        fin=tactics[j].textContent.indexOf(':');
-                        line = tactics[j].textContent.substring(ini+2, fin);
+                        if(flag_gk){
+                            gk_line=line;
+                        }
+                        if(tactics[j].textContent.includes(",")){
+                            ini=tactics[j].textContent.indexOf('(');
+                            fin=tactics[j].textContent.indexOf(',');
+                            su_line = tactics[j].textContent.substring(ini+2, fin);
+                        }
                     }
 
                     if(!player_values['lines'].includes(line)){
@@ -1526,8 +1535,7 @@ background-color: #f2f2f2;
 
                     player_values['tactics-position'][tactic]=line
 
-
-                    if(!lines.includes(line)){
+                    if((!lines.includes(line))){
                         lines.push(line);
                     }
 
@@ -1537,89 +1545,76 @@ background-color: #f2f2f2;
 
 
                 }
-
-
                 var skills = elementos[i].getElementsByClassName('skillval');
+                if(window.sport=="hockey"){
 
-                for (j = 1; j < skills.length; j++) {
+                    for (j = 1; j < skills.length; j++) {
+                        var cleanedText = skills[j].textContent.replace(')', '');
+                        cleanedText = cleanedText.replace('(', '');
+                        let number = parseInt(cleanedText, 10);
+                        player_values['skills'].push(number);
+                    }
 
-                    var cleanedText = skills[j].textContent.replace(')', '');
-                    cleanedText = cleanedText.replace('(', '');
-                    let number = parseInt(cleanedText, 10);
-                    player_values['skills'].push(number);
+                }else{
+                    for (j = 0; j < skills.length-1; j++) {
+                        cleanedText = skills[j].textContent.replace(')', '');
+                        cleanedText = cleanedText.replace('(', '');
+                        let number = parseInt(cleanedText, 10);
+                        player_values['skills'].push(number);
+                    }
                 }
-
-
                 players.push(player_values)
             }
 
 
-
-            var tables=document.getElementsByClassName("clearfix");
             const container=document.getElementById("player-filters-wrapper")
-            const firstChild = container.firstChild;
-
             var contenidoNuevo="</br><center>"
             contenidoNuevo+="<div id=selectDiv>Choose Tactic: <select id=tactics_select>"
-
+            contenidoNuevo+="<option value='All Team'>All Team</option>"
             for(var x=0;x<tactics_list.length;x++){
-                contenidoNuevo+="<option value='"+tactics_list[x]+"'>"+tactics_list[x]+"</option>"
+                var selected=""
+                if(x==0){
+                    selected="selected=''";
+                }
+                contenidoNuevo+="<option "+selected+" value='"+tactics_list[x]+"'>"+tactics_list[x]+"</option>"
             }
             contenidoNuevo+="</select></div></br><div id=divMenu></div></center>"
-
-
-
             container.innerHTML+=contenidoNuevo;
-
-
-
-
-            skillDistrib("Senior");
-
-
+            skillDistrib(tactics_list[0]);
             document.getElementById("tactics_select").addEventListener('change', function () {
-                console.log("eo")
                 var select = document.getElementById('tactics_select');
                 var valorSeleccionado = select.value;
-                console.log(valorSeleccionado)
                 document.getElementById("divMenu").innerHTML=""
                 skillDistrib(valorSeleccionado)
-                /*document.getElementById("showMenu").remove()
-                         skillDistrib(valorSeleccionado);*/
             });
-
-
-
-
-
-
         }, 1000);
     }
 
 
     function skillDistrib(tactic){
-
         var t=tactic
+        if(window.sport=="hockey"){
+            var l=[0,0,0,0,0,0,0,0,0,0,0]
+        }else{
+            l=[0,0,0,0,0,0,0,0,0,0,0,0,0]
+        }
 
-        var l=[0,0,0,0,0,0,0,0,0,0]
         var li_t={}
         for (var i = 0; i < lines.length; i++) {
-            li_t[lines[i]]=[0,0,0,0,0,0,0,0,0,0,0];
+            li_t[lines[i]]=[...l];
         }
 
         var no_gk_line="Tactic -("+gk_line+")"
-        li_t["Team"]=[0,0,0,0,0,0,0,0,0,0,0];
-        li_t["U23"]=[0,0,0,0,0,0,0,0,0,0,0];
-        li_t["U21"]=[0,0,0,0,0,0,0,0,0,0,0];
-        li_t["U18"]=[0,0,0,0,0,0,0,0,0,0,0];
-
-        li_t["Tactic"]=[0,0,0,0,0,0,0,0,0,0,0];
-        li_t[no_gk_line]=[0,0,0,0,0,0,0,0,0,0,0];
+        li_t["Team"]=[...l];
+        li_t["U23"]=[...l];
+        li_t["U21"]=[...l];
+        li_t["U18"]=[...l];
+        li_t["Tactic"]=[...l];
+        li_t[no_gk_line]=[...l];
 
 
 
         for (i = 0; i < players.length; i++) {
-
             if(players[i]['tactics'].includes(t)){
                 for(var j=0;j<players[i]['skills'].length;j++){
                     li_t[players[i]['tactics-position'][t]][j]+=players[i]['skills'][j]
@@ -1630,71 +1625,49 @@ background-color: #f2f2f2;
                 }
                 li_t[players[i]['tactics-position'][t]][j]+=1
                 li_t['Tactic'][j]+=1
-
                 if(players[i]['tactics-position'][t]!="Po"){
                     li_t[no_gk_line][j]+=1
                 }
-
             }else{
 
                 for(j=0;j<players[i]['skills'].length;j++){
-
                     if(players[i]['age']<=23){
                         li_t['U23'][j]+=players[i]['skills'][j]
                     }
-
                     if(players[i]['age']<=23){
                         li_t['U21'][j]+=players[i]['skills'][j]
                     }
-
-
                     if(players[i]['age']<=23){
                         li_t['U18'][j]+=players[i]['skills'][j]
                     }
-
                     li_t['Team'][j]+=players[i]['skills'][j]
                 }
-
 
                 if(players[i]['age']<=23){
                     li_t['U23'][li_t["U23"].length-1]+=1
                 }
 
-
                 if(players[i]['age']<=21){
                     li_t['U21'][li_t["U21"].length-1]+=1
                 }
-
                 if(players[i]['age']<=18){
                     li_t['U18'][li_t["U18"].length-1]+=1
                 }
-
                 li_t['Team'][li_t["Team"].length-1]+=1
             }
-
-
         }
 
 
 
         const container=document.getElementById("divMenu")
-
-
         var contenidoNuevo="<center><table id=showMenu border=1 style='width:95%;font-size:13px;'><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
-        contenidoNuevo+='<th align=center style="padding:4px;"><strong>Line</strong></th>'
+        contenidoNuevo+='<th align=center style="padding:4px;">Line</th>'
         for(var q=0;q<skills_names.length;q++){
-            contenidoNuevo+='<th align=center style="padding:4px;"><b>aaa'+skills_names[q]+'</b></th>'
+            contenidoNuevo+='<th align=center style="padding:4px;">'+skills_names[q]+'</th>'
         }
         contenidoNuevo+='</tr></thead>';
-
-
-
         var l_aux=lines
-
-
-// Crear un nuevo array excluyendo el elemento a eliminar
         l_aux = l_aux.filter(item => item !== gk_line);
-
         l_aux.sort((a, b) => {
             let numA = parseInt(a.substring(1), 10);
             let numB = parseInt(b.substring(1), 10);
@@ -1709,11 +1682,13 @@ background-color: #f2f2f2;
             l_aux=["Team","U23","U21","U18"]
         }
 
+        l_aux = l_aux.filter(item => !item.includes(su_line));
+
         for (var w=0;w<l_aux.length;w++) {
             var key=l_aux[w]
-            if (li_t.hasOwnProperty(key)) { // Opcional, asegura que la propiedad sea propia del objeto y no heredada
+            if (li_t.hasOwnProperty(key)) {
                 contenidoNuevo+= "<tr>";
-                contenidoNuevo+= "<td align=center style='padding:2px;'>"+key+"</td>";
+                contenidoNuevo+= "<td align=center style='padding:2px;'><strong>"+key+"</strong></td>";
                 for(var x=0;x<li_t[key].length-1;x++){
                     contenidoNuevo+= "<td align=center style='padding:2px;'>"+ Math.round(li_t[key][x]/li_t[key][li_t[key].length-1] * 100) / 100+"</td>";
                 }
@@ -1721,27 +1696,229 @@ background-color: #f2f2f2;
 
             }
         }
-
         container.innerHTML+=contenidoNuevo;
+    }
 
+
+    function countryRank(){
+        var table_values=["players","age","value","top11","salary","elo","elo21","lm","lmu21"]
+        var newContent = "<center><div>";
+        newContent+='<label><input class="statsxente" type="checkbox" checked id="value" value="Value">Value</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" id="top11" value="TOP 11">TOP 11</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" id="players" value="Players">Players</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" id="salary" value="Salary">Salary</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" id="age" value="Age">Age</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" checked id="elo" value="Elo">ELO</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" checked id="elo21" value="U21 ELO">U21 ELO</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" checked id="lm" value="LM">LM</label>';
+        newContent+='<label><input class="statsxente" type="checkbox" checked id="lmu21" value="U21 LM">U21 LM</label>';
+
+        var contenedor = document.getElementById('countryRankTable');
+        contenedor.insertAdjacentHTML('beforebegin',newContent);
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_national_teams.php?currency="+GM_getValue("currency")+"&sport="+window.sport,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function(response) {
+                var jsonResponse = JSON.parse(response.responseText);
+                var data=jsonResponse;
+                var table = document.getElementById('countryRankTable');
+                for (var i = 0; i < table.rows.length; i++) {
+                    var row = table.rows[i];
+                    var insertIndex = row.cells.length - 1;
+                    var raw_str=row.cells[3].innerHTML
+                    var index=0;
+                    var cell0 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell1 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell2 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell3 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell4 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell5 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell6 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell7 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell8 = row.insertCell(insertIndex+index);
+
+                    if (i === 0) {
+                        cell0.outerHTML = "<th id='players_th' style='display:none;' class='header'><a href='#'>Players</a></th>";
+                        cell1.outerHTML = "<th id='age_th' class='header' style='display:none;'><a href='#'>Age</a></th>";
+                        cell2.outerHTML = "<th id='value_th' class='header' style='display:table-cell;'><a href='#'>Value</a></th>";
+                        cell3.outerHTML = "<th id='top11_th' class='header' style='display:none;'><a href='#'>Top11</a></th>";
+                        cell4.outerHTML = "<th id='salary_th' class='header' style='display:none;'><a href='#'>Salary</a></th>";
+                        cell5.outerHTML = "<th id='elo_th' class='header' style='display:table-cell;'><a href='#'>ELO</a></th>";
+                        cell6.outerHTML = "<th id='elo21_th' class='header' style='display:table-cell;'><a href='#'>U21 ELO</a></th>";
+                        cell7.outerHTML = "<th id='lm_th' class='header' style='display:table-cell;'><a href='#'>LM</a></th>";
+                        cell8.outerHTML = "<th id='lmu21_th' class='header' style='display:table-cell;'><a href='#'>U21 LM</a></th>";
+                    } else {
+                        var ini=raw_str.indexOf("s_");
+                        var fin=raw_str.indexOf(".",ini+1);
+                        var c_code=raw_str.substring(ini+2,fin)
+                        cell0.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["numJugadores"]))
+                        cell0.className="players"
+                        cell0.style.display="none"
+
+                        cell1.innerHTML = new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(data[c_code]["edad"])
+                        cell1.className="age"
+                        cell1.style.display="none"
+
+                        cell2.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["valor"]))
+                        cell2.className="value"
+                        cell2.style.display="table-cell"
+
+                        cell3.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["valor11"]))
+                        cell3.className="top11"
+                        cell3.style.display="none"
+
+                        cell4.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["salario"]))
+                        cell4.className="salary"
+                        cell4.style.display="none"
+
+                        cell5.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["elo"]))
+                        cell5.className="elo"
+                        cell5.style.display="table-cell"
+
+                        cell6.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["elo21"]))
+                        cell6.className="elo21"
+                        cell6.style.display="table-cell"
+
+                        cell7.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["valorLM"]))
+                        cell7.className="lm"
+                        cell7.style.display="table-cell"
+
+                        cell8.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["valorLM21"]))
+                        cell8.className="lmu21"
+                        cell8.style.display="table-cell"
+                    }
+
+                }
+
+                setTimeout(function() {
+                    for(var f=0;f<table_values.length;f++){
+
+                        (function(actual_value,f) {
+
+                            document.getElementById(actual_value+"_th").addEventListener('click', function () {
+                                if(document.getElementById(actual_value+"_th").className=="header"){
+                                    document.getElementById(actual_value+"_th").className="header headerSortDown";
+                                }else{
+
+                                    if(document.getElementById(actual_value+"_th").className=="header headerSortDown"){
+                                        document.getElementById(actual_value+"_th").className="header headerSortUp";
+                                    }else{
+                                        document.getElementById(actual_value+"_th").className="header headerSortDown";
+                                    }
+
+                                }
+                                var index_=3+f
+                                ordenarTabla(index_,false,"countryRankTable")
+                            });
+                            document.getElementById(actual_value).addEventListener('click', function () {
+                                var display="table-cell"
+                                if( document.getElementById(actual_value+"_th").style.display=="table-cell"){
+                                    display="none"
+                                }
+                                var elementos = document.getElementsByClassName(actual_value)
+                                Array.prototype.forEach.call(elementos, function(elemento) {
+                                    var aux_display="table-cell"
+                                    if( document.getElementById(actual_value+"_th").style.display=="table-cell"){
+                                        aux_display="none"
+                                    }
+                                    elemento.style.display = aux_display;
+                                });
+                                document.getElementById(actual_value+"_th").style.display=display
+                            });
+                        })(table_values[f],f);
+                    }
+                }, 1000);
+            }
+        });
     }
 
 
 
+    function nextMatchesClubhouse(){
+        var h1Elements = document.querySelectorAll('h1.box_dark');
+        var team_name=h1Elements[0].innerText
+        var team_id=document.getElementById("tid1").value;
 
-    // Función para añadir una clave principal con propiedades anidadas
-    function addPropertyToMap(mapa, clavePrincipal, propiedades) {
-        // Si la clave principal no existe, crearla como un objeto vacío
-        if (!mapa[clavePrincipal]) {
-            mapa[clavePrincipal] = {};
-        }
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_user_next_matches.php?team_id="+team_id,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function(response) {
+                var jsonResponse = JSON.parse(response.responseText);
+                var data=jsonResponse;
+                var newContent = `
+    <div id="tour-container" class="widgets-container">
+        <div class="flex-wrap hub-widget-container">
+            <div class="flex-grow-1 box_dark">
+                <div id="clubhouse-widget-tour" class="widget-content clearfix">
+                    <i class="fa minimize-button fa-minus-square" aria-hidden="true" data-time="1722549599"></i>
+                    <span class="fa fa-stack fa-2x floatRight">
+                        <i class="fa fa-circle fa-stack-2x fa-inverse"></i>
+                        <i class="fa fa-thumbs-up fa-stack-1x green" aria-hidden="true"></i>
+                </span>
+                <h3 style="background-image: url('https://www.statsxente.com/MZ1/View/Images/etiqueta_bota.png');">Stats Xente</h3>
+                <div class="widget-content-wrapper">
+                    <div class="flex-wrap" style="margin-bottom: 35px;">
+                        <div class="flex-grow-0" style="margin: 0 auto">
+                            <img src="https://www.statsxente.com/MZ1/View/Images/etiqueta_bota.png" alt="" width="114" height="127">
+                        </div>
+                        <div class="flex-grow-1 textLeft">`
 
-        // Añadir las propiedades al objeto anidado
-        for (var key in propiedades) {
-            if (propiedades.hasOwnProperty(key)) {
-                mapa[clavePrincipal][key] = propiedades[key];
+                data.forEach(function(match_data) {
+                    var match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport=soccer" width="15px" height="15px"/> '
+                        +team_name+' - '+match_data['rival_name']+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport=soccer" width="15px" height="15px"/>'
+                    if(match_data['field']=="away"){
+                        match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport=soccer" width="15px" height="15px"/> '
+                            +match_data['rival_name']+' - '+team_name+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport=soccer" width="15px" height="15px"/>'
+                    }
+                    newContent+='<fieldset class="grouping self box_light_on_dark flex-nowrap" style="max-width: 555px; margin-left: 10px;">'
+                    newContent+='<legend>'+match_data['clash_name']+'</legend>'
+                    newContent+='<div class="flex-grow-0 mission-icon">'
+                    newContent+='<i class="fa fa-check-square green fa-2x t-checked" aria-hidden="true"></i>'
+                    newContent+='</div>'
+                    newContent+='<div class="flex-grow-1 mission">'
+                    newContent+='<p><b><a href="https://www.statsxente.com/MZ1/View/CompAmis_Cup_CALENDAR_View.php?grupo='+match_data['grupo']+'&id='+match_data['idComp']+'" target="_blank">'+match+'</a></b>'
+                    newContent+='</br>Date: '+match_data['fecha']+'</p>'
+                    newContent+='</div>'
+                    newContent+='</fieldset>'
+                });
+
+
+
+
+                newContent+=`</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+
+
+
+                var contenedor = document.getElementById('tour-container');
+                if(data.length>0){
+                    contenedor.insertAdjacentHTML('beforebegin',newContent);
+
+                }
             }
-        }
+        });
+
     }
 
 
