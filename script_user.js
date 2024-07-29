@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.73
+// @version      0.74
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1677,6 +1677,15 @@ background-color: #f2f2f2;
         l_aux.unshift(gk_line);
         l_aux.push("Tactic");
         l_aux.push(no_gk_line);
+
+        if(window.sport=="hockey"){
+            if (li_t["L4"][10]==0) {
+                let index = l_aux.indexOf('L4');
+                if (index !== -1) {
+                    l_aux.splice(index, 1);
+                }
+            }
+        }
 
         if(t=="All Team"){
             l_aux=["Team","U23","U21","U18"]
