@@ -386,6 +386,11 @@ background-color: #f2f2f2;
 
   `)
 
+    var keys = GM_listValues();
+    keys.forEach(function(key) {
+        console.log(GM_getValue(key))
+    });
+
     var link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css?family=Roboto&display=swap';
     link.rel = 'stylesheet';
@@ -450,7 +455,7 @@ background-color: #f2f2f2;
 
 
 
-    }, 3000);
+    }, 2000);
 
 
     (function () {
@@ -1211,10 +1216,12 @@ background-color: #f2f2f2;
 
     function getUsernameData(){
         if (GM_getValue("currency") === undefined) {
+            console.log("here")
+            console.log("http://www.managerzone.com/xml/manager_data.php?sport_id="+window.sport_id+"&username="+username)
             var username=document.getElementById("header-username").innerText
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "http://www.managerzone.com/xml/manager_data.php?sport_id=1&username="+username,
+                url: "http://www.managerzone.com/xml/manager_data.php?sport_id="+window.sport_id+"&username="+username,
                 headers: {
                     "Content-Type": "application/json"
                 },
