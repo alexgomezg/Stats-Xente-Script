@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.78
+// @version      0.79
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
 // @icon         https://statsxente.com/MZ1/View/Images/etiqueta_bota.png
+// @license      GNU
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @grant        GM_getValue
@@ -13,8 +14,8 @@
 // @grant        GM_deleteValue
 // @grant        GM_listValues
 // @require      https://code.jquery.com/jquery-3.7.1.js
-// @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
-// @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
+// @downloadURL  https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
+// @updateURL    https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
 // ==/UserScript==
 
 (function() {
@@ -1742,11 +1743,21 @@ background-color: #f2f2f2;
             onload: function(response) {
                 var jsonResponse = JSON.parse(response.responseText);
                 var data=jsonResponse;
+
+                var type=1;
+                if(window.sport=="soccer"){
+                    type=2
+                }
                 var table = document.getElementById('countryRankTable');
                 for (var i = 0; i < table.rows.length; i++) {
                     var row = table.rows[i];
                     var insertIndex = row.cells.length - 1;
                     var raw_str=row.cells[3].innerHTML
+                    row.deleteCell(3);
+                    var cell_name = row.cells[2]
+                    if(i>0){
+                        cell_name.innerHTML=raw_str+" "+cell_name.innerHTML
+                    }
                     var index=0;
                     var cell0 = row.insertCell(insertIndex+index);
                     index++;
@@ -1765,6 +1776,10 @@ background-color: #f2f2f2;
                     var cell7 = row.insertCell(insertIndex+index);
                     index++;
                     var cell8 = row.insertCell(insertIndex+index);
+                    index++;
+                    var cell9 = row.insertCell(insertIndex+index);
+
+
 
                     if (i === 0) {
                         cell0.outerHTML = "<th id='players_th' style='display:none;' class='header'><a href='#'>Players</a></th>";
@@ -1776,6 +1791,7 @@ background-color: #f2f2f2;
                         cell6.outerHTML = "<th id='elo21_th' class='header' style='display:table-cell;'><a href='#'>U21 ELO</a></th>";
                         cell7.outerHTML = "<th id='lm_th' class='header' style='display:table-cell;'><a href='#'>LM</a></th>";
                         cell8.outerHTML = "<th id='lmu21_th' class='header' style='display:table-cell;'><a href='#'>U21 LM</a></th>";
+                        cell9.outerHTML = "<th id='image' class='header' style='display:table-cell;'><a href='#'></a></th>";
                     } else {
                         var ini=raw_str.indexOf("s_");
                         var fin=raw_str.indexOf(".",ini+1);
@@ -1815,7 +1831,30 @@ background-color: #f2f2f2;
                         cell8.innerHTML = new Intl.NumberFormat(window.userLocal).format(Math.round(data[c_code]["valorLM21"]))
                         cell8.className="lmu21"
                         cell8.style.display="table-cell"
+
+                        cell9.innerHTML = '<img style="cursor:pointer;" src="https://statsxente.com/MZ1/View/Images/calendar.png" width="20" height="20">'
+                        var actual_id="image"+i
+                        cell9.id=actual_id
+                        cell9.style.display="table-cell";
+
+
+                        (function(id, code,type_) {
+                            document.getElementById(id).addEventListener('click', function() {
+                                var link = "https://www.statsxente.com/MZ1/Graficos/graficoRachaEquipoELONT.php?tamper=yes&team_id=" + data[code]["idSenior"] +
+                                    "&team_id_u21=" + data[code]["idSub21"] + "&idioma=" + window.lang + "&type="+type_+"&cat=SENIOR&sport=" + window.sport;
+                                openWindow(link, 0.95, 1.25);
+                            });
+                        })(actual_id, c_code,type);
+
+
+
+
+
+
+
+
                     }
+
 
                 }
 
