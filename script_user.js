@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.77
+// @version      0.78
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -854,7 +854,7 @@ background-color: #f2f2f2;
                         (function (currentId, currentEquipo,currentCat,currentSport,lang) {
                             document.getElementById("but" + currentId).addEventListener('click', function () {
 
-                                var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=yes&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
+                                var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=no&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
                                 openWindow(link,0.95,1.25);
                             });
                         })(id, equipo,cat,window.sport,window.lang);
@@ -953,7 +953,6 @@ background-color: #f2f2f2;
         var filas, switching, i, x, y, debeCambiar, direccion, cambioRealizado;
         switching = true;
         direccion = document.getElementById("ord_table").value
-        console.log(columna)
         while (switching) {
             switching = false;
             filas = tabla.rows;
@@ -1229,7 +1228,7 @@ background-color: #f2f2f2;
                     var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
                     var userTeamsData = xmlDoc.getElementsByTagName("Team");
                     var index=1;
-                    if(userTeamsData[0].getAttribute("teamId")==window.sport){
+                    if(userTeamsData[0].getAttribute("sport")==window.sport){
                         index=0;
                     }
                     GM_xmlhttpRequest({
@@ -1868,7 +1867,6 @@ background-color: #f2f2f2;
         var h1Elements = document.querySelectorAll('h1.box_dark');
         var team_name=h1Elements[0].innerText
         var team_id=document.getElementById("tid1").value;
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_user_next_matches.php?team_id="+team_id,
@@ -1897,19 +1895,30 @@ background-color: #f2f2f2;
                         <div class="flex-grow-1 textLeft">`
 
                 data.forEach(function(match_data) {
-                    var match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport=soccer" width="15px" height="15px"/> '
-                        +team_name+' - '+match_data['rival_name']+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport=soccer" width="15px" height="15px"/>'
+                    var match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport="'+window.sport+' width="15px" height="15px"/> '
+                        +team_name+' - '+match_data['rival_name']+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport="'+window.sport+' width="15px" height="15px"/>'
                     if(match_data['field']=="away"){
-                        match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport=soccer" width="15px" height="15px"/> '
-                            +match_data['rival_name']+' - '+team_name+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport=soccer" width="15px" height="15px"/>'
+                        match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport="'+window.sport+' width="15px" height="15px"/> '
+                            +match_data['rival_name']+' - '+team_name+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport="'+window.sport+' width="15px" height="15px"/>'
+                    }
+                    var style_=""
+                    if(window.sport=="hockey"){
+                        style_="style='color:#6d93fd;'"
                     }
                     newContent+='<fieldset class="grouping self box_light_on_dark flex-nowrap" style="max-width: 555px; margin-left: 10px;">'
                     newContent+='<legend>'+match_data['clash_name']+'</legend>'
                     newContent+='<div class="flex-grow-0 mission-icon">'
-                    newContent+='<i class="fa fa-check-square green fa-2x t-checked" aria-hidden="true"></i>'
+                    newContent+='<i class="fa fa-check-square green fa-2x t-checked" aria-hidden="true" '+style_+'></i>'
                     newContent+='</div>'
                     newContent+='<div class="flex-grow-1 mission">'
-                    newContent+='<p><b><a href="https://www.statsxente.com/MZ1/View/CompAmis_Cup_CALENDAR_View.php?grupo='+match_data['grupo']+'&id='+match_data['idComp']+'" target="_blank">'+match+'</a></b>'
+
+                    var link="CompAmis_CALENDAR_View.php?"+'id='+match_data['idComp']
+                    if(match_data['comp']=="cup"){
+                        link='CompAmis_Cup_CALENDAR_View.php?grupo='+match_data['grupo']+'&id='+match_data['idComp']
+                    }
+
+
+                    newContent+='<p><b><a href="https://www.statsxente.com/MZ1/View/'+link+'" target="_blank">'+match+'</a></b>'
                     newContent+='</br>Date: '+match_data['fecha']+'</p>'
                     newContent+='</div>'
                     newContent+='</fieldset>'
