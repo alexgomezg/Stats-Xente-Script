@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.79
+// @version      0.80
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -14,8 +14,8 @@
 // @grant        GM_deleteValue
 // @grant        GM_listValues
 // @require      https://code.jquery.com/jquery-3.7.1.js
-// @downloadURL  https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
-// @updateURL    https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
+// @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
 // ==/UserScript==
 
 (function() {
@@ -434,7 +434,9 @@ background-color: #f2f2f2;
 
 
         if((urlParams.has('p')) && (urlParams.get('p') === 'federations')&& (urlParams.get('sub') === 'league')&&(GM_getValue("federationFlag"))){
+
             clashLeagues();
+
         }
 
 
@@ -472,6 +474,16 @@ background-color: #f2f2f2;
 
 
     })();
+
+
+
+
+
+
+
+
+
+
 
 
     setTimeout(function () {
@@ -603,10 +615,18 @@ background-color: #f2f2f2;
             values.set('valorUPSUB21', 'U21 LM Value');
             values.set('valorUPSUB18', 'U18 LM Value');
             values.set('edad', 'Age');
-            values.set('valor11', 'TOP 11');
-            values.set('valor11_23', 'U23 TOP 11');
-            values.set('valor11_21', 'U21 TOP 11');
-            values.set('valor11_18', 'U18 TOP 11');
+            if(window.sport=="soccer"){
+                values.set('valor11', 'TOP 11');
+                values.set('valor11_23', 'U23 TOP 11');
+                values.set('valor11_21', 'U21 TOP 11');
+                values.set('valor11_18', 'U18 TOP 11');
+            }else{
+                values.set('valor11', 'TOP 21');
+                values.set('valor11_23', 'U23 TOP 21');
+                values.set('valor11_21', 'U21 TOP 21');
+                values.set('valor11_18', 'U18 TOP 21');
+            }
+
             values.set('noNac', 'Foreigners');
             values.set('elo', 'ELO Score');
             values.set('elo23', 'U23 ELO Score');
@@ -1260,8 +1280,26 @@ background-color: #f2f2f2;
     }
 
     function clashLeagues(){
+
         var urlParams = new URLSearchParams(window.location.search);
         setTimeout(function() {
+
+
+
+
+
+            document.getElementById("division-select").addEventListener('change', function () {
+                clashLeagues()
+            });
+
+
+            document.getElementById("season-select").addEventListener('change', function () {
+                clashLeagues()
+            });
+
+
+
+
             var elems = document.getElementsByClassName("nice_table");
             var tabla = elems[0]
             var thSegundo = tabla.querySelector("thead th:nth-child(2)");
@@ -1722,7 +1760,12 @@ background-color: #f2f2f2;
         var table_values=["players","age","value","top11","salary","elo","elo21","lm","lmu21"]
         var newContent = "<center><div>";
         newContent+='<label><input class="statsxente" type="checkbox" checked id="value" value="Value">Value</label>';
-        newContent+='<label><input class="statsxente" type="checkbox" id="top11" value="TOP 11">TOP 11</label>';
+        if(window.sport=="soccer"){
+            newContent+='<label><input class="statsxente" type="checkbox" id="top11" value="TOP 11">TOP 11</label>';
+        }else{
+            newContent+='<label><input class="statsxente" type="checkbox" id="top11" value="TOP 21">TOP 21</label>';
+        }
+
         newContent+='<label><input class="statsxente" type="checkbox" id="players" value="Players">Players</label>';
         newContent+='<label><input class="statsxente" type="checkbox" id="salary" value="Salary">Salary</label>';
         newContent+='<label><input class="statsxente" type="checkbox" id="age" value="Age">Age</label>';
