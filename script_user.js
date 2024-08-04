@@ -634,6 +634,40 @@ background-color: #f2f2f2;
             values.set('elo18', 'U18 ELO Score');
             values.set('numJugadores', 'Number of players');
 
+            if(urlParams.get('type')=="senior"){
+                values.set('leagues', 'Leagues');
+                values.set('world_leagues_all', 'World Leagues');
+                values.set('youth_leagues_all', 'Youth Leagues');
+                values.set('world_youth_leagues_all', 'Youth World Leagues');
+                values.set('federation_leagues', 'Federation Leagues');
+            }
+
+
+            if(urlParams.get('type')=="world"){
+                values.set('leagues_all', 'Leagues');
+                values.set('world_leagues', 'World Leagues');
+                values.set('youth_leagues_all', 'Youth Leagues');
+                values.set('world_youth_leagues_all', 'Youth World Leagues');
+                values.set('federation_leagues', 'Federation Leagues');
+            }
+
+            /*if(urlParams.get('type')=="world"){
+           values.set('World leagues', 'Leagues');
+           values.set('world_leagues_all', 'World Leagues');
+           values.set('youth_leagues_all', 'Youth Leagues');
+           values.set('world_youth_leagues_all', 'Youth World Leagues');
+           values.set('federation_leagues', 'Federation Leagues');
+           }*/
+
+            values.set('cup', 'Cups');
+            values.set('cup_u23', 'U23 Cups');
+            values.set('cup_u21', 'U21 Cups');
+            values.set('cup_u18', 'U18 Cups');
+            values.set('special_cup', 'Special Cups');
+
+
+            //values.set('world_league', 'Leagues');
+
             var contenidoNuevo = '<div id=testClick><center>'
 
 
@@ -676,6 +710,18 @@ background-color: #f2f2f2;
                     contenidoNuevo+="</tr><tr>";
                 }
                 if(clave=="elo"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="leagues"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="leagues_all"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="cup"){
                     contenidoNuevo+="</tr><tr>";
                 }
 
@@ -937,17 +983,87 @@ background-color: #f2f2f2;
             var celdas = filas[i].getElementsByTagName("td");
             var ultimaCelda = celdas[celdas.length - 2];
 
+            var selects = document.getElementsByTagName('select');
+            var index_select=1;
+            if(selects[index_select]===undefined){
+                index_select=0;
+            }
+
+
+            var selectedIndex = selects[index_select].selectedIndex;
+            var selectedOption = selects[index_select].options[selectedIndex];
+            var selectedText = selectedOption.text;
+
+
+
+            var key_actual_league="Top";
+            if(selectedText.includes(".")){
+                key_actual_league=selectedText.substring(0,4)
+            }
+
+            console.log(key_actual_league)
+
             var valor=0;
 
             if(teams_data[id]===undefined){
                 valor=0
             }else{
-                if(event.target.id=="edad"){
-                    valor=new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
-                }else{
-                    valor= new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
-                }
 
+                var table_key="";
+                var agg_value=0;
+
+                switch (event.target.id) {
+                    case 'edad':
+                        valor=new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                        break;
+                    case "leagues":
+                        table_key="league"
+                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        valor="("+teams_data[id]['league_'+key_actual_league]+'/'+agg_value+")"
+                        break;
+
+                    case "world_leagues":
+                        table_key="world_league"
+                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        valor="("+teams_data[id]['league_'+key_actual_league]+'/'+agg_value+")"
+                        break;
+
+                    case "leagues_all":
+                        table_key="league"
+                        valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        break;
+
+
+                    case "world_leagues_all":
+                        table_key="world_league"
+                        valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        break;
+
+                    case "youth_leagues_all":
+                        table_key="league_u23"
+                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        table_key="league_u21"
+                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        table_key="league_u18"
+                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        break;
+
+                    case "world_youth_leagues_all":
+                        table_key="world_league_u23"
+                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        table_key="world_league_u21"
+                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        table_key="world_league_u18"
+                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        break;
+
+
+                    default:
+                        valor= new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
+                        break;
+
+
+                }
             }
 
             ultimaCelda.innerHTML = valor;
@@ -1958,7 +2074,44 @@ background-color: #f2f2f2;
             onload: function(response) {
                 var jsonResponse = JSON.parse(response.responseText);
                 var data=jsonResponse;
-                var newContent = `
+                if(data.length>0){
+
+
+                    GM_xmlhttpRequest({
+                        method: "GET",
+                        url: "http://www.managerzone.com/xml/team_matchlist.php?sport_id="+window.sport_id+"&team_id="+team_id+"&match_status=2&limit=100",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        onload: function(response) {
+
+                            var matchesDate=[]
+                            var parser = new DOMParser();
+                            var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                            var matches = xmlDoc.getElementsByTagName("Match");
+
+                            var last_date=""
+
+
+                            for (var i = 0; i < matches.length; i++) {
+                                var dateOnly = matches[i].getAttribute("date").split(" ")[0];
+                                last_date=dateOnly
+                                var teams = matches[i].getElementsByTagName("Team");
+
+                                for (var j = 0; j < teams.length; j++) {
+                                    if(teams[j].getAttribute("teamId")!=team_id){
+                                        matchesDate.push(teams[j].getAttribute("teamId")+"-"+dateOnly)
+
+                                    }
+                                }
+
+
+                            }
+
+
+
+
+                            var newContent = `
     <div id="tour-container" class="widgets-container">
         <div class="flex-wrap hub-widget-container">
             <div class="flex-grow-1 box_dark">
@@ -1976,40 +2129,63 @@ background-color: #f2f2f2;
                         </div>
                         <div class="flex-grow-1 textLeft">`
 
-                data.forEach(function(match_data) {
-                    var match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport="'+window.sport+' width="15px" height="15px"/> '
-                        +team_name+' - '+match_data['rival_name']+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport="'+window.sport+' width="15px" height="15px"/>'
-                    if(match_data['field']=="away"){
-                        match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport="'+window.sport+' width="15px" height="15px"/> '
-                            +match_data['rival_name']+' - '+team_name+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport="'+window.sport+' width="15px" height="15px"/>'
-                    }
-                    var style_=""
-                    if(window.sport=="hockey"){
-                        style_="style='color:#6d93fd;'"
-                    }
-                    newContent+='<fieldset class="grouping self box_light_on_dark flex-nowrap" style="max-width: 555px; margin-left: 10px;">'
-                    newContent+='<legend>'+match_data['clash_name']+'</legend>'
-                    newContent+='<div class="flex-grow-0 mission-icon">'
-                    newContent+='<i class="fa fa-check-square green fa-2x t-checked" aria-hidden="true" '+style_+'></i>'
-                    newContent+='</div>'
-                    newContent+='<div class="flex-grow-1 mission">'
+                            data.forEach(function(match_data) {
 
-                    var link="CompAmis_CALENDAR_View.php?"+'id='+match_data['idComp']
-                    if(match_data['comp']=="cup"){
-                        link='CompAmis_Cup_CALENDAR_View.php?grupo='+match_data['grupo']+'&id='+match_data['idComp']
-                    }
+                                var dateObj1 = new Date(last_date);
+                                var dateObj2 = new Date(match_data['fecha']);
 
 
-                    newContent+='<p><b><a href="https://www.statsxente.com/MZ1/View/'+link+'" target="_blank">'+match+'</a></b>'
-                    newContent+='</br>Date: '+match_data['fecha']+'</p>'
-                    newContent+='</div>'
-                    newContent+='</fieldset>'
-                });
+                                var icon_="fa-check-square"
+                                var style_=""
+                                if (dateObj1 < dateObj2) {
+                                    icon_="fa-calendar-minus-o"
+                                    style_="style='color:#e5ac00;'"
+                                }else{
+
+                                    if(matchesDate.includes(match_data['rival_id']+"-"+match_data['fecha'])){
+                                        if(window.sport=="hockey"){
+                                            style_="style='color:#6d93fd;'"
+                                        }
+                                    }else{
+                                        icon_="fa-times-square"
+                                        style_="style='color:#AD4039;'"
+
+                                    }
+
+                                }
+
+
+                                var match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport="'+window.sport+' width="15px" height="15px"/> '
+                                    +team_name+' - '+match_data['rival_name']+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport="'+window.sport+' width="15px" height="15px"/>'
+                                if(match_data['field']=="away"){
+                                    match='<img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoLocal']+'&sport="'+window.sport+' width="15px" height="15px"/> '
+                                        +match_data['rival_name']+' - '+team_name+' <img src="https://www.managerzone.com/dynimg/badge.php?team_id='+match_data['idEquipoVisitante']+'&sport="'+window.sport+' width="15px" height="15px"/>'
+                                }
+
+
+                                newContent+='<fieldset class="grouping self box_light_on_dark flex-nowrap" style="max-width: 555px; margin-left: 10px;">'
+                                newContent+='<legend>'+match_data['clash_name']+'</legend>'
+                                newContent+='<div class="flex-grow-0 mission-icon">'
+                                newContent+='<i class="fa '+icon_+' green fa-2x t-checked" aria-hidden="true" '+style_+'></i>'
+                                newContent+='</div>'
+                                newContent+='<div class="flex-grow-1 mission">'
+
+                                var link="CompAmis_CALENDAR_View.php?"+'id='+match_data['idComp']
+                                if(match_data['comp']=="cup"){
+                                    link='CompAmis_Cup_CALENDAR_View.php?grupo='+match_data['grupo']+'&id='+match_data['idComp']
+                                }
+
+
+                                newContent+='<p><b><a href="https://www.statsxente.com/MZ1/View/'+link+'" target="_blank">'+match+'</a></b>'
+                                newContent+='</br>Date: '+match_data['fecha']+'</p>'
+                                newContent+='</div>'
+                                newContent+='</fieldset>'
+                            });
 
 
 
 
-                newContent+=`</div>
+                            newContent+=`</div>
                     </div>
                 </div>
             </div>
@@ -2020,12 +2196,21 @@ background-color: #f2f2f2;
 
 
 
-                var contenedor = document.getElementById('tour-container');
-                if(data.length>0){
-                    contenedor.insertAdjacentHTML('beforebegin',newContent);
+                            var contenedor = document.getElementById('tour-container');
+                            if(data.length>0){
+                                contenedor.insertAdjacentHTML('beforebegin',newContent);
 
-                }
-            }
+                            }
+
+
+                        }
+
+                    });
+
+                }// final if
+
+
+            } // final onload
         });
 
     }
