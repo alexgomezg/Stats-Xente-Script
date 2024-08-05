@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.80
+// @version      0.81
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -387,10 +387,10 @@ background-color: #f2f2f2;
 
   `)
 
-    var keys = GM_listValues();
+    /*var keys = GM_listValues();
     keys.forEach(function(key) {
         console.log(key+" "+GM_getValue(key))
-    });
+    });*/
 
     var link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css?family=Roboto&display=swap';
@@ -651,22 +651,33 @@ background-color: #f2f2f2;
                 values.set('federation_leagues', 'Federation Leagues');
             }
 
-            /*if(urlParams.get('type')=="world"){
-           values.set('World leagues', 'Leagues');
-           values.set('world_leagues_all', 'World Leagues');
-           values.set('youth_leagues_all', 'Youth Leagues');
-           values.set('world_youth_leagues_all', 'Youth World Leagues');
-           values.set('federation_leagues', 'Federation Leagues');
-           }*/
+
+            if((urlParams.get('type').includes("u"))&&(!urlParams.get('type').includes("_"))){
+                var actual_cat=urlParams.get('type').toUpperCase();
+                GM_setValue("actual_league_cat",actual_cat)
+                values.set('leagues_all', 'Leagues');
+                values.set('world_leagues_all', 'World Leagues');
+                values.set('youth_leagues', actual_cat+' Youth Leagues');
+                values.set('world_youth_leagues_all', 'Youth World Leagues');
+                values.set('federation_leagues', 'Federation Leagues');
+            }
+
+
+            if((urlParams.get('type').includes("u"))&&(urlParams.get('type').includes("_"))){
+                actual_cat=urlParams.get('type').substring(0,3).toUpperCase();
+                GM_setValue("actual_league_cat",actual_cat)
+                values.set('leagues_all', 'Leagues');
+                values.set('world_leagues_all', 'World Leagues');
+                values.set('youth_leagues_all','Youth Leagues');
+                values.set('world_youth_leagues',actual_cat+' Youth World Leagues');
+                values.set('federation_leagues', 'Federation Leagues');
+            }
 
             values.set('cup', 'Cups');
             values.set('cup_u23', 'U23 Cups');
             values.set('cup_u21', 'U21 Cups');
             values.set('cup_u18', 'U18 Cups');
             values.set('special_cup', 'Special Cups');
-
-
-            //values.set('world_league', 'Leagues');
 
             var contenidoNuevo = '<div id=testClick><center>'
 
@@ -1001,8 +1012,6 @@ background-color: #f2f2f2;
                 key_actual_league=selectedText.substring(0,4)
             }
 
-            console.log(key_actual_league)
-
             var valor=0;
 
             if(teams_data[id]===undefined){
@@ -1025,8 +1034,28 @@ background-color: #f2f2f2;
                     case "world_leagues":
                         table_key="world_league"
                         agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        valor="("+teams_data[id]['league_'+key_actual_league]+'/'+agg_value+")"
+                        valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
                         break;
+
+                    case "youth_leagues":
+                        var cat=GM_getValue("actual_league_cat").toLowerCase()
+                        table_key="league_"+cat
+                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
+                        break;
+
+                    case "world_youth_leagues":
+                        cat=GM_getValue("actual_league_cat").toLowerCase()
+                        table_key="world_league_"+cat
+                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
+                        break;
+
+
+
+
+
+
 
                     case "leagues_all":
                         table_key="league"
