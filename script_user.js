@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.81
+// @version      0.82
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -554,11 +554,11 @@ background-color: #f2f2f2;
         var local_id = srcLocal.match(regex);
         var src_away = badges[1].getAttribute('src');
         var away_id = src_away.match(regex);
-        var names = document.getElementsByClassName("name-score name-score--desktop text-ellipsis")
-        var elems = document.getElementsByClassName("mainContent top-pane top-pane--desktop");
+        var names = document.getElementsByClassName("name-score text-ellipsis")
+        var elems = document.getElementsByClassName("top-pane__deadline");
         var tabla = elems[0]
 
-        var contenidoNuevo="</br><center><table><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><center><img id=clashCompare src='https://i.imgur.com/G76Jm71.png' style='width:45px; height:45px; cursor:pointer;'/></center></td></tr></table></center>";
+        var contenidoNuevo="</br></br><center><table><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><center><img id=clashCompare src='https://i.imgur.com/G76Jm71.png' style='width:45px; height:45px; cursor:pointer;'/></center></td></tr></table></center>";
         tabla.insertAdjacentHTML('beforeend', contenidoNuevo)
 
         document.getElementById("clashCompare").addEventListener('click', function () {
@@ -1051,12 +1051,6 @@ background-color: #f2f2f2;
                         valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
                         break;
 
-
-
-
-
-
-
                     case "leagues_all":
                         table_key="league"
                         valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
@@ -1084,6 +1078,12 @@ background-color: #f2f2f2;
                         valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
                         table_key="world_league_u18"
                         valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        break;
+
+                    case "federation_leagues":
+                        table_key="federation_league"
+                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                        valor=agg_value
                         break;
 
 
