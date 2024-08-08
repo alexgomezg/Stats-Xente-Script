@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.82
+// @version      0.83
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -2094,6 +2094,7 @@ background-color: #f2f2f2;
         var h1Elements = document.querySelectorAll('h1.box_dark');
         var team_name=h1Elements[0].innerText
         var team_id=document.getElementById("tid1").value;
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_user_next_matches.php?team_id="+team_id,
@@ -2166,9 +2167,11 @@ background-color: #f2f2f2;
 
                                 var icon_="fa-check-square"
                                 var style_=""
+                                var flagFriendly=false;
                                 if (dateObj1 < dateObj2) {
                                     icon_="fa-calendar-minus-o"
                                     style_="style='color:#e5ac00;'"
+                                    flagFriendly=true;
                                 }else{
 
                                     if(matchesDate.includes(match_data['rival_id']+"-"+match_data['fecha'])){
@@ -2178,6 +2181,8 @@ background-color: #f2f2f2;
                                     }else{
                                         icon_="fa-times-square"
                                         style_="style='color:#AD4039;'"
+                                        flagFriendly=true;
+
 
                                     }
 
@@ -2206,7 +2211,14 @@ background-color: #f2f2f2;
 
 
                                 newContent+='<p><b><a href="https://www.statsxente.com/MZ1/View/'+link+'" target="_blank">'+match+'</a></b>'
-                                newContent+='</br>Date: '+match_data['fecha']+'</p>'
+                                newContent+="</br></p>"
+                                newContent+='Date: '+match_data['fecha']
+                                if(flagFriendly){
+                                    newContent+="<a href='https://www.managerzone.com/?p=challenges&challenge-tid="+match_data['rival_id']+"'><i class='fa fa-thumbs-up fa-lg challenge-thumb' aria-hidden='true'></i></a>"
+                                }
+
+
+                                newContent+='</p>'
                                 newContent+='</div>'
                                 newContent+='</fieldset>'
                             });
