@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.83
+// @version      0.84
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -419,6 +419,7 @@ background-color: #f2f2f2;
 
 
     setTimeout(function () {
+
         var urlParams = new URLSearchParams(window.location.search);
         if((urlParams.has('p')) && (urlParams.get('p') === 'league')&&(GM_getValue("leagueFlag"))){
             leagues();
@@ -570,31 +571,20 @@ background-color: #f2f2f2;
 
 
     var teams_data="";
+    var searchClassName=""
 
     function leagues(){
         var urlParams = new URLSearchParams(window.location.search);
 
-
         var initialValues = {};
-        initialValues["senior"] = "valor";
-        initialValues["world"] = "valor";
-        initialValues["u23"] = "valor23";
-        initialValues["u21"] = "valor21";
-        initialValues["u18"] = "valor18";
-        initialValues["u23_world"] = "valor23";
-        initialValues["u21_world"] = "valor21";
-        initialValues["u18_world"] = "valor18";
-
-        var nameInitialValues = {};
-        nameInitialValues["senior"] = "Value";
-        nameInitialValues["world"] = "Value";
-        nameInitialValues["u23"] = "Value U23";
-        nameInitialValues["u21"] = "Value U21";
-        nameInitialValues["u18"] = "Value U18";
-        nameInitialValues["u23_world"] = "Value U23";
-        nameInitialValues["u21_world"] = "Value U21";
-        nameInitialValues["u18_world"] = "Value U18";
-
+        initialValues["senior"] = GM_getValue("league_default_senior");
+        initialValues["world"] = GM_getValue("league_default_senior");
+        initialValues["u23"] = GM_getValue("league_default_u23");
+        initialValues["u21"] = GM_getValue("league_default_u21");
+        initialValues["u18"] = GM_getValue("league_default_u18");
+        initialValues["u23_world"] = GM_getValue("league_default_u23");
+        initialValues["u21_world"] = GM_getValue("league_default_u21");
+        initialValues["u18_world"] = GM_getValue("league_default_u18");;
 
         var linkIds=""
         setTimeout(function() {
@@ -695,6 +685,7 @@ background-color: #f2f2f2;
             contenidoNuevo+="<th align=center style='padding:4px;'>History</th></tr></thead>";
             contenidoNuevo+= "<tr>";
             contenidoNuevo+= "<td style='padding:4px;'><center><img id='detailDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
+
             contenidoNuevo+= "<td style='padding:4px;'><center><img id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
             if(idProgress=="noProgress"){
                 contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph_disabled.png width=25 height=25/></center></td>";
@@ -706,7 +697,11 @@ background-color: #f2f2f2;
             contenidoNuevo+='<table id=show3 border="0"><tr><td><label>';
 
             if((urlParams.get('type')=='senior')||(urlParams.get('type')=='world')){
-                contenidoNuevo+='<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
+                if("valor"==initialValues[urlParams.get('type')]){
+                    contenidoNuevo+='<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
+                }else{
+                    contenidoNuevo+='<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+                }
             }else{
                 contenidoNuevo+='<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
             }
@@ -763,8 +758,7 @@ background-color: #f2f2f2;
 
             });
             var nuevaCeldaEncabezado = document.createElement("th");
-            nuevaCeldaEncabezado.textContent = nameInitialValues[urlParams.get('type')];
-
+            nuevaCeldaEncabezado.textContent = values.get(initialValues[urlParams.get('type')]);
             nuevaCeldaEncabezado.style.textAlign = 'center';
             var ser = document.getElementsByClassName("seriesHeader")
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
@@ -776,18 +770,24 @@ background-color: #f2f2f2;
             document.getElementsByClassName("seriesHeader")[0].appendChild(nuevaCeldaEncabezado);
 
 
+            if(tabla.getElementsByTagName("tbody")[0].innerHTML.includes("mazyar")){
+                searchClassName="responsive-hide"
+            }
+
             var contIds=0
             var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
             for (var i = 0; i < filasDatos.length; i++) {
-                var celda = tabla.rows[i+1].cells[1];
-                var equipo=celda.textContent.trim()
-                var iniIndex = celda.innerHTML.indexOf("tid=");
-                var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
-                var data=String(celda.innerHTML)
-                var id=data.substring(iniIndex+4,lastIndex)
-                linkIds+="&idEquipo"+contIds+"="+id
-                contIds++
-                celda.innerHTML+="<input type='hidden' id='team_"+id+"' value='"+equipo+"'/>"
+                if(checkClassNameExists(tabla.rows[i+1], searchClassName)){
+                    var celda = tabla.rows[i+1].cells[1];
+                    var equipo=celda.textContent.trim()
+                    var iniIndex = celda.innerHTML.indexOf("tid=");
+                    var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
+                    var data=String(celda.innerHTML)
+                    var id=data.substring(iniIndex+4,lastIndex)
+                    linkIds+="&idEquipo"+contIds+"="+id
+                    contIds++
+                    celda.innerHTML+="<input type='hidden' id='team_"+id+"' value='"+equipo+"'/>"
+                }
 
             }
             var cat = cats[urlParams.get('type')]
@@ -842,8 +842,7 @@ background-color: #f2f2f2;
                 })(league_id,window.lsport,window.lang,cat);
 
 
-            }, 1000);
-
+            }, 200);
 
             GM_xmlhttpRequest({
                 method: "GET",
@@ -857,98 +856,112 @@ background-color: #f2f2f2;
                     teams_data=jsonResponse;
                     var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
                     for (var i = 0; i < filasDatos.length; i++) {
-                        var celda = tabla.rows[i+1].cells[1];
-                        var equipo=celda.textContent.trim()
-                        var iniIndex = celda.innerHTML.indexOf("tid=");
-                        var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
-                        var data=String(celda.innerHTML)
-                        var id=data.substring(iniIndex+4,lastIndex)
-                        var nuevaColumna = document.createElement("td");
-                        var valor=0;
+                        if(checkClassNameExists(filasDatos[i], searchClassName)){
+                            var celda = filasDatos[i].cells[1];
+                            var equipo=celda.textContent.trim()
+                            var iniIndex = celda.innerHTML.indexOf("tid=");
+                            var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
+                            var data=String(celda.innerHTML)
+                            var id=data.substring(iniIndex+4,lastIndex)
+                            var nuevaColumna = document.createElement("td");
+                            var valor=0;
 
-                        if (jsonResponse[id] && jsonResponse[id][initialValues[urlParams.get('type')]] !== undefined) {
-                            valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[id][initialValues[urlParams.get('type')]]))
+                            if (jsonResponse[id] && jsonResponse[id][initialValues[urlParams.get('type')]] !== undefined) {
+                                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[id][initialValues[urlParams.get('type')]]))
+                            }
+                            nuevaColumna.innerHTML=valor
+                            nuevaColumna.style.textAlign = 'center';
+                            filasDatos[i].appendChild(nuevaColumna);
+
+                            var eloType=1
+
+                            if(window.sport=="soccer"){eloType=2}
+                            if(cat.includes("SUB")){eloType=3}
+                            var cats_elo={}
+                            cats_elo["senior"] = "SENIOR";
+                            cats_elo["seniorw"] = "SENIOR";
+                            cats_elo["SUB23"] = "U23";
+                            cats_elo["SUB21"] = "U21";
+                            cats_elo["SUB18"] = "U18";
+                            cats_elo["SUB23w"] = "U23";
+                            cats_elo["SUB21w"] = "U21";
+                            cats_elo["SUB18w"] = "U18";
+
+                            var flagSenior=0,flagSub23=0,flagSub21=0,flagSub18=0;
+                            if(jsonResponse[id]["elo"]>0){flagSenior=1}
+                            if(jsonResponse[id]["elo23"]>0){flagSub23=1}
+                            if(jsonResponse[id]["elo21"]>0){flagSub21=1}
+                            if(jsonResponse[id]["elo18"]>0){flagSub18=1}
+
+                            var buttonDisplay="display:block;";
+                            nuevaColumna = document.createElement("td");
+                            var iner = "<center><img src='https://statsxente.com/MZ1/View/Images/detail.png' width='20px' height='20px' id='but"+id+"' style='cursor:pointer;'/>";
+                            if(GM_getValue("league_graph_button")=="checked"){
+                                buttonDisplay=""
+                            }else{
+                                buttonDisplay="display:none;";
+                            }
+                            iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px' id='but1"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+
+                            if(GM_getValue("league_report_button")=="checked"){
+                                buttonDisplay=""
+                            }else{
+                                buttonDisplay="display:none;";
+                            }
+                            iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px' id='but2"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+
+                            if(GM_getValue("league_calendar_button")=="checked"){
+                                buttonDisplay=""
+                            }else{
+                                buttonDisplay="display:none;";
+                            }
+                            iner += " <img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px' id='but3"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+                            iner +="</center>";
+                            cat = cats[urlParams.get('type')]
+                            nuevaColumna.innerHTML=iner
+                            filasDatos[i].appendChild(nuevaColumna);
+                            nuevaColumna = document.createElement("td");
+                            (function (currentId,currentLSport,lang) {
+                                document.getElementById("but1" + currentId).addEventListener('click', function () {
+                                    var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id,window.lsport,window.lang);
+
+
+                            (function (currentId,currentLSport,lang,currentCat) {
+                                document.getElementById("but2" + currentId).addEventListener('click', function () {
+                                    var src="filtroGraficoEquiposHistoricoHockey";
+                                    if(currentLSport=="F"){
+                                        src="filtroGraficoLinealEquiposHistorico";
+                                    }
+
+                                    var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id,window.lsport,window.lang,cat);
+
+
+                            (function (currentId, currentEquipo,currentCat,currentSport,lang) {
+                                document.getElementById("but" + currentId).addEventListener('click', function () {
+
+                                    var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=no&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id, equipo,cat,window.sport,window.lang);
+
+
+
+
+                            (function (currentId, type,currentCat,currentSport,lang,flagS,flagS23,flagS21,flagS18) {
+                                document.getElementById("but3" + currentId).addEventListener('click', function () {
+                                    var link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?tamper=yes&team_id="+currentId+"&idioma="+lang+"&deporte="+currentSport+"&type="+type+"&cat="+currentCat+"&flagSenior="+
+                                        flagS+"&flagSub23="+flagS23+"&flagSub21="+flagS21+"&flagSub18="+flagS18;
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id, eloType,cats_elo[cat],window.sport,window.lang,flagSenior,flagSub23,flagSub21,flagSub18);
+
                         }
-                        nuevaColumna.innerHTML=valor
-                        nuevaColumna.style.textAlign = 'center';
-                        filasDatos[i].appendChild(nuevaColumna);
-
-                        var eloType=1
-
-                        if(window.sport=="soccer"){eloType=2}
-                        if(cat.includes("SUB")){eloType=3}
-                        var cats_elo={}
-                        cats_elo["senior"] = "SENIOR";
-                        cats_elo["seniorw"] = "SENIOR";
-                        cats_elo["SUB23"] = "U23";
-                        cats_elo["SUB21"] = "U21";
-                        cats_elo["SUB18"] = "U18";
-                        cats_elo["SUB23w"] = "U23";
-                        cats_elo["SUB21w"] = "U21";
-                        cats_elo["SUB18w"] = "U18";
-
-                        var flagSenior=0,flagSub23=0,flagSub21=0,flagSub18=0;
-                        if(jsonResponse[id]["elo"]>0){flagSenior=1}
-                        if(jsonResponse[id]["elo23"]>0){flagSub23=1}
-                        if(jsonResponse[id]["elo21"]>0){flagSub21=1}
-                        if(jsonResponse[id]["elo18"]>0){flagSub18=1}
-
-
-
-
-
-
-                        nuevaColumna = document.createElement("td");
-                        var iner = "<center><img src='https://statsxente.com/MZ1/View/Images/detail.png' width='20px' height='20px' id='but"+id+"' style='cursor:pointer;'/>";
-                        iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px' id='but1"+id+"' style='cursor:pointer;'/>";
-                        iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px' id='but2"+id+"' style='cursor:pointer;'/>";
-                        iner += " <img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px' id='but3"+id+"' style='cursor:pointer;'/>";
-                        iner +="</center>";
-                        var cat = cats[urlParams.get('type')]
-                        nuevaColumna.innerHTML=iner
-                        filasDatos[i].appendChild(nuevaColumna);
-                        nuevaColumna = document.createElement("td");
-                        (function (currentId,currentLSport,lang) {
-                            document.getElementById("but1" + currentId).addEventListener('click', function () {
-                                var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
-                                openWindow(link,0.95,1.25);
-                            });
-                        })(id,window.lsport,window.lang);
-
-
-                        (function (currentId,currentLSport,lang,currentCat) {
-                            document.getElementById("but2" + currentId).addEventListener('click', function () {
-                                var src="filtroGraficoEquiposHistoricoHockey";
-                                if(currentLSport=="F"){
-                                    src="filtroGraficoLinealEquiposHistorico";
-                                }
-
-                                var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
-                                openWindow(link,0.95,1.25);
-                            });
-                        })(id,window.lsport,window.lang,cat);
-
-
-                        (function (currentId, currentEquipo,currentCat,currentSport,lang) {
-                            document.getElementById("but" + currentId).addEventListener('click', function () {
-
-                                var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=no&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
-                                openWindow(link,0.95,1.25);
-                            });
-                        })(id, equipo,cat,window.sport,window.lang);
-
-
-
-
-                        (function (currentId, type,currentCat,currentSport,lang,flagS,flagS23,flagS21,flagS18) {
-                            document.getElementById("but3" + currentId).addEventListener('click', function () {
-                                var link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?tamper=yes&team_id="+currentId+"&idioma="+lang+"&deporte="+currentSport+"&type="+type+"&cat="+currentCat+"&flagSenior="+
-                                    flagS+"&flagSub23="+flagS23+"&flagSub21="+flagS21+"&flagSub18="+flagS18;
-                                openWindow(link,0.95,1.25);
-                            });
-                        })(id, eloType,cats_elo[cat],window.sport,window.lang,flagSenior,flagSub23,flagSub21,flagSub18);
-
-
 
                     }
                     var thead=document.getElementsByClassName("seriesHeader")[0]
@@ -958,9 +971,12 @@ background-color: #f2f2f2;
                             ordenarTabla(index,true,"nice_table");
                         });
                     });
+
+                    console.log("final");
                 }
             });
-        }, 3000);
+        }, 2500);
+
     }
 
 
@@ -973,7 +989,13 @@ background-color: #f2f2f2;
             ",height=" + ventanaAlto +
             ",left=" + ventanaIzquierda +
             ",top=" + ventanaArriba;
-        window.open(link, "_blank", opcionesVentana);
+
+        if((GM_getValue("tabsConfig")==false)&&(GM_getValue("windowsConfig")==true)){
+            window.open(link, "_blank", opcionesVentana);
+        }
+        if((GM_getValue("tabsConfig")==true)&&(GM_getValue("windowsConfig")==false)){
+            window.open(link, "_blank");
+        }
     }
     function handleClick(event) {
         var elems = document.getElementsByClassName("nice_table");
@@ -982,120 +1004,118 @@ background-color: #f2f2f2;
         var thSegundo = tabla.querySelector("thead th:nth-child(2)");
         thSegundo.style.width = "250px";
         for (var i = 0; i < filas.length; i++) {
-            var celda = tabla.rows[i+1].cells[1];
-
-            var equipo=celda.textContent.trim()
-            var iniIndex = celda.innerHTML.indexOf("tid=");
-            var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
-            var data=String(celda.innerHTML)
-            var id=data.substring(iniIndex+4,lastIndex)
-
-
-            var celdas = filas[i].getElementsByTagName("td");
-            var ultimaCelda = celdas[celdas.length - 2];
-
-            var selects = document.getElementsByTagName('select');
-            var index_select=1;
-            if(selects[index_select]===undefined){
-                index_select=0;
-            }
-
-
-            var selectedIndex = selects[index_select].selectedIndex;
-            var selectedOption = selects[index_select].options[selectedIndex];
-            var selectedText = selectedOption.text;
-
-
-
-            var key_actual_league="Top";
-            if(selectedText.includes(".")){
-                key_actual_league=selectedText.substring(0,4)
-            }
-
-            var valor=0;
-
-            if(teams_data[id]===undefined){
-                valor=0
-            }else{
-
-                var table_key="";
-                var agg_value=0;
-
-                switch (event.target.id) {
-                    case 'edad':
-                        valor=new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
-                        break;
-                    case "leagues":
-                        table_key="league"
-                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        valor="("+teams_data[id]['league_'+key_actual_league]+'/'+agg_value+")"
-                        break;
-
-                    case "world_leagues":
-                        table_key="world_league"
-                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
-                        break;
-
-                    case "youth_leagues":
-                        var cat=GM_getValue("actual_league_cat").toLowerCase()
-                        table_key="league_"+cat
-                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
-                        break;
-
-                    case "world_youth_leagues":
-                        cat=GM_getValue("actual_league_cat").toLowerCase()
-                        table_key="world_league_"+cat
-                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
-                        break;
-
-                    case "leagues_all":
-                        table_key="league"
-                        valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        break;
-
-
-                    case "world_leagues_all":
-                        table_key="world_league"
-                        valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        break;
-
-                    case "youth_leagues_all":
-                        table_key="league_u23"
-                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        table_key="league_u21"
-                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        table_key="league_u18"
-                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        break;
-
-                    case "world_youth_leagues_all":
-                        table_key="world_league_u23"
-                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        table_key="world_league_u21"
-                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        table_key="world_league_u18"
-                        valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        break;
-
-                    case "federation_leagues":
-                        table_key="federation_league"
-                        agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
-                        valor=agg_value
-                        break;
-
-
-                    default:
-                        valor= new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
-                        break;
-
-
+            if(checkClassNameExists(filas[i], searchClassName)){
+                var celda = filas[i].cells[1];
+                var equipo=celda.textContent.trim()
+                var iniIndex = celda.innerHTML.indexOf("tid=");
+                var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
+                var data=String(celda.innerHTML)
+                var id=data.substring(iniIndex+4,lastIndex)
+                var celdas = filas[i].getElementsByTagName("td");
+                var ultimaCelda = celdas[celdas.length - 2];
+                var selects = document.getElementsByTagName('select');
+                var index_select=1;
+                if(selects[index_select]===undefined){
+                    index_select=0;
                 }
-            }
 
-            ultimaCelda.innerHTML = valor;
+
+                var selectedIndex = selects[index_select].selectedIndex;
+                var selectedOption = selects[index_select].options[selectedIndex];
+                var selectedText = selectedOption.text;
+
+
+
+                var key_actual_league="Top";
+                if(selectedText.includes(".")){
+                    key_actual_league=selectedText.substring(0,4)
+                }
+
+                var valor=0;
+
+                if(teams_data[id]===undefined){
+                    valor=0
+                }else{
+
+                    var table_key="";
+                    var agg_value=0;
+
+                    switch (event.target.id) {
+                        case 'edad':
+                            valor=new Intl.NumberFormat(window.userLocal,{minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case "leagues":
+                            table_key="league"
+                            agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            valor="("+teams_data[id]['league_'+key_actual_league]+'/'+agg_value+")"
+                            break;
+
+                        case "world_leagues":
+                            table_key="world_league"
+                            agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
+                            break;
+
+                        case "youth_leagues":
+                            var cat=GM_getValue("actual_league_cat").toLowerCase()
+                            table_key="league_"+cat
+                            agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
+                            break;
+
+                        case "world_youth_leagues":
+                            cat=GM_getValue("actual_league_cat").toLowerCase()
+                            table_key="world_league_"+cat
+                            agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            valor="("+teams_data[id][table_key+'_'+key_actual_league]+'/'+agg_value+")"
+                            break;
+
+                        case "leagues_all":
+                            table_key="league"
+                            valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            break;
+
+
+                        case "world_leagues_all":
+                            table_key="world_league"
+                            valor=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            break;
+
+                        case "youth_leagues_all":
+                            table_key="league_u23"
+                            valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            table_key="league_u21"
+                            valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            table_key="league_u18"
+                            valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            break;
+
+                        case "world_youth_leagues_all":
+                            table_key="world_league_u23"
+                            valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            table_key="world_league_u21"
+                            valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            table_key="world_league_u18"
+                            valor+=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            break;
+
+                        case "federation_leagues":
+                            table_key="federation_league"
+                            agg_value=teams_data[id][table_key+'_Top']+teams_data[id][table_key+'_div1']+teams_data[id][table_key+'_div2']+teams_data[id][table_key+'_div3']+teams_data[id][table_key+'_div4']+teams_data[id][table_key+'_div5']
+                            valor=agg_value
+                            break;
+
+
+                        default:
+                            valor= new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
+                            break;
+
+
+                    }
+                }
+
+                ultimaCelda.innerHTML = valor;
+            }
         }
         var checkboxes = document.querySelectorAll('.statsxente');
         var thead = tabla.querySelector('thead');
@@ -1188,6 +1208,119 @@ background-color: #f2f2f2;
         return decodeURIComponent(valorCookie);
     }
 
+
+    function generateValuesSelect(cat){
+
+
+        var defaults = new Map();
+        defaults.set('senior', 'valor');
+        defaults.set('u23', 'valor23');
+        defaults.set('u21', 'valor21');
+        defaults.set('u18', 'valor18');
+
+        var values = new Map();
+        values.set('valor', 'Value');
+        values.set('valor23', 'U23 Value');
+        values.set('valor21', 'U21 Value');
+        values.set('valor18', 'U18 Value');
+        values.set('salario', 'Salary');
+        values.set('valorUPSenior', 'LM Value');
+        values.set('valorUPSUB23', 'U23 LM Value');
+        values.set('valorUPSUB21', 'U21 LM Value');
+        values.set('valorUPSUB18', 'U18 LM Value');
+        values.set('edad', 'Age');
+        values.set('valor11', 'TOP 11/21');
+        values.set('valor11_23', 'U23 TOP 11/21');
+        values.set('valor11_21', 'U21 TOP 11/21');
+        values.set('valor11_18', 'U18 TOP 11/21');
+        values.set('noNac', 'Foreigners');
+        values.set('elo', 'ELO Score');
+        values.set('elo23', 'U23 ELO Score');
+        values.set('elo21', 'U21 ELO Score');
+        values.set('elo18', 'U18 ELO Score');
+        values.set('numJugadores', 'Number of players');
+
+
+        var default_value=GM_getValue("league_default_"+cat,defaults.get(cat))
+        GM_setValue("league_default_"+cat,default_value)
+
+        var select="<select id='league_default_select_"+cat+"' style='width:115px;'>";
+        values.forEach((valor, clave, mapa) => {
+            var checked=""
+            if(clave==default_value){
+                checked="selected"
+            }
+            select+="<option "+checked+" value='"+clave+"'>"+valor+"</option>";
+        });
+        select+="</select>"
+        return select;
+
+    }
+
+
+    function createLeagueConfigOptionsListeners(){
+
+        var defaults = new Map();
+        defaults.set('senior', 'valor');
+        defaults.set('u23', 'valor23');
+        defaults.set('u21', 'valor21');
+        defaults.set('u18', 'valor18');
+
+
+
+        defaults.forEach((valor, clave, mapa) => {
+
+
+
+            document.getElementById("league_default_select_"+clave).addEventListener('change', function () {
+
+                var selectElement = document.getElementById("league_default_select_"+clave);
+                GM_setValue("league_default_"+clave,selectElement.value)
+            });
+
+        });
+        document.getElementById("league_graph_check").addEventListener('click', function () {
+
+            if(document.getElementById("league_graph_check").checked){
+                GM_setValue("league_graph_button","checked")
+            }else{
+                GM_setValue("league_graph_button","")
+            }
+
+
+        });
+
+
+        document.getElementById("league_report_check").addEventListener('click', function () {
+
+            if(document.getElementById("league_report_check").checked){
+                GM_setValue("league_report_button","checked")
+            }else{
+                GM_setValue("league_report_button","")
+            }
+
+
+        });
+
+        document.getElementById("league_calendar_check").addEventListener('click', function () {
+
+            if(document.getElementById("league_calendar_check").checked){
+                GM_setValue("league_calendar_button","checked")
+            }else{
+                GM_setValue("league_calendar_button","")
+            }
+
+
+        });
+
+
+
+
+
+
+    }
+
+
     function createModalMenu() {
         //setTimeout(function () {
         var newElement = document.createElement("div");
@@ -1222,6 +1355,27 @@ background-color: #f2f2f2;
         }
 
 
+        if (GM_getValue("league_graph_button") === undefined) {
+            GM_setValue("league_graph_button","checked")
+        }
+
+        if (GM_getValue("league_report_button") === undefined) {
+            GM_setValue("league_report_button","checked")
+        }
+
+        if (GM_getValue("league_calendar_button") === undefined) {
+            GM_setValue("league_calendar_button","checked")
+        }
+
+        if (GM_getValue("windowsConfig") === undefined) {
+            GM_setValue("windowsConfig",true)
+        }
+
+        if (GM_getValue("tabsConfig") === undefined) {
+            GM_setValue("tabsConfig",false)
+        }
+
+
 
 
         var leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag="",countryRankFlag=""
@@ -1231,17 +1385,63 @@ background-color: #f2f2f2;
         if (GM_getValue("leagueFlag")) leagueFlag = "checked"
         if (GM_getValue("playersFlag")) playersFlag = "checked"
         if (GM_getValue("countryRankFlag")) countryRankFlag = "checked"
-        var newContent='<center><img id="closeButton" src="' + close_image + '" style="width:40px; height:40px; cursor:ppinter;"/></br><div id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"></br><table border=0><tbody><tr>';
+        var newContent='<center><img id="closeButton" src="' + close_image + '" style="width:40px; height:40px; cursor:pointer;"/></br><div id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"></br><table border=0><tbody><tr>';
         newContent+= '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent+= '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent+="</tr></tbody></table>"
-        newContent+='<button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button><button id="deleteButton"class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button>'
-        newContent+='</div></center></br></br>qqq';
+
+        newContent+="<hr>"
+        newContent+="<h3 style='text-align: left; padding-left:7px;'>Leagues Config</h3>"
+
+        newContent+="<table border='0'><tr>"
+        newContent+="<td>Default Senior Param: <td>"+generateValuesSelect('senior')+"</td>";
+        newContent+="<td>Default U23 Param: <td>"+generateValuesSelect('u23')+"</td>";
+        newContent+="<td>Default U21 Param: <td>"+generateValuesSelect('u21')+"</td>";
+        newContent+="<td>Default U18 Param: <td>"+generateValuesSelect('u18')+"</td>";
+
+        newContent+="</tr><tr>"
+
+
+        var checked_graph=GM_getValue("league_graph_button")
+        var checked_report=GM_getValue("league_report_button")
+        var checked_calendar=GM_getValue("league_calendar_button")
+
+        newContent+="<td colspan='8'><center><table><tr><td><label><input "+checked_graph+" type='checkbox' value='graph' id='league_graph_check'><img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px'/> Progress</label></td>"
+        newContent+="<td><center><label><input "+checked_report+" type='checkbox' value='graph' id='league_report_check'><img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px'/> Graph</label></td>"
+
+        newContent+="<td><center><label><input "+checked_calendar+" type='checkbox' value='graph' id='league_calendar_check'><img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px'/> ELO Matches</label></td></tr></table></td>"
+
+        newContent+="</tr></table>"
+
+        newContent+="<hr>"
+        newContent+="<h3 style='text-align: left; padding-left:7px;'>Tabs Config</h3>"
+        newContent+="<table style='display:flex;'><tr><td>"
+
+        var checkedTab=""
+        if(GM_getValue("tabsConfig")){
+            checkedTab="checked"
+        }
+
+        var checkedWin=""
+        if(GM_getValue("windowsConfig")){
+            checkedWin="checked"
+        }
+
+
+        newContent+="<label><input type='checkbox' id='windowsConfig' "+checkedWin+">Windows</label>";
+        newContent+="<label><input type='checkbox' id='tabsConfig' "+checkedTab+">Tabs</label>";
+        newContent+="</td></tr></table></br></br>"
+
+
+
+        newContent+='<div style=padding-bottom:10px;><button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button><button id="deleteButton"class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button></div>'
+        newContent+='</div></center></br></br>';
         document.getElementById("contenido_modal_cargando").innerHTML=newContent
-        document.getElementById("contenido_modal_cargando").style.width="50%";
+        createLeagueConfigOptionsListeners();
+        document.getElementById("contenido_modal_cargando").style.width="75%";
         document.getElementById("myModal_cargando").style.display = "none"
         getNativeTableStyles()
 
@@ -1328,6 +1528,36 @@ background-color: #f2f2f2;
             document.getElementById('countryRankSelect').addEventListener('click', function () {
                 GM_setValue("countryRankFlag", !GM_getValue("countryRankFlag"))
             });
+
+
+
+            document.getElementById('windowsConfig').addEventListener('click', function () {
+
+                if(document.getElementById('windowsConfig').checked){
+                    document.getElementById('tabsConfig').checked=false;
+                }else{
+                    document.getElementById('tabsConfig').checked=true;
+                }
+
+                GM_setValue("windowsConfig", !GM_getValue("windowsConfig"))
+                GM_setValue("tabsConfig", !GM_getValue("tabsConfig"))
+
+
+            });
+
+
+            document.getElementById('tabsConfig').addEventListener('click', function () {
+                if(document.getElementById('tabsConfig').checked){
+                    document.getElementById('windowsConfig').checked=false;
+                }else{
+                    document.getElementById('windowsConfig').checked=true;
+                }
+                GM_setValue("windowsConfig", !GM_getValue("windowsConfig"))
+                GM_setValue("tabsConfig", !GM_getValue("tabsConfig"))
+
+
+            });
+
 
         }, 5000);
 
@@ -2248,11 +2478,23 @@ background-color: #f2f2f2;
 
                     });
 
-                }// final if
+                }
 
 
-            } // final onload
+            }
         });
+
+    }
+
+
+    function checkClassNameExists(element, className){
+
+        if(className==""){
+            return true;
+        }else{
+            return element.classList.contains(className);
+        }
+        return false;
 
     }
 
