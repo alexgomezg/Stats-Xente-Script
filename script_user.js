@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.85
+// @version      0.86
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -196,6 +196,7 @@ border-radius: 3px;
     background-color: #246355;
     color: #246355;
     cursor: default;
+         cursor: pointer;
 }.loader {
   width: 100%;
   height: 15px;
@@ -385,6 +386,59 @@ background-color: #f2f2f2;
     border-radius: 5px;
 }
 
+
+
+
+  .expandable-icon {
+    right: 0px;
+    top: 0px;
+    transform: rotateZ(45deg);
+    border-radius: 5px;
+    width: 20px;
+    height: 20px;
+    background: rgb(12, 47, 94);
+    transition: all .3s;
+  }
+
+.expandable-item.active .expandable-icon{
+  transform: rotateZ(0);
+}
+
+  .expandable-icon .line {
+    width: 15px;
+    height: 2px;
+    background: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    transition: all .4s;
+  }
+
+  .expandable-icon .line:nth-child(1) {
+    transform: rotateZ(45deg);
+  }
+
+  .expandable-icon .line:nth-child(2) {
+    transform: rotateZ(-45deg);
+  }
+
+
+    .imgMiddle {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .textMiddle {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+
+
+
   `)
 
     /*var keys = GM_listValues();
@@ -442,7 +496,7 @@ background-color: #f2f2f2;
 
 
         if((urlParams.has('p')) && (urlParams.get('p') === 'players')&&(GM_getValue("playersFlag"))){
-            playersPage();
+            playersPage()
         }
 
 
@@ -680,21 +734,49 @@ background-color: #f2f2f2;
             }
 
 ///MENU TABLE
-            contenidoNuevo+="<center><table id=showMenu border=1><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
+            contenidoNuevo+="<center><table id=showMenu border=0><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
             contenidoNuevo+='<th align=center style="padding:4px;">Stats</th><th align=center style="padding:4px;">Graph</th>';
             contenidoNuevo+="<th align=center style='padding:4px;'>History</th></tr></thead>";
             contenidoNuevo+= "<tr>";
             contenidoNuevo+= "<td style='padding:4px;'><center><img id='detailDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
 
-            contenidoNuevo+= "<td style='padding:4px;'><center><img id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px;'><center><img id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=31 height=25/></center></td>";
             if(idProgress=="noProgress"){
                 contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph_disabled.png width=25 height=25/></center></td>";
             }else{
                 contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
             }
-            contenidoNuevo+= "</tr></table></center>";
+            contenidoNuevo+= "</tr>";
 
-            contenidoNuevo+='<table id=show3 border="0"><tr><td><label>';
+
+
+            var styleTable=" style='display:none;'";
+            var styleIcon=""
+            var styleSep="style='padding-top:5px;'";
+
+            if(GM_getValue("show_league_selects")==true){
+                styleTable="";
+                styleIcon=" active"
+                styleSep=" style='display:none;'";
+
+            }
+
+
+            contenidoNuevo+= "<tr><td></td><td>";
+
+            contenidoNuevo+='<center><div id="moreInfo" class="expandable-icon'+styleIcon+'" style="cursor:pointer; background-color:'+GM_getValue("bg_native")+';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
+
+            contenidoNuevo+= "</td><td></td></tr>";
+
+            contenidoNuevo+= "<tr><td colspan='4' id='separatorTd'"+styleSep+"></td></tr>";
+
+
+
+            contenidoNuevo+= "</table></center>";
+
+
+
+            contenidoNuevo+='<table id=show3 border="0"'+styleTable+'><tr><td><label>';
 
             if((urlParams.get('type')=='senior')||(urlParams.get('type')=='world')){
                 if("valor"==initialValues[urlParams.get('type')]){
@@ -749,6 +831,12 @@ background-color: #f2f2f2;
 
             tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
 
+            if(GM_getValue("show_league_selects")==true){
+
+                document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+            }
 
 
             values.forEach(function(valor, clave) {
@@ -815,6 +903,33 @@ background-color: #f2f2f2;
                 }
 
 
+                (function () {
+                    document.getElementById("moreInfo").addEventListener('click', function () {
+                        document.getElementById("moreInfo").classList.toggle('active');
+
+                        if(document.getElementById("moreInfo").classList.contains("active")){
+                            document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                            document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                            document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+                            $('#separatorTd').fadeOut(1);
+                            document.getElementById("separatorTd").style.paddingTop = "5px";
+                            $('#show3').fadeIn('slow');
+                        }else{
+                            document.getElementById("line2").style.transform = 'rotateZ(45deg)';
+                            document.getElementById("line1").style.transform = 'rotateZ(-45deg)';
+                            document.getElementById("moreInfo").style.transform = 'rotateZ(45deg)';
+                            $('#separatorTd').fadeIn(1);
+                            $('#show3').fadeOut('slow');
+                        }
+
+
+
+                    });
+                })();
+
+
+
+
 
 
                 (function (currentId,currentLSport,lang,currentCat) {
@@ -824,7 +939,7 @@ background-color: #f2f2f2;
                             url_="https://statsxente.com/MZ1/Functions/lecturaStatsDivisionesHockeyHistorico.php"
                         }
 
-                        var link = url_+"?tamper=yes&modal=yes&idLiga="+currentId+"&idioma=SPANISH&categoria="+currentCat+"&season=75&season_actual=75";
+                        var link = url_+"?tamper=yes&modal=yes&idLiga="+currentId+"&idioma="+lang+"&categoria="+currentCat+"&season=75&season_actual=75";
                         openWindow(link,0.95,1.25);
                     });
                 })(league_id,window.lsport,window.lang,cat);
@@ -895,27 +1010,27 @@ background-color: #f2f2f2;
 
                             var buttonDisplay="display:block;";
                             nuevaColumna = document.createElement("td");
-                            var iner = "<center><img src='https://statsxente.com/MZ1/View/Images/detail.png' width='20px' height='20px' id='but"+id+"' style='cursor:pointer;'/>";
+                            var iner = "<center><img src='https://statsxente.com/MZ1/View/Images/detail.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but"+id+"' style='cursor:pointer;'/>";
                             if(GM_getValue("league_graph_button")=="checked"){
                                 buttonDisplay=""
                             }else{
                                 buttonDisplay="display:none;";
                             }
-                            iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px' id='but1"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+                            iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but1"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
 
                             if(GM_getValue("league_report_button")=="checked"){
                                 buttonDisplay=""
                             }else{
                                 buttonDisplay="display:none;";
                             }
-                            iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px' id='but2"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+                            iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but2"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
 
                             if(GM_getValue("league_calendar_button")=="checked"){
                                 buttonDisplay=""
                             }else{
                                 buttonDisplay="display:none;";
                             }
-                            iner += " <img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px' id='but3"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+                            iner += " <img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but3"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
                             iner +="</center>";
                             cat = cats[urlParams.get('type')]
                             nuevaColumna.innerHTML=iner
@@ -1375,6 +1490,17 @@ background-color: #f2f2f2;
             GM_setValue("tabsConfig",false)
         }
 
+        if (GM_getValue("show_league_selects") === undefined) {
+            GM_setValue("show_league_selects",true)
+        }
+
+        if (GM_getValue("league_image_size") === undefined) {
+            GM_setValue("league_image_size",20)
+        }
+
+
+
+
 
 
 
@@ -1409,13 +1535,26 @@ background-color: #f2f2f2;
         var checked_report=GM_getValue("league_report_button")
         var checked_calendar=GM_getValue("league_calendar_button")
 
-        newContent+="<td colspan='8'><center><table><tr><td><label><input "+checked_graph+" type='checkbox' value='graph' id='league_graph_check'><img src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px'/> Progress</label></td>"
-        newContent+="<td><center><label><input "+checked_report+" type='checkbox' value='graph' id='league_report_check'><img src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px'/> Graph</label></td>"
+        newContent+="<td colspan='8'><center><table><tr><td><label><input "+checked_graph+" type='checkbox' value='graph' class='textMiddle' id='league_graph_check'><img class='textMiddle' src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px'/> <span class='textMiddle'>Progress</span></label></td>"
+        newContent+="<td><center><label><input "+checked_report+" type='checkbox' value='graph' id='league_report_check' class='textMiddle'><img class='textMiddle' src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px'/> <span class='textMiddle'>Graph</span></label></td>"
 
-        newContent+="<td><center><label><input "+checked_calendar+" type='checkbox' value='graph' id='league_calendar_check'><img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px'/> ELO Matches</label></td></tr></table></td>"
+        newContent+="<td><center><label><input "+checked_calendar+" type='checkbox' value='graph' id='league_calendar_check' class='textMiddle'><img  class='textMiddle' src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px'/> <span class='textMiddle'>ELO Matches</span></label></td></tr></table></td>"
 
+        newContent+='</tr><tr>';
+
+        newContent+='<td colspan="4"><center><label><span class="textMiddle">Icons Size</span> <input class="textMiddle" id="slider_input" class="range-slider_input" type="range" value="'+GM_getValue("league_image_size")+'" min="10" max="30">'
+        newContent+='<img class="textMiddle" id="testImage" src="https://statsxente.com/MZ1/View/Images/calendar.png" width="20px" height="20px"/>'
+        newContent+='<span class="textMiddle" style="padding-left:10px;" id="sizeImageLeagueSpan"> ('+GM_getValue("league_image_size")+')</span></label></center></td>'
+
+
+
+        var checkedLeagueSelects=""
+        if(GM_getValue("show_league_selects")){
+            checkedLeagueSelects="checked"
+        }
+
+        newContent+='<td colspan="4"><center><label class="textMiddle"><input '+checkedLeagueSelects+' type="checkbox" class="textMiddle" value="graph" id="show_league_checkbox">Show selects</label></center></td>'
         newContent+="</tr></table>"
-
         newContent+="<hr>"
         newContent+="<h3 style='text-align: left; padding-left:7px;'>Tabs Config</h3>"
         newContent+="<table style='display:flex;'><tr><td>"
@@ -1434,6 +1573,7 @@ background-color: #f2f2f2;
         newContent+="<label><input type='checkbox' id='windowsConfig' "+checkedWin+">Windows</label>";
         newContent+="<label><input type='checkbox' id='tabsConfig' "+checkedTab+">Tabs</label>";
         newContent+="</td></tr></table></br></br>"
+
 
 
 
@@ -1479,6 +1619,8 @@ background-color: #f2f2f2;
                 window.location.reload();
             });
         })();
+
+
 
 
 
@@ -1531,6 +1673,13 @@ background-color: #f2f2f2;
 
 
 
+
+            document.getElementById('show_league_checkbox').addEventListener('click', function () {
+                GM_setValue("show_league_selects", !GM_getValue("show_league_selects"))
+            });
+
+
+
             document.getElementById('windowsConfig').addEventListener('click', function () {
 
                 if(document.getElementById('windowsConfig').checked){
@@ -1557,6 +1706,27 @@ background-color: #f2f2f2;
 
 
             });
+
+
+
+
+
+            (function () {
+                document.getElementById("slider_input").addEventListener('input', function () {
+                    console.log(document.getElementById("slider_input").value)
+                    document.getElementById("testImage").style.width=document.getElementById("slider_input").value+"px";
+                    document.getElementById("testImage").style.height=document.getElementById("slider_input").value+"px";
+
+                    document.getElementById("sizeImageLeagueSpan").innerText="("+document.getElementById("slider_input").value+")"
+
+
+                    GM_setValue("league_image_size",document.getElementById("slider_input").value)
+
+
+                });
+            })();
+
+
 
 
         }, 5000);
@@ -1869,7 +2039,7 @@ background-color: #f2f2f2;
     var skills_names=[]
     var su_line="unsetted";
 
-    function playersPage(){
+    async function playersPage(){
         setTimeout(function () {
             var elementos = document.getElementsByClassName('playerContainer');
 
