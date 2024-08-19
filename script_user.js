@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.87
+// @version      0.88
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -587,6 +587,20 @@ background-color: #f2f2f2;
                         }
 
 
+                    }
+                });
+
+            }
+        })();
+
+
+
+        (function () {
+
+            if(document.getElementById("ui-id-4")!==null) {
+                document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
+                    if(document.getElementById("showMenu")===null) {
+                            friendlyCupsAndLeagues()
                     }
                 });
 
