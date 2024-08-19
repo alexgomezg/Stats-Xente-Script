@@ -3184,8 +3184,6 @@ background-color: #f2f2f2;
 
                             (function (currentId,currentLSport,lang,currentCat) {
                                 document.getElementById("but2" + currentId).addEventListener('click', function () {
-
-                                    console.log(currentCat)
                                     var src="filtroGraficoEquiposHistoricoHockey";
                                     if(currentLSport=="F"){
                                         src="filtroGraficoLinealEquiposHistorico";
