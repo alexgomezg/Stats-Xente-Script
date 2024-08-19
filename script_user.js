@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.88
+// @version      0.89
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -600,7 +600,7 @@ background-color: #f2f2f2;
             if(document.getElementById("ui-id-4")!==null) {
                 document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
                     if(document.getElementById("showMenu")===null) {
-                            friendlyCupsAndLeagues()
+                        friendlyCupsAndLeagues()
                     }
                 });
 
@@ -611,7 +611,7 @@ background-color: #f2f2f2;
 
 
 
-    }, 3000);
+    }, 2000);
 
 
 
@@ -3064,7 +3064,7 @@ background-color: #f2f2f2;
                 }
 
             }
-            var cat = cats[urlParams.get('type')]
+
 
 
             ///DIV PROGRESS
@@ -3104,7 +3104,6 @@ background-color: #f2f2f2;
                     "Content-Type": "application/json"
                 },
                 onload: function(response) {
-                    var cat = "senior"
                     var jsonResponse = JSON.parse(response.responseText);
                     teams_data=jsonResponse;
                     var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
@@ -3138,6 +3137,9 @@ background-color: #f2f2f2;
                             cats_elo["SUB21w"] = "U21";
                             cats_elo["SUB18w"] = "U18";
 
+                            var cat = cats[detected_cat]
+
+
                             var flagSenior=0,flagSub23=0,flagSub21=0,flagSub18=0;
                             if(jsonResponse[id]["elo"]>0){flagSenior=1}
                             if(jsonResponse[id]["elo23"]>0){flagSub23=1}
@@ -3168,7 +3170,7 @@ background-color: #f2f2f2;
                             }
                             iner += " <img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but3"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
                             iner +="</center>";
-                            cat = cats[urlParams.get('type')]
+
                             nuevaColumna.innerHTML=iner
                             filasDatos[i].appendChild(nuevaColumna);
                             nuevaColumna = document.createElement("td");
@@ -3182,12 +3184,14 @@ background-color: #f2f2f2;
 
                             (function (currentId,currentLSport,lang,currentCat) {
                                 document.getElementById("but2" + currentId).addEventListener('click', function () {
+
+                                    console.log(currentCat)
                                     var src="filtroGraficoEquiposHistoricoHockey";
                                     if(currentLSport=="F"){
                                         src="filtroGraficoLinealEquiposHistorico";
                                     }
 
-                                    var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
+                                    var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+currentCat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
                                     openWindow(link,0.95,1.25);
                                 });
                             })(id,window.lsport,window.lang,cat);
@@ -3195,7 +3199,6 @@ background-color: #f2f2f2;
 
                             (function (currentId, currentEquipo,currentCat,currentSport,lang) {
                                 document.getElementById("but" + currentId).addEventListener('click', function () {
-
                                     var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=no&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
                                     openWindow(link,0.95,1.25);
                                 });
