@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.86
+// @version      0.87
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -510,6 +510,32 @@ background-color: #f2f2f2;
         }
 
 
+        if((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')&&(urlParams.get('sub') === 'standings')){
+            friendlyCupsAndLeagues()
+        }
+
+
+
+        if((urlParams.has('p')) && (urlParams.get('p') === 'cup')&&(urlParams.get('sub') === 'groupplay')){
+            friendlyCupsAndLeagues()
+        }
+
+
+        if((urlParams.has('p')) && (urlParams.get('p') === 'private_cup')&&(urlParams.get('sub') === 'groupplay')){
+            friendlyCupsAndLeagues()
+        }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -542,17 +568,34 @@ background-color: #f2f2f2;
 
 
     setTimeout(function () {
+
+
+
+
         (function () {
 
             if(document.getElementById("ui-id-2")!==null) {
                 document.getElementById("ui-id-2").parentNode.addEventListener('click', function () {
                     if(document.getElementById("showMenu")===null) {
-                        clashLeagues()
+
+                        var urlParams = new URLSearchParams(window.location.search);
+
+                        if(urlParams.get('fsid')){
+                            friendlyCupsAndLeagues()
+                        }else{
+                            clashLeagues()
+                        }
+
+
                     }
                 });
 
             }
         })();
+
+
+
+
 
     }, 3000);
 
@@ -733,20 +776,27 @@ background-color: #f2f2f2;
                 idProgress="divProgress"
             }
 
+
+            var widthTable="1.5em"
 ///MENU TABLE
             contenidoNuevo+="<center><table id=showMenu border=0><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
             contenidoNuevo+='<th align=center style="padding:4px;">Stats</th><th align=center style="padding:4px;">Graph</th>';
-            contenidoNuevo+="<th align=center style='padding:4px;'>History</th></tr></thead>";
+            contenidoNuevo+="<th align=center style='padding:4px;'>History</th>";
+            contenidoNuevo+="<th align=center style='padding:4px;'>Top Players</th></tr></thead>";
             contenidoNuevo+= "<tr>";
-            contenidoNuevo+= "<td style='padding:4px;'><center><img id='detailDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px; max-width: "+widthTable+"; width:"+widthTable+";'><center><img id='detailDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></center></td>";
 
-            contenidoNuevo+= "<td style='padding:4px;'><center><img id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=31 height=25/></center></td>";
+            contenidoNuevo+= "<td style='padding:4px; max-width:"+widthTable+";  width:"+widthTable+";'><center><img id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=31 height=25/></center></td>";
             if(idProgress=="noProgress"){
-                contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph_disabled.png width=25 height=25/></center></td>";
+                contenidoNuevo+= "<td style='padding:4px; max-width: "+widthTable+";  width: "+widthTable+";'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph_disabled.png width=25 height=25/></center></td>";
             }else{
-                contenidoNuevo+= "<td style='padding:4px;'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
+                contenidoNuevo+= "<td style='padding:4px; max-width: "+widthTable+";  width: "+widthTable+";'><center><img id='"+idProgress+"' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></center></td>";
             }
+            contenidoNuevo+= "<td style='padding:4px; max-width: "+widthTable+";  width: "+widthTable+";'><center><img id='topPlayersDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/top-10.png width=25 height=25/></center></td>";
+
             contenidoNuevo+= "</tr>";
+
+
 
 
 
@@ -762,13 +812,13 @@ background-color: #f2f2f2;
             }
 
 
-            contenidoNuevo+= "<tr><td></td><td>";
+            contenidoNuevo+= "<tr><td></td><td colspan='2'>";
 
             contenidoNuevo+='<center><div id="moreInfo" class="expandable-icon'+styleIcon+'" style="cursor:pointer; background-color:'+GM_getValue("bg_native")+';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
 
             contenidoNuevo+= "</td><td></td></tr>";
 
-            contenidoNuevo+= "<tr><td colspan='4' id='separatorTd'"+styleSep+"></td></tr>";
+            contenidoNuevo+= "<tr><td colspan='5' id='separatorTd'"+styleSep+"></td></tr>";
 
 
 
@@ -945,6 +995,24 @@ background-color: #f2f2f2;
                 })(league_id,window.lsport,window.lang,cat);
 
 
+                (function (currentId,sport,lang,currentCat) {
+                    document.getElementById("topPlayersDivision").addEventListener('click', function () {
+                        var url_="https://statsxente.com/MZ1/Functions/tamper_top_players_division.php"
+                        if(window.sport=="hockey"){
+                            url_="https://statsxente.com/MZ1/Functions/tamper_top_players_division_hockey.php"
+                        }
+                        var link = url_+"?league_id="+currentId+"&sport="+sport+"&category="+cat+"&idioma="+lang;
+                        openWindow(link,0.95,1.25);
+                    });
+                })(league_id,window.sport,window.lang,cat);
+
+
+
+
+
+
+
+
                 (function (currentId,currentLSport,lang,currentCat) {
                     document.getElementById("graphDivision").addEventListener('click', function () {
                         var url_sport=""
@@ -1086,8 +1154,6 @@ background-color: #f2f2f2;
                             ordenarTabla(index,true,"nice_table");
                         });
                     });
-
-                    console.log("final");
                 }
             });
         }, 2500);
@@ -1113,11 +1179,23 @@ background-color: #f2f2f2;
         }
     }
     function handleClick(event) {
+        var urlParams = new URLSearchParams(window.location.search);
         var elems = document.getElementsByClassName("nice_table");
         var tabla = elems[0]
         var filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
         var thSegundo = tabla.querySelector("thead th:nth-child(2)");
-        thSegundo.style.width = "250px";
+
+        if(urlParams.get('fsid')){
+            thSegundo.style.width = "180px";
+        }else{
+            thSegundo.style.width = "250px";
+        }
+
+
+
+
+
+
         for (var i = 0; i < filas.length; i++) {
             if(checkClassNameExists(filas[i], searchClassName)){
                 var celda = filas[i].cells[1];
@@ -1322,8 +1400,6 @@ background-color: #f2f2f2;
         var valorCookie = document.cookie.replace(regex, "$1");
         return decodeURIComponent(valorCookie);
     }
-
-
     function generateValuesSelect(cat){
 
 
@@ -1371,8 +1447,6 @@ background-color: #f2f2f2;
         return select;
 
     }
-
-
     function createLeagueConfigOptionsListeners(){
 
         var defaults = new Map();
@@ -1434,8 +1508,6 @@ background-color: #f2f2f2;
 
 
     }
-
-
     function createModalMenu() {
         //setTimeout(function () {
         var newElement = document.createElement("div");
@@ -1627,8 +1699,6 @@ background-color: #f2f2f2;
         // }, 3000);
 
     }
-
-
     function getNativeTableStyles(){
         var elemento = document.querySelector('.subheader.clearfix');
         if (elemento) {
@@ -1644,8 +1714,6 @@ background-color: #f2f2f2;
 
 
     }
-
-
     function createModalEventListeners() {
         setTimeout(function () {
 
@@ -1713,7 +1781,6 @@ background-color: #f2f2f2;
 
             (function () {
                 document.getElementById("slider_input").addEventListener('input', function () {
-                    console.log(document.getElementById("slider_input").value)
                     document.getElementById("testImage").style.width=document.getElementById("slider_input").value+"px";
                     document.getElementById("testImage").style.height=document.getElementById("slider_input").value+"px";
 
@@ -2667,6 +2734,488 @@ background-color: #f2f2f2;
         return false;
 
     }
+
+
+    function fetchAgeRestriction(url) {
+        return new Promise((resolve, reject) => {
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function(response) {
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(response.responseText, "text/html");
+                    var strongElements = doc.getElementsByTagName("b");
+                    var nextElement = strongElements[1].nextElementSibling;
+                    var nextSibling = strongElements[1].nextSibling;
+                    try {
+                        while (nextSibling && nextSibling.nodeName === "BR") {
+                            nextSibling = nextSibling.nextSibling;
+                        }
+
+                        if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE) {
+                            var age_restriction = nextSibling.textContent.trim();
+                            resolve(age_restriction);
+                        } else {
+                            resolve("none");
+                        }
+                    } catch (error) {
+                        reject("none");
+                    }
+                },
+                onerror: function(error) {
+                    reject("none");
+                }
+            });
+        });
+    }
+
+
+
+    function fetchCupAgeRestriction(url) {
+        return new Promise((resolve, reject) => {
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function(response) {
+                    var parser = new DOMParser();
+                    try {
+                        var doc = parser.parseFromString(response.responseText, "text/html")
+                        var tables = doc.getElementsByTagName("table");
+                        var table = tables[1]
+                        var tds=table.getElementsByTagName("td");
+                        resolve(tds[5].innerHTML)
+                    } catch (error) {
+                        reject("none");
+                    }
+                },
+                onerror: function(error) {
+                    reject("none");
+                }
+            });
+        });
+    }
+
+
+
+    async function friendlyCupsAndLeagues(){
+        var urlParams = new URLSearchParams(window.location.search);
+        var age_restriction="none"
+        var link="https://www.managerzone.com"+document.getElementById("ui-id-1").getAttribute('href')
+        if(urlParams.get('fsid')){
+            age_restriction =await fetchAgeRestriction(link);
+        }else{
+            age_restriction =await fetchCupAgeRestriction(link);
+        }
+
+        var detected_cat="senior"
+
+        if(age_restriction!=="none"){
+
+
+            switch(age_restriction){
+                case "U23":
+                    detected_cat="u23"
+                    break;
+                case "U21":
+                    detected_cat="u21"
+                    break;
+                case "U18":
+                    detected_cat="u18"
+                    break;
+            }
+
+        }
+
+
+
+        var initialValues = {};
+        initialValues["senior"] = GM_getValue("league_default_senior");
+        initialValues["world"] = GM_getValue("league_default_senior");
+        initialValues["u23"] = GM_getValue("league_default_u23");
+        initialValues["u21"] = GM_getValue("league_default_u21");
+        initialValues["u18"] = GM_getValue("league_default_u18");
+        initialValues["u23_world"] = GM_getValue("league_default_u23");
+        initialValues["u21_world"] = GM_getValue("league_default_u21");
+        initialValues["u18_world"] = GM_getValue("league_default_u18");;
+
+        var linkIds=""
+        setTimeout(function() {
+
+            var elems = document.getElementsByClassName("nice_table");
+            var tabla = elems[0]
+            var thSegundo = tabla.querySelector("thead th:nth-child(2)");
+            thSegundo.style.width = "250px";
+
+
+            var values = new Map();
+            values.set('valor23', 'U23 Value');
+            values.set('valor21', 'U21 Value');
+            values.set('valor18', 'U18 Value');
+            values.set('salario', 'Salary');
+            values.set('valorUPSenior', 'LM Value');
+            values.set('valorUPSUB23', 'U23 LM Value');
+            values.set('valorUPSUB21', 'U21 LM Value');
+            values.set('valorUPSUB18', 'U18 LM Value');
+            values.set('edad', 'Age');
+            if(window.sport=="soccer"){
+                values.set('valor11', 'TOP 11');
+                values.set('valor11_23', 'U23 TOP 11');
+                values.set('valor11_21', 'U21 TOP 11');
+                values.set('valor11_18', 'U18 TOP 11');
+            }else{
+                values.set('valor11', 'TOP 21');
+                values.set('valor11_23', 'U23 TOP 21');
+                values.set('valor11_21', 'U21 TOP 21');
+                values.set('valor11_18', 'U18 TOP 21');
+            }
+
+            values.set('noNac', 'Foreigners');
+            values.set('elo', 'ELO Score');
+            values.set('elo23', 'U23 ELO Score');
+            values.set('elo21', 'U21 ELO Score');
+            values.set('elo18', 'U18 ELO Score');
+            values.set('numJugadores', 'Number of players');
+            values.set('leagues', 'Leagues');
+            values.set('world_leagues_all', 'World Leagues');
+            values.set('youth_leagues_all', 'Youth Leagues');
+            values.set('world_youth_leagues_all', 'Youth World Leagues');
+            values.set('federation_leagues', 'Federation Leagues');
+            values.set('cup', 'Cups');
+            values.set('cup_u23', 'U23 Cups');
+            values.set('cup_u21', 'U21 Cups');
+            values.set('cup_u18', 'U18 Cups');
+            values.set('special_cup', 'Special Cups');
+
+            var contenidoNuevo = '<div id=testClick><center>'
+
+
+            getNativeTableStyles();
+
+            var idProgress="noProgress";
+            if(urlParams.get('type')=="senior"){
+                idProgress="divProgress"
+            }
+
+
+            var widthTable="1.5em"
+///MENU TABLE
+            contenidoNuevo+="<center><table id=showMenu border=0><thead style='background-color:"+GM_getValue("bg_native")+"; color:"+GM_getValue("color_native")+";'><tr>";
+            contenidoNuevo+='<th align=center style="padding:4px;" colspan="4">Stats Xente</th>';
+            contenidoNuevo+="</tr></thead>";
+            var styleTable=" style='display:none;'";
+            var styleIcon=""
+            var styleSep="style='padding-top:5px;'";
+
+            if(GM_getValue("show_league_selects")==true){
+                styleTable="";
+                styleIcon=" active"
+                styleSep=" style='display:none;'";
+
+            }
+
+
+            contenidoNuevo+= "<tr><td></td><td style='padding-top:5px' colspan='2'>";
+
+            contenidoNuevo+='<center><div id="moreInfo" class="expandable-icon'+styleIcon+'" style="cursor:pointer; background-color:'+GM_getValue("bg_native")+';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
+
+            contenidoNuevo+= "</td><td></td></tr>";
+
+            contenidoNuevo+= "<tr><td colspan='5' id='separatorTd'"+styleSep+"></td></tr>";
+
+
+
+            contenidoNuevo+= "</table></center>";
+
+
+
+            contenidoNuevo+='<table id=show3 border="0"'+styleTable+'><tr><td><label>';
+
+            if((urlParams.get('type')=='senior')||(urlParams.get('type')=='world')){
+                if("valor"==initialValues[detected_cat]){
+                    contenidoNuevo+='<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
+                }else{
+                    contenidoNuevo+='<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+                }
+            }else{
+                contenidoNuevo+='<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+            }
+
+            values.forEach(function(valor, clave) {
+
+                if(clave=="valorUPSenior"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="valor11"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+                if(clave=="elo"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="leagues"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="leagues_all"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave=="cup"){
+                    contenidoNuevo+="</tr><tr>";
+                }
+
+                if(clave==initialValues[detected_cat]){
+                    contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" checked value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
+                }else{
+                    contenidoNuevo+='<td><label><input class="statsxente" type="checkbox" value="'+valor+'" id="'+clave+'">'+valor+'</label></td>';
+                }
+            });
+            contenidoNuevo+="</tr></table></center>"
+            contenidoNuevo+="</div></br>";
+
+
+            values.set('valor', 'Value');
+
+            elems = document.getElementsByClassName("nice_table");
+            tabla = elems[0]
+
+
+            tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+            if(GM_getValue("show_league_selects")==true){
+
+                document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+            }
+
+
+            values.forEach(function(valor, clave) {
+
+                var elemento = document.getElementById(clave);
+                elemento.addEventListener('click', handleClick);
+
+            });
+            var nuevaCeldaEncabezado = document.createElement("th");
+            nuevaCeldaEncabezado.textContent = values.get(initialValues[detected_cat]);
+            nuevaCeldaEncabezado.style.textAlign = 'center';
+            var ser = document.getElementsByClassName("seriesHeader")
+
+
+            var table_index=0;
+            for(var kl=0;kl<ser.length;kl++){
+                if(document.getElementsByClassName("seriesHeader")[kl].parentNode.parentNode.className=="nice_table"){
+                    table_index=kl
+                }
+
+
+            }
+
+            document.getElementsByClassName("seriesHeader")[table_index].cells[1].style.width="180px"
+            document.getElementsByClassName("seriesHeader")[table_index].appendChild(nuevaCeldaEncabezado);
+
+            nuevaCeldaEncabezado = document.createElement("th");
+            nuevaCeldaEncabezado.textContent = "Stats Xente";
+            nuevaCeldaEncabezado.style.textAlign = 'center';
+            ser = document.getElementsByClassName("seriesHeader")
+            document.getElementsByClassName("seriesHeader")[table_index].appendChild(nuevaCeldaEncabezado);
+
+
+            if(tabla.getElementsByTagName("tbody")[0].innerHTML.includes("mazyar")){
+                searchClassName="responsive-hide"
+            }
+
+            var contIds=0
+            var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+            for (var i = 0; i < filasDatos.length; i++) {
+                if(checkClassNameExists(tabla.rows[i+1], searchClassName)){
+                    var celda = tabla.rows[i+1].cells[1];
+                    var equipo=celda.textContent.trim()
+                    var iniIndex = celda.innerHTML.indexOf("tid=");
+                    var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
+                    var data=String(celda.innerHTML)
+                    var id=data.substring(iniIndex+4,lastIndex)
+                    linkIds+="&idEquipo"+contIds+"="+id
+                    contIds++
+                    celda.innerHTML+="<input type='hidden' id='team_"+id+"' value='"+equipo+"'/>"
+                }
+
+            }
+            var cat = cats[urlParams.get('type')]
+
+
+            ///DIV PROGRESS
+            setTimeout(function() {
+
+
+                (function () {
+                    document.getElementById("moreInfo").addEventListener('click', function () {
+                        document.getElementById("moreInfo").classList.toggle('active');
+
+                        if(document.getElementById("moreInfo").classList.contains("active")){
+                            document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                            document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                            document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+                            $('#separatorTd').fadeOut(1);
+                            document.getElementById("separatorTd").style.paddingTop = "5px";
+                            $('#show3').fadeIn('slow');
+                        }else{
+                            document.getElementById("line2").style.transform = 'rotateZ(45deg)';
+                            document.getElementById("line1").style.transform = 'rotateZ(-45deg)';
+                            document.getElementById("moreInfo").style.transform = 'rotateZ(45deg)';
+                            $('#separatorTd').fadeIn(1);
+                            $('#show3').fadeOut('slow');
+                        }
+
+
+
+                    });
+                })();
+
+            }, 200);
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency="+GM_getValue("currency")+"&sport="+window.sport+linkIds,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function(response) {
+                    var cat = "senior"
+                    var jsonResponse = JSON.parse(response.responseText);
+                    teams_data=jsonResponse;
+                    var filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+                    for (var i = 0; i < filasDatos.length; i++) {
+                        if(checkClassNameExists(filasDatos[i], searchClassName)){
+                            var celda = filasDatos[i].cells[1]
+                            var equipo=celda.textContent.trim()
+                            var iniIndex = celda.innerHTML.indexOf("tid=");
+                            var lastIndex = celda.innerHTML.indexOf("\">", iniIndex+4);
+                            var data=String(celda.innerHTML)
+                            var id=data.substring(iniIndex+4,lastIndex)
+                            var nuevaColumna = document.createElement("td");
+                            var valor=0;
+
+                            if (jsonResponse[id] && jsonResponse[id][initialValues[detected_cat]] !== undefined) {
+                                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[id][initialValues[detected_cat]]))
+                            }
+                            nuevaColumna.innerHTML=valor
+                            nuevaColumna.style.textAlign = 'center';
+                            filasDatos[i].appendChild(nuevaColumna);
+
+                            var eloType=1
+                            if(window.sport=="soccer"){eloType=2}
+                            var cats_elo={}
+                            cats_elo["senior"] = "SENIOR";
+                            cats_elo["seniorw"] = "SENIOR";
+                            cats_elo["SUB23"] = "U23";
+                            cats_elo["SUB21"] = "U21";
+                            cats_elo["SUB18"] = "U18";
+                            cats_elo["SUB23w"] = "U23";
+                            cats_elo["SUB21w"] = "U21";
+                            cats_elo["SUB18w"] = "U18";
+
+                            var flagSenior=0,flagSub23=0,flagSub21=0,flagSub18=0;
+                            if(jsonResponse[id]["elo"]>0){flagSenior=1}
+                            if(jsonResponse[id]["elo23"]>0){flagSub23=1}
+                            if(jsonResponse[id]["elo21"]>0){flagSub21=1}
+                            if(jsonResponse[id]["elo18"]>0){flagSub18=1}
+
+                            var buttonDisplay="display:block;";
+                            nuevaColumna = document.createElement("td");
+                            var iner = "<center><img src='https://statsxente.com/MZ1/View/Images/detail.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but"+id+"' style='cursor:pointer;'/>";
+                            if(GM_getValue("league_graph_button")=="checked"){
+                                buttonDisplay=""
+                            }else{
+                                buttonDisplay="display:none;";
+                            }
+                            iner += "<img src='https://statsxente.com/MZ1/View/Images/graph.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but1"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+
+                            if(GM_getValue("league_report_button")=="checked"){
+                                buttonDisplay=""
+                            }else{
+                                buttonDisplay="display:none;";
+                            }
+                            iner += "<img src='https://statsxente.com/MZ1/View/Images/report.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but2"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+
+                            if(GM_getValue("league_calendar_button")=="checked"){
+                                buttonDisplay=""
+                            }else{
+                                buttonDisplay="display:none;";
+                            }
+                            iner += " <img src='https://statsxente.com/MZ1/View/Images/calendar.png' width='"+GM_getValue("league_image_size")+"px' height='"+GM_getValue("league_image_size")+"px' id='but3"+id+"' style='cursor:pointer; "+buttonDisplay+"'/>";
+                            iner +="</center>";
+                            cat = cats[urlParams.get('type')]
+                            nuevaColumna.innerHTML=iner
+                            filasDatos[i].appendChild(nuevaColumna);
+                            nuevaColumna = document.createElement("td");
+                            (function (currentId,currentLSport,lang) {
+                                document.getElementById("but1" + currentId).addEventListener('click', function () {
+                                    var link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo="+currentId+"&idioma="+lang+"&divisa="+GM_getValue("currency")+"&deporte="+currentLSport;
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id,window.lsport,window.lang);
+
+
+                            (function (currentId,currentLSport,lang,currentCat) {
+                                document.getElementById("but2" + currentId).addEventListener('click', function () {
+                                    var src="filtroGraficoEquiposHistoricoHockey";
+                                    if(currentLSport=="F"){
+                                        src="filtroGraficoLinealEquiposHistorico";
+                                    }
+
+                                    var link="https://statsxente.com/MZ1/View/"+src+".php?tamper=yes&categoria="+cat+"&idEquipo="+currentId+"&idioma="+lang+"&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id,window.lsport,window.lang,cat);
+
+
+                            (function (currentId, currentEquipo,currentCat,currentSport,lang) {
+                                document.getElementById("but" + currentId).addEventListener('click', function () {
+
+                                    var link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=no&idEquipo=" + currentId + "&idioma="+lang+"&modal=yes&deporte="+currentSport+"&season=77&season_actual=77&categoria="+currentCat+"&equipo=" + currentEquipo + "&cerrar=no";
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id, equipo,cat,window.sport,window.lang);
+
+
+
+
+                            (function (currentId, type,currentCat,currentSport,lang,flagS,flagS23,flagS21,flagS18) {
+                                document.getElementById("but3" + currentId).addEventListener('click', function () {
+                                    var link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?tamper=yes&team_id="+currentId+"&idioma="+lang+"&deporte="+currentSport+"&type="+type+"&cat="+currentCat+"&flagSenior="+
+                                        flagS+"&flagSub23="+flagS23+"&flagSub21="+flagS21+"&flagSub18="+flagS18;
+                                    openWindow(link,0.95,1.25);
+                                });
+                            })(id, eloType,cats_elo[cat],window.sport,window.lang,flagSenior,flagSub23,flagSub21,flagSub18);
+
+                        }
+
+                    }
+                    var thead=document.getElementsByClassName("seriesHeader")[0]
+                    var ths = thead.querySelectorAll("th");
+                    ths.forEach(function(th, index) {
+                        th.addEventListener("click", function() {
+                            ordenarTabla(index,true,"nice_table");
+                        });
+                    });
+                }
+            });
+        }, 2500);
+
+    }
+
+
+
 
 
 })();
