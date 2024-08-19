@@ -3216,7 +3216,7 @@ background-color: #f2f2f2;
                         }
 
                     }
-                    var thead=document.getElementsByClassName("seriesHeader")[0]
+                    var thead=document.getElementsByClassName("seriesHeader")[table_index]
                     var ths = thead.querySelectorAll("th");
                     ths.forEach(function(th, index) {
                         th.addEventListener("click", function() {
