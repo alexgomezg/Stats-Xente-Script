@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.92
+// @version      0.93
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -377,7 +377,7 @@ border-radius: 3px;
 }
 
 .modal_div_content_main{
-
+width: 100%;
 background-color: #f2f2f2;
     min-height: 115px;
     border-radius: 5px;
