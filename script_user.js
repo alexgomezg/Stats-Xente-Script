@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.93
+// @version      0.94
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1668,7 +1668,7 @@ background-color: #f2f2f2;
         var default_value = GM_getValue("league_default_" + cat, defaults.get(cat))
         GM_setValue("league_default_" + cat, default_value)
 
-        var select = "<select id='league_default_select_" + cat + "' style='width:115px;'>";
+        var select = "<select id='league_default_select_" + cat + "' style='width:9em;'>";
         values.forEach((valor, clave, mapa) => {
             var checked = ""
             if (clave == default_value) {
