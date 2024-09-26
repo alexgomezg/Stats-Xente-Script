@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.94
+// @version      0.95
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -441,7 +441,18 @@ background-color: #f2f2f2;
     /*var keys = GM_listValues();
     keys.forEach(function(key) {
         console.log(key+" "+GM_getValue(key))
-    });*/
+    });
+
+    var actual_version="0.9666"
+    console.log(GM_info.script.version)
+
+    if(GM_info.script.version!=actual_version){
+        console.log("here")
+        keys = GM_listValues();
+                keys.forEach(function (key) {
+                    GM_deleteValue(key);
+                });
+    }*/
 
 
     var link = document.createElement('link');
@@ -473,7 +484,7 @@ background-color: #f2f2f2;
 
     function waitToDOM(function_to_execute, classToSearch, elementIndex) {
         var interval = setInterval(function () {
-            var elements = document.querySelectorAll('.' + classToSearch);
+            var elements = document.querySelectorAll(classToSearch);
             if (elements.length > 0 && elements[elementIndex]) {
                 clearInterval(interval);
                 clearTimeout(timeout);
@@ -483,65 +494,43 @@ background-color: #f2f2f2;
 
 
         var timeout = setTimeout(function () {
-            clearInterval(interval); // Detiene la comprobación
-        }, 10000); // 10,000 ms = 10 segundos
+            clearInterval(interval);
+        }, 10000);
     }
 
 
 
     /// FUNCTIONS MENU
-
     setTimeout(function () {
 
-
-
-        const elementos = document.querySelectorAll('.player_link');
-        elementos.forEach(function (elemento) {
-            elemento.addEventListener('click', function () {
-
-                setTimeout(function () {
-                    playersPageStats()
-
-                }, 1000);
-
-
-
-            });
-        });
-
-
-
-
-
-
         var urlParams = new URLSearchParams(window.location.search);
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
-            waitToDOM(leagues, "nice_table", 0)
+            waitToDOM(leagues, ".nice_table", 0)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
             && (urlParams.get('sub') === 'league') && (GM_getValue("federationFlag"))) {
-            waitToDOM(clashLeagues, "nice_table", 0)
+            waitToDOM(clashLeagues, ".nice_table", 0)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
             && (urlParams.get('sub') === 'clash') && (GM_getValue("federationFlag"))) {
-            waitToDOM(clash, "fed_badge", 0)
+            waitToDOM(clash, ".fed_badge", 0)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match')
             && (urlParams.get('sub') === 'result') && (GM_getValue("matchFlag"))) {
-            waitToDOM(match, "flex-grow-0 textCenter team-table block", 0)
+            waitToDOM(match, ".hitlist.statsLite.marker", 0)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))
             && (GM_getValue("playersFlag"))) {
-            playersPage()
+
+            waitToDOM(playersPage, ".playerContainer", 0)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
-            playersPageStats()
+            waitToDOM(playersPageStats, ".player_name", 0)
         }
 
 
@@ -557,35 +546,44 @@ background-color: #f2f2f2;
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')
             && (urlParams.get('sub') === 'standings')) {
-            friendlyCupsAndLeagues()
+            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
         }
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'cup') && (urlParams.get('sub') === 'groupplay')) {
-            friendlyCupsAndLeagues()
+            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
         }
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.get('sub') === 'groupplay')) {
-            friendlyCupsAndLeagues()
+            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
         }
 
 
     }, 2000);
 
 
-    (function () {
 
+
+    const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
+    elementos.forEach(function (elemento) {
+        elemento.addEventListener('click', function () {
+            waitToDOM(playersPageStats, ".player_name", 0)
+        });
+    });
+
+
+
+
+    (function () {
         if (document.getElementById("league_tab_table") !== null) {
             document.getElementById("league_tab_table").addEventListener('click', function () {
                 if (document.getElementById("showMenu") === null) {
-                    leagues()
+                    waitToDOM(leagues, ".nice_table", 0)
                 }
             });
 
         }
-
-
     })();
 
 
@@ -613,9 +611,9 @@ background-color: #f2f2f2;
                         var urlParams = new URLSearchParams(window.location.search);
 
                         if (urlParams.get('fsid')) {
-                            friendlyCupsAndLeagues()
+                            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
                         } else {
-                            clashLeagues()
+                            waitToDOM(clashLeagues, ".nice_table", 0)
                         }
 
 
@@ -632,7 +630,7 @@ background-color: #f2f2f2;
             if (document.getElementById("ui-id-4") !== null) {
                 document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
                     if (document.getElementById("showMenu") === null) {
-                        friendlyCupsAndLeagues()
+                        waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
                     }
                 });
 
@@ -677,7 +675,6 @@ background-color: #f2f2f2;
                 },
                 onload: function (response) {
                     var jsonResponse = JSON.parse(response.responseText);
-                    console.log(jsonResponse)
                     resolve(jsonResponse)
                 },
                 onerror: function (error) {
@@ -688,25 +685,20 @@ background-color: #f2f2f2;
     }
 
     async function match() {
-
-
-
         var team_div = document.getElementsByClassName("flex-grow-0 textCenter team-table block")
         var teams_ = []
 
 
-        for (x = 0; x < 2; x++) {
+        for (var x = 0; x < 2; x++) {
             var as = team_div[x].getElementsByTagName("a")
             var urlObj = new URL("https://www.managerzone.com/" + as[0].getAttribute('href'));
             var params = new URLSearchParams(urlObj.search);
             var tidValue = params.get('tid');
             teams_[x] = { "team_name": as[0].innerHTML, "team_id": tidValue, "inserted": "" }
-
         }
 
-
         var elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
-        for (var x = 0; x < 2; x++) {
+        for (x = 0; x < 2; x++) {
             var linkIds = ""
             var contIds = 0;
             var tabla = elems[x]
@@ -724,16 +716,15 @@ background-color: #f2f2f2;
 
                 linkIds += "&id" + contIds + "=" + pid
                 contIds++;
-
-
-
             }
 
             link = "http://statsxente.com/MZ1/Functions/tamper_check_stats_player.php?sport=" + window.sport + linkIds
             var inserted = await fetchExistPlayers(link);
-            teams_[x] = { "team_name": as[0].innerHTML, "team_id": tidValue, "inserted": inserted }
+            teams_[x]["inserted"]= inserted;
 
         }
+
+
         elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
         for (x = 0; x < 2; x++) {
             if (teams_[x]['inserted']['total'] > 0) {
@@ -1266,9 +1257,9 @@ background-color: #f2f2f2;
                 ths.forEach(function (th, index) {
                     th.addEventListener("click", function () {
                         if (index == 1) {
-                            ordenarTablaText(index, true, "nice_table");
+                            ordenarTablaText(index, true, "nice_table",true);
                         } else {
-                            ordenarTabla(index, true, "nice_table");
+                            ordenarTabla(index, true, "nice_table",true);
                         }
 
                     });
@@ -1476,14 +1467,14 @@ background-color: #f2f2f2;
 
 
 
-    function ordenarTabla(col, byClassName, param) {
+    function ordenarTabla(col, byClassName, param,putSortIconFlag) {
         if (byClassName) {
             var elems = document.getElementsByClassName(param);
             var table = elems[0]
         } else {
             table = document.getElementById(param)
         }
-        putSortIcon(col, table)
+        if(putSortIconFlag){putSortIcon(col, table)}
         var rows = Array.from(table.tBodies[0].rows);
         var isAsc = document.getElementById("ord_table").value === "ascendente";
         rows.sort(function (a, b) {
@@ -1512,7 +1503,7 @@ background-color: #f2f2f2;
     }
 
 
-    function ordenarTablaText(col, byClassName, param) {
+    function ordenarTablaText(col, byClassName, param,putSortIconFlag) {
         if (byClassName) {
             var elems = document.getElementsByClassName(param);
             var table = elems[0]
@@ -1521,11 +1512,10 @@ background-color: #f2f2f2;
         }
         var rows = Array.from(table.tBodies[0].rows);
         var isAsc = document.getElementById("ord_table").value === "ascendente";
-        putSortIcon(col, table)
+        if(putSortIconFlag){putSortIcon(col, table)}
         rows.sort(function (a, b) {
             var aText = a.cells[col].textContent.toLowerCase().trim();
             var bText = b.cells[col].textContent.toLowerCase().trim();
-            console.log(aText + " " + bText);
             if (aText < bText) {
                 return isAsc ? -1 : 1;
             }
@@ -1742,7 +1732,6 @@ background-color: #f2f2f2;
 
     }
     function createModalMenu() {
-        //setTimeout(function () {
         var newElement = document.createElement("div");
         newElement.id = "legendDiv";
         newElement.className = "stx_legend";
@@ -1816,7 +1805,7 @@ background-color: #f2f2f2;
         if (GM_getValue("leagueFlag")) leagueFlag = "checked"
         if (GM_getValue("playersFlag")) playersFlag = "checked"
         if (GM_getValue("countryRankFlag")) countryRankFlag = "checked"
-        var newContent = '<center><img id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></br></br><div id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"></br><table border=0><tbody><tr>';
+        var newContent = '<center><img id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></br></br><div id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"  style="display: flex; flex-direction: column; overflow: auto; max-width: 100%;"></br><table border=0><tbody><tr>';
         newContent += '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
@@ -2258,7 +2247,7 @@ background-color: #f2f2f2;
         var ths = thead.querySelectorAll("th");
         ths.forEach(function (th, index) {
             th.addEventListener("click", function () {
-                ordenarTabla(index, true, "nice_table");
+                ordenarTabla(index, true, "nice_table",true);
             });
         });
     }
@@ -2785,17 +2774,7 @@ background-color: #f2f2f2;
                                 openWindow(link, 0.95, 1.25);
                             });
                         })(actual_id, c_code, type);
-
-
-
-
-
-
-
-
                     }
-
-
                 }
 
                 setTimeout(function () {
@@ -2816,7 +2795,7 @@ background-color: #f2f2f2;
 
                                 }
                                 var index_ = 3 + f
-                                ordenarTabla(index_, false, "countryRankTable")
+                                ordenarTabla(index_, false, "countryRankTable",false)
                             });
                             document.getElementById(actual_value).addEventListener('click', function () {
                                 var display = "table-cell"
@@ -2855,8 +2834,6 @@ background-color: #f2f2f2;
                 var jsonResponse = JSON.parse(response.responseText);
                 var data = jsonResponse;
                 if (data.length > 0) {
-
-
                     GM_xmlhttpRequest({
                         method: "GET",
                         url: "http://www.managerzone.com/xml/team_matchlist.php?sport_id=" + window.sport_id + "&team_id=" + team_id + "&match_status=2&limit=100",
@@ -3124,8 +3101,6 @@ background-color: #f2f2f2;
         initialValues["u18_world"] = GM_getValue("league_default_u18");;
 
         var linkIds = ""
-        setTimeout(function () {
-
             var elems = document.getElementsByClassName("nice_table");
             var tabla = elems[0]
             var thSegundo = tabla.querySelector("thead th:nth-child(2)");
@@ -3489,12 +3464,12 @@ background-color: #f2f2f2;
                     var ths = thead.querySelectorAll("th");
                     ths.forEach(function (th, index) {
                         th.addEventListener("click", function () {
-                            ordenarTabla(index, true, "nice_table");
+                            ordenarTabla(index, true, "nice_table",true);
                         });
                     });
                 }
             });
-        }, 2500);
+
 
     }
 
