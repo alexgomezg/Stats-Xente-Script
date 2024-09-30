@@ -821,7 +821,7 @@ background-color: #f2f2f2;
 
 
                 var contenidoNuevo = "</br></br><center><table><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><center><img id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td></tr></table></center>";
-                contenidoNuevo+="<center><table border='0' style='width:55%;' class='hitlist challenges-list'><thead><tr>"
+                contenidoNuevo+="<center><table border='0' style='width:65%;' class='hitlist challenges-list'><thead><tr>"
                 contenidoNuevo+="<th colspan='2'>Rank</th><th>Value</th><th>LM Value</th><th>ELO Score</th></tr></thead>"
                 contenidoNuevo+="<tbody>"
 
