@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.96
+// @version      0.97
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -561,17 +561,24 @@ background-color: #f2f2f2;
         }
 
 
+
+
+
+
+        const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
+        elementos.forEach(function (elemento) {
+            elemento.addEventListener('click', function () {
+                waitToDOM(playersPageStats, ".player_name", 0)
+            });
+        });
+
+
     }, 1000);
 
 
 
 
-    const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
-    elementos.forEach(function (elemento) {
-        elemento.addEventListener('click', function () {
-            waitToDOM(playersPageStats, ".player_name", 0)
-        });
-    });
+
 
 
 
@@ -797,16 +804,236 @@ background-color: #f2f2f2;
         var src_away = badges[1].getAttribute('src');
         var away_id = src_away.match(regex);
         var names = document.getElementsByClassName("name-score text-ellipsis")
+        var homeName=encodeURIComponent(names[0].innerText)
+        var awayName=encodeURIComponent(names[0].innerText)
         var elems = document.getElementsByClassName("top-pane__deadline");
         var tabla = elems[0]
 
-        var contenidoNuevo = "</br></br><center><table><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><center><img id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td></tr></table></center>";
-        tabla.insertAdjacentHTML('beforeend', contenidoNuevo)
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_federations_clash_data.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport +"&home="+local_id[1]+"&away="+away_id[1],
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+                var jsonResponse = JSON.parse(response.responseText);
 
-        document.getElementById("clashCompare").addEventListener('click', function () {
-            var link = "https://statsxente.com/MZ1/Functions/loadClashFederationData.php?tamper=yes&fid=" + local_id[1] + "&fid1=" + away_id[1] + "&fede=" + encodeURIComponent(names[0].innerText) + "&fede1=" + encodeURIComponent(names[1].innerText) + "&idioma=" + window.lang + "&divisa=" + GM_getValue("currency") + "&sport=" + window.sport;
-            openWindow(link, 0.95, 1.25);
+
+
+                var contenidoNuevo = "</br></br><center><table><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><center><img id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td></tr></table></center>";
+                contenidoNuevo+="<center><table border='0' style='width:55%;' class='hitlist challenges-list'><thead><tr>"
+                contenidoNuevo+="<th colspan='2'>Rank</th><th>Value</th><th>LM Value</th><th>ELO Score</th></tr></thead>"
+                contenidoNuevo+="<tbody>"
+
+                contenidoNuevo+="<tr class='odd'>"
+
+                contenidoNuevo+="<td style='text-align:right;'><img src='https://www.managerzone.com/dynimg/pic.php?type=federation&fid="+local_id[1]+"&size=medium&sport="+window.sport+"' width=35px height=35px/></td>"
+                contenidoNuevo+="<td style='text-align:left;'>#"+jsonResponse[local_id[1]]["table_index"]+"</td>"
+
+                var valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[local_id[1]]["value"]))
+                contenidoNuevo+="<td><center>"+valor+"</center></td>"
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[local_id[1]]["valueLM"]))
+                contenidoNuevo+="<td><center>"+valor+"</center></td>"
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[local_id[1]]["elo"]))
+                contenidoNuevo+="<td><center>"+valor+"</center></td>"
+
+                contenidoNuevo+="</tr>"
+
+                contenidoNuevo+="<tr class='even'>"
+                contenidoNuevo+="<td style='text-align:right;'><img src='https://www.managerzone.com/dynimg/pic.php?type=federation&fid="+away_id[1]+"&size=medium&sport="+window.sport+"' width=35px height=35px/></td>"
+                contenidoNuevo+="<td style='text-align:left;'>#"+jsonResponse[away_id[1]]["table_index"]+"</td>"
+
+
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[away_id[1]]["value"]))
+                contenidoNuevo+="<td><center>"+valor+"</center></td>"
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[away_id[1]]["valueLM"]))
+                contenidoNuevo+="<td><center>"+valor+"</center></td>"
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[away_id[1]]["elo"]))
+                contenidoNuevo+="<td><center>"+valor+"</center></td>"
+
+                contenidoNuevo+="</tr>"
+
+                contenidoNuevo+="</tbody>"
+                contenidoNuevo+="</table></center>"
+                tabla.insertAdjacentHTML('beforeend', contenidoNuevo)
+
+                document.getElementById("clashCompare").addEventListener('click', function () {
+                    var link = "https://statsxente.com/MZ1/Functions/loadClashFederationData.php?tamper=yes&fid=" + local_id[1] + "&fid1=" + away_id[1] + "&fede=" + homeName + "&fede1=" + awayName + "&idioma=" + window.lang + "&divisa=" + GM_getValue("currency") + "&sport=" + window.sport;
+                    openWindow(link, 0.95, 1.25);
+                });
+
+                names[0].innerText="(#"+jsonResponse[local_id[1]]["table_index"]+")"+names[0].innerText;
+                names[1].innerText="(#"+jsonResponse[away_id[1]]["table_index"]+")"+names[1].innerText;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                var tables = document.querySelectorAll('.hitlist');
+                var table=tables[1]
+
+
+
+
+                const colCount =  table.rows[0].cells.length;
+
+                var eloCol=0
+                var lmCol=1
+                if(colCount>2){
+
+                    eloCol=5
+                    lmCol=6
+
+                }
+
+
+                table.id="clash_table";
+
+
+                var contIds = 0
+                var linkIds = ""
+
+                for (let i = 1; i < table.rows.length; i++) {
+                    let row = table.rows[i];
+                    let thirdColumnCell = row.cells[eloCol];
+                    let teamNameElement = thirdColumnCell.querySelector('.team-name');
+                    let href = teamNameElement.getAttribute('href');
+                    let urlParams = new URLSearchParams(href.split('?')[1]);
+                    let tid = urlParams.get('tid');
+                    linkIds += "&idEquipo" + contIds + "=" + tid
+                    contIds++
+                }
+
+                var urlParams = new URLSearchParams(window.location.search);
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    onload: function (response) {
+                        var cat = window.cats[urlParams.get('type')]
+                        var jsonResponse = JSON.parse(response.responseText);
+
+
+                        var valor=0
+                        var tid=0
+                        for (let i = 0; i < table.rows.length; i++) {
+                            let row = table.rows[i];
+
+
+                            if(i>0){
+
+                                let thirdColumnCell = row.cells[eloCol];
+                                let teamNameElement = thirdColumnCell.querySelector('.team-name');
+                                let href = teamNameElement.getAttribute('href');
+                                let urlParams = new URLSearchParams(href.split('?')[1]);
+                                tid = urlParams.get('tid');
+
+
+                            }
+
+
+                            let newCell1 = row.insertCell(eloCol);
+                            if (i === 0) {
+
+                                let th = document.createElement('th');
+                                th.innerHTML = "ELO";
+                                th.style.width="50px";
+                                th.id="elo_th"
+                                newCell1.replaceWith(th);
+
+                            } else {
+                                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["elo"]))
+                                newCell1.innerHTML = valor;
+                            }
+
+                            let newCell = row.insertCell(lmCol);
+                            if (i === 0) {
+
+                                let th1 = document.createElement('th');
+                                th1.innerHTML = "LM Value";
+                                th1.style.width="80px";
+                                th1.id="lm_th"
+                                newCell.replaceWith(th1);
+                            } else {
+                                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["valorUPSenior"]))
+                                newCell.innerHTML = valor;
+                            }
+
+
+                            if(eloCol==0){
+                                let rankCell = row.insertCell(eloCol);
+
+                                if (i === 0) {
+
+
+                                    let th2 = document.createElement('th'); // Creamos un elemento 'th'
+                                    th2.innerHTML = "Rank";
+                                    th2.style.width="50px";
+                                    rankCell.replaceWith(th2);
+
+
+                                }else{
+                                    rankCell.innerHTML = i
+
+                                }
+                            }
+
+
+
+                        }
+
+
+                        if(eloCol==0){
+                            eloCol++;
+                            lmCol++;
+                        }
+
+                        document.getElementById("elo_th").addEventListener("click", function () {
+
+                            ordenarTabla(eloCol, false, "clash_table",true);
+                        });
+
+
+                        document.getElementById("lm_th").addEventListener("click", function () {
+
+                            ordenarTabla(lmCol, false, "clash_table",true);
+                        });
+                    }
+                });
+
+
+
+
+
+            }
+
         });
+
 
     }
 
@@ -2119,12 +2346,16 @@ background-color: #f2f2f2;
         var urlParams = new URLSearchParams(window.location.search);
 
         document.getElementById("division-select").addEventListener('change', function () {
-            clashLeagues()
+            setTimeout(function () {
+                clashLeagues();
+            }, 2000);
         });
 
 
         document.getElementById("season-select").addEventListener('change', function () {
-            clashLeagues()
+            setTimeout(function () {
+                clashLeagues();
+            }, 2000);
         });
 
 
@@ -2138,6 +2369,7 @@ background-color: #f2f2f2;
         values.set('valueLM', 'LM Value');
         values.set('elo', 'ELO Score');
         values.set('teams_count', 'Number of teams');
+        values.set('table_index', 'Rank Position');
 
         var contenidoNuevo = '<div id=testClick><center>'
         getNativeTableStyles();
