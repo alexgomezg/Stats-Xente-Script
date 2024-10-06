@@ -614,18 +614,26 @@ background-color: #f2f2f2;
 
             if (document.getElementById("ui-id-2") !== null) {
                 document.getElementById("ui-id-2").parentNode.addEventListener('click', function () {
-                    if (document.getElementById("showMenu") === null) {
 
-                        var urlParams = new URLSearchParams(window.location.search);
 
-                        if (urlParams.get('fsid')) {
-                            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
-                        } else {
-                            waitToDOM(clashLeagues, ".nice_table", 0)
+                    setTimeout(function () {
+                        if (document.getElementById("showMenu") === null) {
+
+                            var urlParams = new URLSearchParams(window.location.search);
+
+                            if (urlParams.get('fsid')) {
+                                waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
+                            } else {
+                                waitToDOM(clashLeagues, ".nice_table", 0)
+                            }
+
+
                         }
 
 
-                    }
+                    }, 1000);
+
+
                 });
 
             }
