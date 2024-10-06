@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.99
+// @version      0.98
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -805,7 +805,7 @@ background-color: #f2f2f2;
         var away_id = src_away.match(regex);
         var names = document.getElementsByClassName("name-score text-ellipsis")
         var homeName=encodeURIComponent(names[0].innerText)
-        var awayName=encodeURIComponent(names[0].innerText)
+        var awayName=encodeURIComponent(names[1].innerText)
         var elems = document.getElementsByClassName("top-pane__deadline");
         var tabla = elems[0]
 
@@ -896,7 +896,7 @@ background-color: #f2f2f2;
                 var table=tables[1]
 
 
-               /* const thead = table.querySelector("thead");
+                const thead = table.querySelector("thead");
 
                 // Verifica si el thead no tiene th
                 if (thead.children.length === 0) {
@@ -909,7 +909,7 @@ background-color: #f2f2f2;
                     nuevaFila.appendChild(th1);
                     nuevaFila.appendChild(th2);
                     thead.appendChild(nuevaFila);
-                }*/
+                }
 
 
 
