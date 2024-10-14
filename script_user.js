@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.100
+// @version      0.101
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -434,6 +434,29 @@ background-color: #f2f2f2;
     }
 
 
+     table.matchValuesTable {
+        border-collapse: collapse;
+        width: 80%;
+        margin: 5px 0;
+
+    }
+    table.matchValuesTable th, table.matchValuesTable td {
+        border: 1px solid #ddd;
+        text-align: center;
+        padding: 6px;
+         border: 0px;
+    }
+    table.matchValuesTable th {
+        background-color: #e4c800;
+        color: white;
+         border: 0px;
+    }
+
+    table.matchValuesTable th:first-child {
+  border-top: none; /* Quita el borde superior de la primera celda del encabezado */
+}
+
+
 
 
   `)
@@ -441,9 +464,9 @@ background-color: #f2f2f2;
     /*var keys = GM_listValues();
     keys.forEach(function(key) {
         console.log(key+" "+GM_getValue(key))
-    });
+    });*/
 
-    var actual_version="0.9666"
+    /*var actual_version="0.9666"
     console.log(GM_info.script.version)
 
     if(GM_info.script.version!=actual_version){
@@ -483,8 +506,8 @@ background-color: #f2f2f2;
 
 
     function waitToDOM(function_to_execute, classToSearch, elementIndex) {
-        var interval = setInterval(function () {
-            var elements = document.querySelectorAll(classToSearch);
+        let interval = setInterval(function () {
+            let elements = document.querySelectorAll(classToSearch);
             if (elements.length > 0 && elements[elementIndex]) {
                 clearInterval(interval);
                 clearTimeout(timeout);
@@ -493,7 +516,7 @@ background-color: #f2f2f2;
         }, 100);
 
 
-        var timeout = setTimeout(function () {
+        let timeout = setTimeout(function () {
             clearInterval(interval);
         }, 10000);
     }
@@ -560,6 +583,26 @@ background-color: #f2f2f2;
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
+            waitToDOM(lastMatchesELO, ".group", 0)
+            waitToDOM(nextMatches, ".group", 0)
+        }
+
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'team')) {
+            teamPage()
+        }
+
+
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'scheduled')) {
+            waitToDOM(nextMatches, ".group", 0)
+        }
+
+
+
+
+
 
 
 
@@ -614,26 +657,18 @@ background-color: #f2f2f2;
 
             if (document.getElementById("ui-id-2") !== null) {
                 document.getElementById("ui-id-2").parentNode.addEventListener('click', function () {
+                    if (document.getElementById("showMenu") === null) {
 
+                        var urlParams = new URLSearchParams(window.location.search);
 
-                    setTimeout(function () {
-                        if (document.getElementById("showMenu") === null) {
-
-                            var urlParams = new URLSearchParams(window.location.search);
-
-                            if (urlParams.get('fsid')) {
-                                waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
-                            } else {
-                                waitToDOM(clashLeagues, ".nice_table", 0)
-                            }
-
-
+                        if (urlParams.get('fsid')) {
+                            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
+                        } else {
+                            waitToDOM(clashLeagues, ".nice_table", 0)
                         }
 
 
-                    }, 1000);
-
-
+                    }
                 });
 
             }
@@ -658,6 +693,450 @@ background-color: #f2f2f2;
 
 
     }, 2000);
+
+
+
+    function nextMatches(){
+
+        var team_id=""
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('tid')){
+            team_id=urlParams.get("tid")
+        }else{
+            if(window.sport=="soccer"){
+                team_id=GM_getValue("soccer_team_id")
+            }else{
+                team_id=GM_getValue("hockey_team_id")
+            }
+        }
+
+
+        var team_ids=[]
+        var linkIds=""
+        var contIds=0
+        var cIds=""
+        var contCIds=0
+        var comps=[]
+        var comp_ids=[]
+        var elements0 = document.querySelectorAll('.odd');
+
+        elements0.forEach(element0 => {
+            var cat=element0.getElementsByClassName("responsive-hide match-reference-text-wrapper flex-grow-0");
+            if(cat.length>0){
+                var links = cat[0].querySelectorAll('a');
+
+                if(links.length>0){
+                    var urlObj = new URL("https://www.managerzone.com/" + links[0].getAttribute('href'));
+                    var params = new URLSearchParams(urlObj.search);
+                    var type = params.get('type');
+
+                    if(type===null){
+
+                        if((params.get('p')=="cup")||(params.get('p')=="private_cup")){
+
+
+                            if(links[0].textContent.includes("U23")){
+                                comps[params.get('cid')]="U23"
+                            }else{
+                                if(links[0].textContent.includes("U21")){
+                                    comps[params.get('cid')]="U21"
+                                }else{
+
+
+                                    if(links[0].textContent.includes("U18")){
+                                        comps[params.get('cid')]="U18"
+                                    }else{
+
+                                        comps[params.get('cid')]="SENIOR";
+                                    }
+                                }
+                            }
+                        }else{
+
+                            var id=0;
+
+                            switch(params.get('p')){
+                                case "cup":
+                                    id=params.get('cid');
+                                    break;
+                                case "private_cup":
+                                    id=params.get('cid');
+                                    break;
+                                case "friendly_series":
+                                    id=params.get('fsid');
+                                    break;
+
+                            }
+
+                            if (!comp_ids.includes(id)) {
+                                comp_ids.push(id);
+                                cIds += "&idComp" + contCIds + "=" + id
+                                contCIds++;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+            var elements1 = element0.querySelectorAll('.teams-wrapper .flex-grow-1');
+            elements1.forEach(element1 => {
+                var elements2 = element1.querySelectorAll('.clippable');
+                elements2.forEach(element2 => {
+                    var urlObj = new URL("https://www.managerzone.com/" + element2.getAttribute('href'));
+                    var params = new URLSearchParams(urlObj.search);
+                    var tidValue = params.get('tid');
+                    if(tidValue!==null){
+                        if (!team_ids.includes(tidValue)) {
+                            team_ids.push(tidValue);
+                            linkIds += "&idEquipo" + contIds + "=" + tidValue
+                            contIds++;
+                        }
+                    }
+                });
+            });
+        });
+
+        if (!team_ids.includes(team_id)) {
+            linkIds += "&idEquipo" + contIds + "=" + team_id
+        }
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_elo_values.php?sport=" + window.sport + linkIds+cIds,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+                var rawJSON = JSON.parse(response.responseText);
+                var jsonResponse=rawJSON["teams"]
+
+
+                for (let key in rawJSON["comps"]) {
+                    comps[key]=rawJSON["comps"][key]['restriction']
+                }
+
+                var elements0 = document.querySelectorAll('.odd:not(.uxx)');
+                elements0.forEach(element0 => {
+                    var elements1 = element0.querySelectorAll('.teams-wrapper .flex-grow-1');
+                    elements1.forEach(element1 => {
+                        var elements2 = element1.querySelectorAll('.clippable');
+                        elements2.forEach(element2 => {
+                            var urlObj = new URL("https://www.managerzone.com/" + element2.getAttribute('href'));
+                            var params = new URLSearchParams(urlObj.search);
+                            var tidValue = params.get('tid');
+                            if(tidValue!==null){
+                                tidValue=parseInt(tidValue)
+                                var valor=0;
+                                if (jsonResponse[tidValue]?.SENIOR) {
+                                    valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[tidValue]["SENIOR"]).toFixed(0))
+                                }
+                                element1.innerHTML+="</br>"+valor;
+                            }else{
+                                tidValue=parseInt(team_id)
+                                valor=0;
+                                if (jsonResponse[tidValue]?.SENIOR) {
+                                    valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[tidValue]["SENIOR"]).toFixed(0))
+                                }
+                                element1.innerHTML+="</br>"+valor;
+                            }
+                        });
+                    });
+                });
+
+                var temp_cats=[]
+
+                temp_cats["u23"] = "U23";
+                temp_cats["u21"] = "U21";
+                temp_cats["u18"] = "U18";
+                temp_cats["u23_world"] = "U23";
+                temp_cats["u21_world"] = "U21";
+                temp_cats["u18_world"] = "U18";
+
+
+
+
+
+
+                elements0 = document.querySelectorAll('.odd.uxx');
+
+                elements0.forEach(element0 => {
+                    var cat=element0.getElementsByClassName("responsive-hide match-reference-text-wrapper flex-grow-0");
+                    var links = cat[0].querySelectorAll('a');
+                    var urlObj = new URL("https://www.managerzone.com/" + links[0].getAttribute('href'));
+                    var params = new URLSearchParams(urlObj.search);
+                    var type = params.get('type');
+                    var elo_type="SENIOR"
+                    if(type==null){
+                        if(params.get('cid')!=null){
+                            elo_type=comps[params.get('cid')]
+                        }
+                        if(params.get('fsid')!=null){
+                            elo_type=comps[params.get('fsid')]
+                        }
+                    }else{
+                        elo_type=temp_cats[type]
+                    }
+                    var elements1 = element0.querySelectorAll('.teams-wrapper .flex-grow-1');
+                    elements1.forEach(element1 => {
+                        var elements2 = element1.querySelectorAll('.clippable');
+                        elements2.forEach(element2 => {
+                            var urlObj = new URL("https://www.managerzone.com/" + element2.getAttribute('href'));
+                            var params = new URLSearchParams(urlObj.search);
+                            var tidValue = params.get('tid');
+                            if(tidValue!==null){
+                                tidValue=parseInt(tidValue)
+                                valor=0;
+                                if(jsonResponse[tidValue] && jsonResponse[tidValue][elo_type] !== undefined)  {
+                                    var valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[tidValue][elo_type]).toFixed(0))
+                                }
+                                element1.innerHTML+="</br>"+valor;
+                            }else{
+                                tidValue=parseInt(team_id)
+                                valor=0;
+                                if(jsonResponse[tidValue] && jsonResponse[tidValue][elo_type] !== undefined){
+                                    valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[tidValue][elo_type]).toFixed(0))
+                                }
+                                element1.innerHTML+="</br>"+valor;
+                            }
+                        });
+                    });
+                });
+            }
+        });
+
+
+    }
+
+
+
+
+
+
+    function teamPage(){
+
+        var team_id=""
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('tid')){
+            team_id=urlParams.get("tid")
+        }else{
+            if(window.sport=="soccer"){
+                team_id=GM_getValue("soccer_team_id")
+            }else{
+                team_id=GM_getValue("hockey_team_id")
+            }
+        }
+
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo="+team_id,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+
+                var jsonResponse = JSON.parse(response.responseText);
+
+                var aux=team_id
+
+                var teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+                teamTable+='<table class="matchValuesTable"><thead><tr>'
+                teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0px;"></th>'
+                teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
+                teamTable+='<th >TOP 21</th><th>ELO</th>'
+                teamTable+='<th>Age</th>'
+                teamTable+='<th>Salary</th>'
+                teamTable+='<th>Players</th>'
+                teamTable+='<th style="border-top-right-radius: 5px;"></th>'
+                teamTable+='</tr></thead><tbody>'
+                var valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
+                var valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSenior']))
+                var valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
+                var elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo']))
+                var edad= Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
+                var salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
+                var numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
+                teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+
+                teamTable+='</td></tr>'
+
+                valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor23']))
+                valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB23']))
+                valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_23']))
+                elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo23']))
+                edad=Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
+                salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
+                numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
+                teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable+='</td></tr>'
+
+
+
+                valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor21']))
+                valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB21']))
+                valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_21']))
+                elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo21']))
+                edad=Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
+                salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
+                numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
+                teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable+='</td></tr>'
+
+
+
+
+                valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor18']))
+                valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB18']))
+                valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_18']))
+                elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo18']))
+                edad=Number.parseFloat(jsonResponse[aux]['age18']).toFixed(2)
+                salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary18']))
+                numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players18']))
+                teamTable+='<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valorLM+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor11+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
+                teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable+='</td></tr>'
+
+                teamTable+='</tbody></table></div>'
+                var divToInserT=document.getElementById("streakAndCupInfo")
+                divToInserT.innerHTML=teamTable+divToInserT.innerHTML
+                const thElements = document.querySelectorAll('table.matchValuesTable th');
+                thElements.forEach(th => {
+                    th.style.backgroundColor = GM_getValue("bg_native");
+                    th.style.color = GM_getValue("color_native");
+                });
+                document.getElementById("thTransparent0").style.backgroundColor="transparent";
+            }
+        });
+    }
+
+
+
+
+
+
+    function lastMatchesELO(){
+        var selectElements = document.getElementsByName('limit');
+        if (selectElements.length > 0) {
+            var selectElement = selectElements[0];
+            selectElement.addEventListener('change', function(event) {
+                waitToDOM(lastMatchesELO, ".group", 0)
+            });
+        }
+        selectElements = document.getElementsByName('selectType');
+        if (selectElements.length > 0) {
+            selectElement = selectElements[0];
+            selectElement.addEventListener('change', function(event) {
+                waitToDOM(lastMatchesELO, ".group", 0)
+            });
+        }
+
+
+
+
+
+
+        const today = new Date();
+
+        today.setDate(today.getDate() + 2);
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        var finalDate = `${year}-${month}-${day}`;
+
+        var initialDate=""
+
+
+
+        var elems = document.getElementsByClassName("group");
+        Array.from(elems).forEach(function(elem) {
+            var fecha=elem.innerText
+            const [day, month, year] = fecha.split("-");
+            initialDate = `${year}-${month}-${day}`;
+        });
+
+        getUsernameData()
+
+
+        var team_id=""
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('tid')){
+            team_id=urlParams.get("tid")
+        }else{
+
+            if(window.sport=="soccer"){
+                team_id=GM_getValue("soccer_team_id")
+            }else{
+                team_id=GM_getValue("hockey_team_id")
+            }
+
+        }
+
+
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?sport=" + window.sport + "&team_id="+team_id+"&initial_date="+initialDate+"&final_date="+finalDate,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+                var jsonResponse = JSON.parse(response.responseText);
+
+
+
+
+                var elems = document.getElementsByClassName("bold score-cell-wrapper textCenter flex-grow-0");
+
+                Array.from(elems).forEach(function(elem) {
+
+                    let links = elem.getElementsByClassName('score-hidden gray');
+                    let href = links[0].getAttribute('href');
+                    let urlParams = new URLSearchParams(href.split('?')[1]);
+                    var mid = parseInt(urlParams.get('mid'));
+
+                    if(mid in jsonResponse){
+
+                        var diff=jsonResponse[mid]['score']-jsonResponse[mid]['old_score']
+                        diff = diff.toFixed(2)
+
+                        var symbol="";
+                        var status="down";
+                        if(diff>0){
+                            symbol="+";
+                            status="up";
+                        }
+
+                        elem.innerHTML+="</br><div id='showELOChange' style='display: flex;align-items: center;'>"+symbol+diff+"<img src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/></div>";
+                    }
+
+
+                });
+
+            }
+        });
+
+
+
+
+    }
+
+
 
 
     function fetchExistTeam(url) {
@@ -702,16 +1181,109 @@ background-color: #f2f2f2;
 
     async function match() {
         var team_div = document.getElementsByClassName("flex-grow-0 textCenter team-table block")
+        if (team_div.length==0){
+            team_div = document.getElementsByClassName("flex-grow-0 textCenter team-table no-match-buttons block")
+        }
         var teams_ = []
 
 
+
+
+
+        var linkIds=""
+        var contIds=0
         for (var x = 0; x < 2; x++) {
             var as = team_div[x].getElementsByTagName("a")
             var urlObj = new URL("https://www.managerzone.com/" + as[0].getAttribute('href'));
             var params = new URLSearchParams(urlObj.search);
             var tidValue = params.get('tid');
             teams_[x] = { "team_name": as[0].innerHTML, "team_id": tidValue, "inserted": "" }
+            linkIds += "&idEquipo" + contIds + "=" + tidValue
+            contIds++
         }
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+
+                var jsonResponse = JSON.parse(response.responseText);
+
+                const divs = document.querySelectorAll('div'); // Selecciona todos los divs
+                const divsConAltura15px = Array.from(divs).filter(div => {
+                    const computedStyle = window.getComputedStyle(div);
+                    return computedStyle.height === '15px' && div.innerHTML === "";
+                });
+
+
+                for(var m=0;m<2;m++){
+
+                    var aux=teams_[m]['team_id']
+
+                    var teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+                    teamTable+='<table class="matchValuesTable"><thead><tr>'
+                    teamTable+='<th id=thTransparent'+m+' style="background-color:transparent; border:0px;"></th>'
+                    teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
+                    teamTable+='<th >TOP 21</th><th style="border-top-right-radius: 5px;">ELO</th></tr></thead><tbody>'
+                    var valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
+                    var valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSenior']))
+                    var valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
+                    var elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo']))
+                    teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td style="border-right:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td></tr>'
+
+                    valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor23']))
+                    valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB23']))
+                    valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_23']))
+                    elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo23']))
+                    teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td style="border-right:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td></tr>'
+
+
+                    valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor21']))
+                    valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB21']))
+                    valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_21']))
+                    elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo21']))
+                    teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td style="border-right:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td></tr>'
+
+                    valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor18']))
+                    valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB18']))
+                    valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_18']))
+                    elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo18']))
+                    teamTable+='<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor+'</td>'
+                    teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valorLM+'</td>'
+                    teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';;">'+valor11+'</td>'
+                    teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td></tr>'
+
+
+                    teamTable+='</tbody></table></div>'
+
+                    divsConAltura15px[m].insertAdjacentHTML('afterend',teamTable)
+
+
+
+                }
+
+
+                const thElements = document.querySelectorAll('table.matchValuesTable th');
+
+// Cambia el color de fondo de cada <th>
+                thElements.forEach(th => {
+                    th.style.backgroundColor = GM_getValue("bg_native");
+                    th.style.color = GM_getValue("color_native");
+
+                });
+                document.getElementById("thTransparent0").style.backgroundColor="transparent";
+                document.getElementById("thTransparent1").style.backgroundColor="transparent";
+
+
+
+
+            }
+        });
+
+
 
         var elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
         for (x = 0; x < 2; x++) {
@@ -2321,7 +2893,9 @@ background-color: #f2f2f2;
     }
 
     function getUsernameData() {
-        if ((GM_getValue("currency") === undefined) || (GM_getValue("currency") == "")) {
+        if ((GM_getValue("currency") === undefined) || (GM_getValue("currency") == "")
+            ||(GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") == "")
+            ||(GM_getValue("hockey_team_id") === undefined) || (GM_getValue("hockey_team_id") == "")) {
             var username = document.getElementById("header-username").innerText
             GM_xmlhttpRequest({
                 method: "GET",
@@ -2335,6 +2909,24 @@ background-color: #f2f2f2;
                     var xmlDoc = parser.parseFromString(response.responseText, "text/xml");
                     var userTeamsData = xmlDoc.getElementsByTagName("Team");
                     var index = 1;
+
+                    if (userTeamsData[0].getAttribute("sport")=="soccer"){
+                        GM_setValue("soccer_team_id", userTeamsData[0].getAttribute("teamId"))
+                    }
+                    if (userTeamsData[0].getAttribute("sport")=="hockey"){
+                        GM_setValue("hockey_team_id", userTeamsData[0].getAttribute("teamId"))
+                    }
+
+
+                    if (userTeamsData[1].getAttribute("sport")=="soccer"){
+                        GM_setValue("soccer_team_id", userTeamsData[1].getAttribute("teamId"))
+                    }
+                    if (userTeamsData[1].getAttribute("sport")=="hockey"){
+                        GM_setValue("hockey_team_id", userTeamsData[1].getAttribute("teamId"))
+                    }
+
+
+
                     if (userTeamsData[0].getAttribute("sport") == window.sport) {
                         index = 0;
                     }
@@ -2741,7 +3333,7 @@ background-color: #f2f2f2;
             }
 
             if (flagStats) {
-                const container = document.getElementById("squad_tabs")
+                const container = document.getElementById("squad-search-toggle")
                 var contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3;'></br><center>"
                 contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>"
                 contenidoNuevo += "<option value='All Team'>All Team</option>"
