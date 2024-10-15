@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.103
+// @version      0.104
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1284,8 +1284,6 @@
 
         }, 200);
 
-
-        console.log("https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds)
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
@@ -3530,8 +3528,10 @@
         newContent += "<label><input type='checkbox' id='tabsConfig' " + checkedTab + ">Tabs</label>";
         newContent += "</td></tr></table></br></br>"
 
-        newContent += '<div style=padding-bottom:10px;><h2>New vesion avaliable: '+GM_getValue("stx_latest_version")+'</h2>'
-        newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button></div>'
+        if(GM_getValue("avaliable_new_version")=="yes"){
+            newContent += '<div style=padding-bottom:10px;><h2>New vesion avaliable: '+GM_getValue("stx_latest_version")+'</h2>'
+            newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button></div>'
+        }
 
 
 
@@ -3547,9 +3547,13 @@
 
         document.getElementById("alert_tittle").style.backgroundColor = GM_getValue("bg_native")
 
-        document.getElementById("updateButton").addEventListener('click', function () {
-            window.open("https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js", "_blank");
-        });
+        if(GM_getValue("avaliable_new_version")=="yes"){
+
+            document.getElementById("updateButton").addEventListener('click', function () {
+                GM_setValue("date_checked_version","-")
+                window.open("https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js", "_blank");
+            });
+        }
 
 
 
@@ -3827,7 +3831,6 @@
 
     }
     function notifySnackBarNewVersion(){
-        console.log(GM_getValue("stx_notified_version")+" "+GM_getValue("stx_latest_version"))
         if(GM_getValue("stx_notified_version")!=GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
             var x = document.getElementById("snackbar_stx");
@@ -3836,6 +3839,7 @@
             x.innerHTML = txt;
             x.className = "showSnackBar_stx";
             document.getElementById("button-snackbar-update").addEventListener('click', function () {
+                GM_setValue("date_checked_version","-")
                 window.open("https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js", "_blank");
             });
             setTimeout(function () { x.className = x.className.replace("showSnackBar_stx", ""); }, 8000);
@@ -3844,7 +3848,6 @@
     async function checkScriptVersion(){
         const actual_date=getActualDate()
         if(actual_date!=GM_getValue("date_checked_version")){
-            console.log("eo")
             notifySnackBarNewVersion()
             GM_setValue("date_checked_version", actual_date)
             const greasyForkURL = 'https://greasyfork.org/es/scripts/491442-stats-xente-script';
@@ -3987,7 +3990,7 @@
         inputHidden.id = 'ord_table';
         inputHidden.value = 'ascendente';
         document.body.appendChild(inputHidden);
-    GM_addStyle(`#snackbar_stx {
+        GM_addStyle(`#snackbar_stx {
   visibility: hidden;
   position: fixed;
   /*display: flex;*/
@@ -4471,6 +4474,6 @@ cursor:pointer;
 }
   `)
 
-}
+    }
 
 })();
