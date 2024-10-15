@@ -3824,6 +3824,7 @@
             const latest = latestParts[i] || 0;
             if (installed < latest) {
                 GM_setValue("avaliable_new_version","yes")
+                notifySnackBarNewVersion()
             }else{
                 GM_setValue("avaliable_new_version","no")
             }
@@ -3848,7 +3849,6 @@
     async function checkScriptVersion(){
         const actual_date=getActualDate()
         if(actual_date!=GM_getValue("date_checked_version")){
-            notifySnackBarNewVersion()
             GM_setValue("date_checked_version", actual_date)
             const greasyForkURL = 'https://greasyfork.org/es/scripts/491442-stats-xente-script';
             fetch(greasyForkURL)
