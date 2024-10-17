@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.105
+// @version      0.106
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
-// @icon         https://statsxente.com/MZ1/View/Images/etiqueta_bota.png
+// @icon         https://statsxente.com/MZ1/View/Images/main_icon.png
 // @license      GNU
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
@@ -37,10 +37,6 @@
                 });
     }*/
 
-
-
-
-
     setCSSStyles()
     createModalMenu()
     createModalEventListeners()
@@ -48,43 +44,38 @@
     getUsernameData()
     checkScriptVersion()
 
-
-
-
-
-
     /// FUNCTIONS MENU
     setTimeout(function () {
 
         const urlParams = new URLSearchParams(window.location.search);
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
-            waitToDOM(leagues, ".nice_table", 0)
+            waitToDOM(leagues, ".nice_table", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
             && (urlParams.get('sub') === 'league') && (GM_getValue("federationFlag"))) {
-            waitToDOM(clashLeagues, ".nice_table", 0)
+            waitToDOM(clashLeagues, ".nice_table", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
             && (urlParams.get('sub') === 'clash') && (GM_getValue("federationFlag"))) {
-            waitToDOM(clash, ".fed_badge", 0)
+            waitToDOM(clash, ".fed_badge", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match')
             && (urlParams.get('sub') === 'result') && (GM_getValue("matchFlag"))) {
             setTimeout(function () {
-                waitToDOM(match, ".hitlist.statsLite.marker", 0)
+                waitToDOM(match, ".hitlist.statsLite.marker", 0,7000)
             }, 2000);
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))
             && (GM_getValue("playersFlag"))) {
-            waitToDOM(playersPage, ".playerContainer", 0)
+            waitToDOM(playersPage, ".playerContainer", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
-            waitToDOM(playersPageStats, ".player_name", 0)
+            waitToDOM(playersPageStats, ".player_name", 0,7000)
         }
 
 
@@ -100,22 +91,22 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')
             && (urlParams.get('sub') === 'standings')) {
-            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
+            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'cup') && (urlParams.get('sub') === 'groupplay')) {
-            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
+            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.get('sub') === 'groupplay')) {
-            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
+            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
-            waitToDOM(lastMatchesELO, ".group", 0)
-            waitToDOM(nextMatches, ".group", 0)
+            waitToDOM(lastMatchesELO, ".group", 0,7000)
+            waitToDOM(nextMatches, ".group", 0,7000)
         }
 
 
@@ -126,14 +117,8 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'scheduled')) {
-            waitToDOM(nextMatches, ".group", 0)
+            waitToDOM(nextMatches, ".group", 0,7000)
         }
-
-
-
-
-
-
 
 
 
@@ -141,69 +126,12 @@
         const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
         elementos.forEach(function (elemento) {
             elemento.addEventListener('click', function () {
-                waitToDOM(playersPageStats, ".player_name", 0)
+                waitToDOM(playersPageStats, ".player_name", 0,7000)
             });
         });
 
 
     }, 1000);
-
-    (function () {
-        if (document.getElementById("league_tab_table") !== null) {
-            document.getElementById("league_tab_table").addEventListener('click', function () {
-                if (document.getElementById("showMenu") === null) {
-                    waitToDOM(leagues, ".nice_table", 0)
-                }
-            });
-
-        }
-    })();
-
-    setTimeout(function () {
-
-
-
-
-        (function () {
-
-            if (document.getElementById("ui-id-2") !== null) {
-                document.getElementById("ui-id-2").parentNode.addEventListener('click', function () {
-                    if (document.getElementById("showMenu") === null) {
-
-                        const urlParams = new URLSearchParams(window.location.search);
-
-                        if (urlParams.get('fsid')) {
-                            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
-                        } else {
-                            waitToDOM(clashLeagues, ".nice_table", 0)
-                        }
-
-
-                    }
-                });
-
-            }
-        })();
-
-
-
-        (function () {
-
-            if (document.getElementById("ui-id-4") !== null) {
-                document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
-                    if (document.getElementById("showMenu") === null) {
-                        waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0)
-                    }
-                });
-
-            }
-        })();
-
-
-
-
-
-    }, 2000);
 
     let teams_data = "";
     let searchClassName = ""
@@ -212,6 +140,70 @@
     let gk_line = ""
     let skills_names = []
     let su_line = "unsetted";
+
+    //BUTTONS EVENTS LISTENERS
+    const urlParams = new URLSearchParams(window.location.search);
+    if ((urlParams.get('p') === 'friendlyseries')||(urlParams.get('p') === 'federations')){
+        console.log("here")
+        waitToDOMById(tableFLAndClashEventListener,"ui-id-2",5000)
+    }
+
+    if (urlParams.get('p') === 'cup'){
+        console.log("here1")
+        waitToDOMById(tableCupsEventListener,"ui-id-4",5000)
+    }
+    waitToDOMById(tableLeaguesEventListener,"league_tab_table",5000)
+
+    function tableLeaguesEventListener(){
+        document.getElementById("league_tab_table").addEventListener('click', function () {
+            if (document.getElementById("showMenu") === null) {
+                waitToDOM(leagues, ".nice_table", 0,7000)
+            }
+        });
+
+    }
+
+    function tableCupsEventListener(){
+        document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
+            if (document.getElementById("showMenu") === null) {
+                waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+            }
+
+
+            viewButtonCupsEventListener()
+
+
+        });
+
+
+    }
+
+    function viewButtonCupsEventListener(){
+        document.addEventListener('click', function(event) {
+            if ((event.target) &&((event.target.parentNode.id === 'view_btn')||(event.target.parentNode.parentNode.id === 'view_btn'))) {
+                setTimeout(function () {
+                    if (document.getElementById("showMenu") === null) {
+                        waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                    }
+                }, 1000);
+            }
+        });
+
+    }
+
+    function tableFLAndClashEventListener(){
+        document.getElementById("ui-id-2").parentNode.addEventListener('click', function () {
+            if (document.getElementById("showMenu") === null) {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('fsid')) {
+                    waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                } else {
+                    waitToDOM(clashLeagues, ".nice_table", 0,7000)
+                }
+
+            }
+        });
+    }
 
 
     //Next matches page
@@ -606,14 +598,14 @@
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
-                waitToDOM(lastMatchesELO, ".group", 0)
+                waitToDOM(lastMatchesELO, ".group", 0,7000)
             });
         }
         selectElements = document.getElementsByName('selectType');
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
-                waitToDOM(lastMatchesELO, ".group", 0)
+                waitToDOM(lastMatchesELO, ".group", 0,7000)
             });
         }
 
@@ -1555,12 +1547,18 @@
             });
         });
     }
+
+
     //Cups and FL's page
     async function friendlyCupsAndLeagues() {
+
         let urlParams = new URLSearchParams(window.location.search);
         let age_restriction
+        let idComp="null"
         let link = "https://www.managerzone.com" + document.getElementById("ui-id-1").getAttribute('href')
         if (urlParams.get('fsid')) {
+            var fl_data= await fetchExistsFL(urlParams.get('fsid'))
+            idComp=fl_data['id']
             age_restriction = await fetchAgeRestriction(link);
         } else {
             age_restriction = await fetchCupAgeRestriction(link);
@@ -1644,8 +1642,8 @@
         values.set('special_cup', 'Special Cups');
 
         let contenidoNuevo = '<div id="testClick" style="margin: 0 auto; text-align:center;">'
-
         getNativeTableStyles();
+
         ///MENU TABLE
         contenidoNuevo += "<table id=showMenu style='margin: 0 auto; text-align:center;'><thead style='background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'><tr>";
         contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;" colspan="4">Stats Xente</th>';
@@ -1661,32 +1659,21 @@
 
         }
 
-
         contenidoNuevo += "<tr><td></td><td style='padding-top:5px' colspan='2'>";
-
         contenidoNuevo += '<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; text-align:center; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
-
         contenidoNuevo += "</td><td></td></tr>";
-
         contenidoNuevo += "<tr><td colspan='5' id='separatorTd'" + styleSep + "></td></tr>";
-
-
-
         contenidoNuevo += "</table>";
-
 
 
         contenidoNuevo += '<table id=show3' + styleTable + '><tr><td><label>';
 
-        if ((urlParams.get('type') === 'senior') || (urlParams.get('type') === 'world')) {
-            if ("valor" === initialValues[detected_cat]) {
-                contenidoNuevo += '<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
-            } else {
-                contenidoNuevo += '<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
-            }
+        if ("valor" === initialValues[detected_cat]) {
+            contenidoNuevo += '<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
         } else {
             contenidoNuevo += '<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
         }
+
 
         values.forEach(function (valor, clave) {
 
@@ -1723,13 +1710,73 @@
         contenidoNuevo += "</div></br>";
 
 
-        values.set('valor', 'Value');
+        if(idComp!=="null"){
 
-        elems = document.getElementsByClassName("nice_table");
-        tabla = elems[0]
+            contenidoNuevo +="<table style='width:80%; margin: 0 auto; text-align:center;'><tr>"
+            let color=GM_getValue("bg_native")
+            contenidoNuevo +='<td><button class="btn-comp-fed" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="todos">All against all</button></td>'
+            contenidoNuevo += '<td><button class="btn-comp-fed" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="directosSIN">Direct confrontations [Without ties]</button></td>'
+            contenidoNuevo += '<td><button class="btn-comp-fed" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="directosCON">Direct confrontations [With ties]</button></td>'
+            contenidoNuevo +="</tr>"
+
+            contenidoNuevo += '<tr><td colspan="3"><button class="btn-comp-fed" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="desgloseSIN">Users Points [Without ties]</button>'
+            contenidoNuevo += '&nbsp;<button class="btn-comp-fed" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="desgloseCON">Users Points [With ties]</button></td>'
+
+            contenidoNuevo +="</tr>"
+
+            contenidoNuevo +="</table></br>"
 
 
-        tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+            let darkerColor = darkenColor(color, 25);
+
+            document.styleSheets[0].insertRule(
+                '.btn-comp-fed:hover { background-color: '+darkerColor+' !important; }',
+                document.styleSheets[0].cssRules.length
+            );
+
+            values.set('valor', 'Value');
+            elems = document.getElementsByClassName("nice_table");
+            tabla = elems[0]
+            tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+
+            ///COM FED BUTTONS
+            document.getElementById("todos").addEventListener('click', function () {
+                let link = "https://statsxente.com/MZ1/View/FEDCOMP_ContraTodos_VIEW.php?tamper=yes&id="+idComp+"&idioma="+ window.lang
+                openWindow(link, 0.75, 1.1);
+            });
+            document.getElementById("directosSIN").addEventListener('click', function () {
+                let link = "https://statsxente.com/MZ1/View/FEDCOMP_Directos_VIEW.php?tamper=yes&id="+idComp+"&idioma="+ window.lang
+                openWindow(link, 0.75, 1.1);
+            });
+            document.getElementById("directosCON").addEventListener('click', function () {
+                let link = "https://statsxente.com/MZ1/View/FEDCOMP_DirectosEmpates_VIEW.php?tamper=yes&id="+idComp+"&idioma="+ window.lang
+                openWindow(link, 0.75, 1.1);
+            });
+
+            document.getElementById("desgloseSIN").addEventListener('click', function () {
+                let link = "https://statsxente.com/MZ1/Lecturas/getDesglosePuntosFede.php?tamper=yes&idComp="+idComp+"&idioma="+ window.lang+"&idLiga="+urlParams.get('fsid')
+                openWindow(link, 0.75, 1.1);
+            });
+
+            document.getElementById("desgloseCON").addEventListener('click', function () {
+                let link = "https://statsxente.com/MZ1/Lecturas/getDesglosePuntosFedeEmpates.php?tamper=yes&idComp="+idComp+"&idioma="+ window.lang+"&idLiga="+urlParams.get('fsid')
+                openWindow(link, 0.75, 1.1);
+            });
+
+        }else{
+
+            values.set('valor', 'Value');
+            elems = document.getElementsByClassName("nice_table");
+            tabla = elems[0]
+            tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+        }
+
+
+
+
 
         if (GM_getValue("show_league_selects") === true) {
 
@@ -1745,11 +1792,18 @@
             elemento.addEventListener('click', handleClick);
 
         });
+
+        let thWidth="7.5em"
+
+        if(idComp!=="null"){
+            thWidth="5.5em"
+        }
+
         let nuevaCeldaEncabezado = document.createElement("th");
         nuevaCeldaEncabezado.textContent = values.get(initialValues[detected_cat]);
         nuevaCeldaEncabezado.style.textAlign = 'center';
-        nuevaCeldaEncabezado.style.maxWidth = '7.5em';
-        nuevaCeldaEncabezado.style.width = '7.5em';
+        nuevaCeldaEncabezado.style.maxWidth = thWidth;
+        nuevaCeldaEncabezado.style.width = thWidth;
         nuevaCeldaEncabezado.style.whiteSpace = 'nowrap';
         nuevaCeldaEncabezado.style.overflow = 'hidden';
         nuevaCeldaEncabezado.style.textOverflow = 'ellipsis';
@@ -1766,8 +1820,38 @@
 
         }
 
-        document.getElementsByClassName("seriesHeader")[table_index].cells[1].style.width = "180px"
+        var widthTeam="180px"
+
+        if(idComp!=="null"){
+            widthTeam="150px";
+        }
+
+
+        document.getElementsByClassName("seriesHeader")[table_index].cells[1].style.width = widthTeam
         document.getElementsByClassName("seriesHeader")[table_index].appendChild(nuevaCeldaEncabezado);
+
+        if(idComp!=="null"){
+
+            let nuevaColumna1 =  document.getElementsByClassName("seriesHeader")[table_index].insertCell(2);
+            nuevaColumna1.outerHTML = "<th>Federation</th>"
+            nuevaColumna1.style.textAlign = 'center';
+
+
+            let tds = document.querySelectorAll('.nice_table td');
+            let ths = document.querySelectorAll('.nice_table th');
+
+            tds.forEach(td => {
+                td.style.paddingLeft = "3px";
+                td.style.paddingRight = "3px";
+            });
+
+            ths.forEach(th => {
+                th.style.paddingLeft = "3px";
+                th.style.paddingRight = "3px";
+            });
+
+        }
+
 
         nuevaCeldaEncabezado = document.createElement("th");
         nuevaCeldaEncabezado.textContent = "Stats Xente";
@@ -1846,6 +1930,7 @@
                         let lastIndex = celda.innerHTML.indexOf("\">", iniIndex + 4);
                         let data = String(celda.innerHTML)
                         let id = data.substring(iniIndex + 4, lastIndex)
+
                         let nuevaColumna = document.createElement("td");
                         let valor = 0;
 
@@ -1855,6 +1940,13 @@
                         nuevaColumna.innerHTML = valor
                         nuevaColumna.style.textAlign = 'center';
                         filasDatos[i].appendChild(nuevaColumna);
+
+
+                        if(idComp!=="null"){
+                            let nuevaColumna1 = filasDatos[i].insertCell(2);
+                            nuevaColumna1.innerHTML = "<img src='https://www.managerzone.com/dynimg/pic.php?type=federation&fid="+fl_data["federations"][fl_data['teams'][id]['nombreFede']]['idFede']+"&size=small&sport=soccer' width='10px' height='10px'/> <span style='color:red;'>"+fl_data['teams'][id]['nombreFede']+"</span>";
+                            nuevaColumna1.style.textAlign = 'left';
+                        }
 
                         let eloType = 1
                         if (window.sport === "soccer") { eloType = 2 }
@@ -2140,7 +2232,7 @@
                     let pid = params.get('pid');
                     if (teams_[x]['inserted'][pid] === "yes") {
                         dato = document.createElement("td");
-                        dato.innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/etiqueta_bota.png' width='20px' height='20px' id='but" + pid + "' style='cursor:pointer;'/>"
+                        dato.innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='20px' height='20px' id='but" + pid + "' style='cursor:pointer;'/>"
                         fila.appendChild(dato);
 
 
@@ -2156,6 +2248,9 @@
                         })(pid, teams_[x]['team_id'], window.sport, window.lang, teams_[x]['team_name'], as_[0].innerHTML);
 
 
+                    }else{
+                        dato = document.createElement("td");
+                        fila.appendChild(dato);
                     }
                 }
             }
@@ -2211,7 +2306,7 @@
 
                 let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
                 txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
-                txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/etiqueta_bota_mini.png\'); width: 21px; height: 20px; background-size: auto;'
+                txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 20px; background-size: auto;'
                 txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
                 elementos_[0].innerHTML += txt;
@@ -2487,7 +2582,7 @@
         let ids = element.getElementsByClassName('player_id_span');
         let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
         txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
-        txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/etiqueta_bota_mini.png\'); width: 21px; height: 20px; background-size: auto;'
+        txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 20px; background-size: auto;'
         txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
         elementos_[0].innerHTML += txt;
         (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
@@ -2736,11 +2831,11 @@
                         <i class="fa fa-circle fa-stack-2x fa-inverse"></i>
                         <i class="fa fa-thumbs-up fa-stack-1x green" aria-hidden="true"></i>
                 </span>
-                <h3 style="background-image: url('https://www.statsxente.com/MZ1/View/Images/etiqueta_bota.png');">Stats Xente</h3>
+                <h3 style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon.png');">Stats Xente</h3>
                 <div class="widget-content-wrapper">
                     <div class="flex-wrap" style="margin-bottom: 35px;">
                         <div class="flex-grow-0" style="margin: 0 auto">
-                            <img src="https://www.statsxente.com/MZ1/View/Images/etiqueta_bota.png" alt="" width="114" height="127">
+                            <img src="https://www.statsxente.com/MZ1/View/Images/main_icon.png" alt="" width="114" height="127">
                         </div>
                         <div class="flex-grow-1 textLeft">`
 
@@ -3030,6 +3125,25 @@
     }
 
     //FETCH FUNCTIONS
+    function fetchExistsFL(id) {
+        return new Promise((resolve, reject) => {
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_check_fl.php?fl_id="+id,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    resolve(jsonResponse)
+                },
+                onerror: function () {
+                    reject("none");
+                }
+            });
+        });
+    }
     function fetchAgeRestriction(url) {
         return new Promise((resolve, reject) => {
 
@@ -3132,7 +3246,7 @@
     }
 
     //UTILS FUNCTIONS
-    function waitToDOM(function_to_execute, classToSearch, elementIndex) {
+    function waitToDOM(function_to_execute, classToSearch, elementIndex,miliseconds) {
         let interval = setInterval(function () {
             let elements = document.querySelectorAll(classToSearch);
             if (elements.length > 0 && elements[elementIndex]) {
@@ -3145,7 +3259,22 @@
 
         let timeout = setTimeout(function () {
             clearInterval(interval);
-        }, 10000);
+        }, miliseconds);
+    }
+    function waitToDOMById(function_to_execute, idToSearch,miliseconds) {
+        let interval = setInterval(function () {
+            let element = document.getElementById(idToSearch);
+            if (element) {
+                clearInterval(interval);
+                clearTimeout(timeout);
+                function_to_execute();
+            }
+        }, 100);
+
+
+        let timeout = setTimeout(function () {
+            clearInterval(interval);
+        }, miliseconds);
     }
     function openWindow(link, porAncho, porAlto) {
         let ventanaAncho = (window.innerWidth) * porAncho
@@ -3362,7 +3491,7 @@
         if(GM_getValue("avaliable_new_version")==="yes"){
             txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/alert.png" style="width:15px;height:15px;"/>'
         }
-        txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/etiqueta_bota.png" style="width:25px;height:25px;"/>'
+        txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width:25px;height:25px;"/>'
         txtToInsert+='</div>';
         newElement.innerHTML=txtToInsert;
         let body = document.body;
@@ -3792,7 +3921,7 @@
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
             let x = document.getElementById("snackbar_stx");
-            let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/etiqueta_bota.png' width='15px' height='15px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version avaliable</br></br>"
+            let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='15px' height='15px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version avaliable</br></br>"
             txt+="<button type='button' id='button-snackbar-update'>UPDATE</button>"
             x.innerHTML = txt;
             x.className = "showSnackBar_stx";
@@ -3806,7 +3935,6 @@
     async function checkScriptVersion(){
         const actual_date=getActualDate()
         if(actual_date!==GM_getValue("date_checked_version")){
-            console.log("eo")
             GM_setValue("date_checked_version", actual_date)
             const greasyForkURL = 'https://greasyfork.org/es/scripts/491442-stats-xente-script';
             fetch(greasyForkURL)
@@ -3931,6 +4059,29 @@
             let primerTd = filas[i].querySelector("td");
             primerTd.innerHTML = (i + 1);
         }
+    }
+    function darkenColor(rgb, percent) {
+        let result = rgb.match(/\d+/g);
+
+        // Convertir los valores RGB a enteros
+        let r = parseInt(result[0]);
+        let g = parseInt(result[1]);
+        let b = parseInt(result[2]);
+        // Reducir cada componente en un porcentaje
+        r = Math.floor(r * (1 - percent / 100));
+        g = Math.floor(g * (1 - percent / 100));
+        b = Math.floor(b * (1 - percent / 100));
+
+        // Asegurarse de que los valores estén dentro del rango válido (0-255)
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        b = Math.max(0, Math.min(255, b));
+
+        // Convertir de vuelta a hexadecimal y retornar el valor oscuro
+        return "#" + [r, g, b].map(x => {
+            const hex = x.toString(16);
+            return hex.length === 1 ? "0" + hex : hex;
+        }).join("");
     }
     function setCSSStyles(){
         let link = document.createElement('link');
@@ -4082,6 +4233,25 @@ border-radius: 3px;
   background-color: #2187c2;/*Color de fondo*/
 }
 .btn-update:active{
+  background-color: #2187c2;/*Color de fondo*/
+}
+
+
+.btn-comp-fed{
+width:17em;
+font-family: 'Roboto', sans-serif;
+border:1px solid black;
+border-radius: 5px;
+  display: inline-block;
+  padding: 7px 3px;
+  cursor:pointer;
+  color: white;
+  background-color: #2da8ef;/*Color de fondo*/
+}
+.btn-comp-fed:hover{
+  background-color: #2187c2;/*Color de fondo*/
+}
+.btn-comp-fed:active{
   background-color: #2187c2;/*Color de fondo*/
 }
 
@@ -4433,17 +4603,5 @@ cursor:pointer;
   `)
 
     }
-
-
-
-
-
-    /*// @ts-ignore
-    function GM_getValue(key, defaultValue) {}
-    // @ts-ignore
-    function GM_setValue(key, value) {}
-    // @ts-ignore
-    function GM_deleteValue(key) {}*/
-
 
 })();
