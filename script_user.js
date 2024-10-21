@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.107
+// @version      0.108
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3500,7 +3500,7 @@
         newElement.id = "legendDiv";
         newElement.className = "stx_legend";
         let txtToInsert= '<div style="writing-mode: tb-rl;-webkit-writing-mode: vertical-rl; margin: 0 auto; text-align:center;">'
-        if(GM_getValue("avaliable_new_version")==="yes"){
+        if(GM_getValue("available_new_version")==="yes"){
             txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/alert.png" style="width:15px;height:15px;"/>'
         }
         txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width:25px;height:25px;"/>'
@@ -3664,8 +3664,8 @@
         newContent += "<label><input type='checkbox' id='tabsConfig' " + checkedTab + ">Tabs</label>";
         newContent += "</td></tr></table></br></br>"
 
-        if(GM_getValue("avaliable_new_version")==="yes"){
-            newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;"><h2>New vesion avaliable: '+GM_getValue("stx_latest_version")+'</h2>'
+        if(GM_getValue("available_new_version")==="yes"){
+            newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;"><h2>New vesion available: '+GM_getValue("stx_latest_version")+'</h2>'
             newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button></div>'
         }
 
@@ -3683,7 +3683,7 @@
 
         document.getElementById("alert_tittle").style.backgroundColor = GM_getValue("bg_native")
 
-        if(GM_getValue("avaliable_new_version")==="yes"){
+        if(GM_getValue("available_new_version")==="yes"){
 
             document.getElementById("updateButton").addEventListener('click', function () {
                 GM_setValue("date_checked_version","-")
@@ -3949,10 +3949,10 @@
             const installed = installedParts[i] || 0;
             const latest = latestParts[i] || 0;
             if (installed < latest) {
-                GM_setValue("avaliable_new_version","yes")
+                GM_setValue("available_new_version","yes")
                 notifySnackBarNewVersion()
             }else{
-                GM_setValue("avaliable_new_version","no")
+                GM_setValue("available_new_version","no")
             }
         }
 
@@ -3962,7 +3962,7 @@
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
             let x = document.getElementById("snackbar_stx");
-            let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='15px' height='15px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version avaliable</br></br>"
+            let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='15px' height='15px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version available</br></br>"
             txt+="<button type='button' id='button-snackbar-update'>UPDATE</button>"
             x.innerHTML = txt;
             x.className = "showSnackBar_stx";
