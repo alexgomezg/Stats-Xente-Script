@@ -39,7 +39,7 @@
 
     setCSSStyles()
     createModalMenu()
-    createModalEventListeners()
+    waitToDOMById(createModalEventListeners,"saveButton",5000)
     setLangSportCats()
     getUsernameData()
     checkScriptVersion()
@@ -117,10 +117,6 @@
         }
 
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'team')) {
-            teamPage()
-        }
-
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'scheduled')) {
@@ -128,6 +124,13 @@
                 waitToDOM(nextMatches, ".group", 0,7000)
             }
         }
+
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'team') && (GM_getValue("teamPageFlag"))) {
+            teamPage()
+        }
+
+
 
 
 
@@ -3567,6 +3570,9 @@
             GM_setValue("eloPlayedMatchesFlag", true)
         }
 
+        if (GM_getValue("teamPageFlag") === undefined) {
+            GM_setValue("teamPageFlag", true)
+        }
 
 
 
@@ -3574,7 +3580,8 @@
 
 
 
-        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag=""
+
+        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag="",teamFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -3583,9 +3590,13 @@
         if (GM_getValue("countryRankFlag")) countryRankFlag = "checked"
         if (GM_getValue("eloNextMatchesFlag")) eloNextMatchesFlag = "checked"
         if (GM_getValue("eloPlayedMatchesFlag")) eloPlayedMatchesFlag = "checked"
+        if (GM_getValue("teamPageFlag")) teamFlag = "checked"
+
+
+
         let newContent = '<div style="margin: 0 auto; text-align:center;"><img alt="" id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></div></br></br>'
         newContent += '<div style="margin: 0 auto; text-align:center;" id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"  style="display: flex; flex-direction: column; overflow: auto; max-width: 100%;">'
-        newContent +='</br><table style="width:75%; margin: 0 auto; text-align:center;"><tbody><tr>';
+        newContent +='</br><table style="width:75%; margin: 0 auto; text-align:left;"><tbody><tr>';
         newContent += '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
@@ -3593,6 +3604,7 @@
         newContent += '</tr><tr>'
         newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Team<input type="checkbox" id="teamSelect" ' + teamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Scheduled Matches<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += "</tr></tbody></table>"
@@ -3739,89 +3751,85 @@
 
     }
     function createModalEventListeners() {
-        setTimeout(function () {
+        document.getElementById('leagueSelect').addEventListener('click', function () {
+            GM_setValue("leagueFlag", !GM_getValue("leagueFlag"))
+        });
 
 
-            document.getElementById('leagueSelect').addEventListener('click', function () {
-                GM_setValue("leagueFlag", !GM_getValue("leagueFlag"))
+        document.getElementById('federationSelect').addEventListener('click', function () {
+            GM_setValue("federationFlag", !GM_getValue("federationFlag"))
+        });
+
+        document.getElementById('matchSelect').addEventListener('click', function () {
+            GM_setValue("matchFlag", !GM_getValue("matchFlag"))
+        });
+
+        document.getElementById('playersSelect').addEventListener('click', function () {
+            GM_setValue("playersFlag", !GM_getValue("playersFlag"))
+        });
+
+        document.getElementById('countryRankSelect').addEventListener('click', function () {
+            GM_setValue("countryRankFlag", !GM_getValue("countryRankFlag"))
+        });
+
+        document.getElementById('eloPlayedSelect').addEventListener('click', function () {
+
+            GM_setValue("eloPlayedMatchesFlag", !GM_getValue("eloPlayedMatchesFlag"))
+        });
+
+        document.getElementById('eloScheduledSelect').addEventListener('click', function () {
+            GM_setValue("eloNextMatchesFlag", !GM_getValue("eloNextMatchesFlag"))
+        });
+
+        document.getElementById('teamSelect').addEventListener('click', function () {
+            GM_setValue("teamPageFlag", !GM_getValue("teamPageFlag"))
+        });
+
+
+
+
+        document.getElementById('show_league_checkbox').addEventListener('click', function () {
+            GM_setValue("show_league_selects", !GM_getValue("show_league_selects"))
+        });
+
+
+
+        document.getElementById('windowsConfig').addEventListener('click', function () {
+
+            document.getElementById('tabsConfig').checked = !document.getElementById('windowsConfig').checked;
+
+            GM_setValue("windowsConfig", !GM_getValue("windowsConfig"))
+            GM_setValue("tabsConfig", !GM_getValue("tabsConfig"))
+
+
+        });
+
+
+        document.getElementById('tabsConfig').addEventListener('click', function () {
+            document.getElementById('windowsConfig').checked = !document.getElementById('tabsConfig').checked;
+            GM_setValue("windowsConfig", !GM_getValue("windowsConfig"))
+            GM_setValue("tabsConfig", !GM_getValue("tabsConfig"))
+
+
+        });
+
+
+
+
+
+        (function () {
+            document.getElementById("slider_input").addEventListener('input', function () {
+                document.getElementById("testImage").style.width = document.getElementById("slider_input").value + "px";
+                document.getElementById("testImage").style.height = document.getElementById("slider_input").value + "px";
+
+                document.getElementById("sizeImageLeagueSpan").innerText = "(" + document.getElementById("slider_input").value + ")"
+
+
+                GM_setValue("league_image_size", document.getElementById("slider_input").value)
+
+
             });
-
-
-            document.getElementById('federationSelect').addEventListener('click', function () {
-                GM_setValue("federationFlag", !GM_getValue("federationFlag"))
-            });
-
-            document.getElementById('matchSelect').addEventListener('click', function () {
-                GM_setValue("matchFlag", !GM_getValue("matchFlag"))
-            });
-
-            document.getElementById('playersSelect').addEventListener('click', function () {
-                GM_setValue("playersFlag", !GM_getValue("playersFlag"))
-            });
-
-            document.getElementById('countryRankSelect').addEventListener('click', function () {
-                GM_setValue("countryRankFlag", !GM_getValue("countryRankFlag"))
-            });
-
-            document.getElementById('eloPlayedSelect').addEventListener('click', function () {
-
-                GM_setValue("eloPlayedMatchesFlag", !GM_getValue("eloPlayedMatchesFlag"))
-            });
-
-            document.getElementById('eloScheduledSelect').addEventListener('click', function () {
-                GM_setValue("eloNextMatchesFlag", !GM_getValue("eloNextMatchesFlag"))
-            });
-
-
-
-
-            document.getElementById('show_league_checkbox').addEventListener('click', function () {
-                GM_setValue("show_league_selects", !GM_getValue("show_league_selects"))
-            });
-
-
-
-            document.getElementById('windowsConfig').addEventListener('click', function () {
-
-                document.getElementById('tabsConfig').checked = !document.getElementById('windowsConfig').checked;
-
-                GM_setValue("windowsConfig", !GM_getValue("windowsConfig"))
-                GM_setValue("tabsConfig", !GM_getValue("tabsConfig"))
-
-
-            });
-
-
-            document.getElementById('tabsConfig').addEventListener('click', function () {
-                document.getElementById('windowsConfig').checked = !document.getElementById('tabsConfig').checked;
-                GM_setValue("windowsConfig", !GM_getValue("windowsConfig"))
-                GM_setValue("tabsConfig", !GM_getValue("tabsConfig"))
-
-
-            });
-
-
-
-
-
-            (function () {
-                document.getElementById("slider_input").addEventListener('input', function () {
-                    document.getElementById("testImage").style.width = document.getElementById("slider_input").value + "px";
-                    document.getElementById("testImage").style.height = document.getElementById("slider_input").value + "px";
-
-                    document.getElementById("sizeImageLeagueSpan").innerText = "(" + document.getElementById("slider_input").value + ")"
-
-
-                    GM_setValue("league_image_size", document.getElementById("slider_input").value)
-
-
-                });
-            })();
-
-
-
-
-        }, 5000);
+        })();
 
     }
     function setLangSportCats() {
