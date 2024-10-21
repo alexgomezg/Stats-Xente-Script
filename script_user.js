@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.106
+// @version      0.107
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -104,9 +104,16 @@
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
+
+
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
-            waitToDOM(lastMatchesELO, ".group", 0,7000)
-            waitToDOM(nextMatches, ".group", 0,7000)
+            if(GM_getValue("eloNextMatchesFlag")){
+                waitToDOM(nextMatches, ".group", 0,7000)
+            }
+            if(GM_getValue("eloPlayedMatchesFlag")){
+                waitToDOM(lastMatchesELO, ".group", 0,7000)
+            }
+
         }
 
 
@@ -117,7 +124,9 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'scheduled')) {
-            waitToDOM(nextMatches, ".group", 0,7000)
+            if(GM_getValue("eloNextMatchesFlag")){
+                waitToDOM(nextMatches, ".group", 0,7000)
+            }
         }
 
 
@@ -3550,27 +3559,42 @@
             GM_setValue("league_image_size", 20)
         }
 
+        if (GM_getValue("eloNextMatchesFlag") === undefined) {
+            GM_setValue("eloNextMatchesFlag", true)
+        }
+
+        if (GM_getValue("eloPlayedMatchesFlag") === undefined) {
+            GM_setValue("eloPlayedMatchesFlag", true)
+        }
 
 
 
 
 
 
-        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = ""
+
+
+        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
         if (GM_getValue("leagueFlag")) leagueFlag = "checked"
         if (GM_getValue("playersFlag")) playersFlag = "checked"
         if (GM_getValue("countryRankFlag")) countryRankFlag = "checked"
+        if (GM_getValue("eloNextMatchesFlag")) eloNextMatchesFlag = "checked"
+        if (GM_getValue("eloPlayedMatchesFlag")) eloPlayedMatchesFlag = "checked"
         let newContent = '<div style="margin: 0 auto; text-align:center;"><img alt="" id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></div></br></br>'
         newContent += '<div style="margin: 0 auto; text-align:center;" id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"  style="display: flex; flex-direction: column; overflow: auto; max-width: 100%;">'
         newContent +='</br><table style="width:75%; margin: 0 auto; text-align:center;"><tbody><tr>';
         newContent += '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">ELO Played Matches<input type="checkbox" id="eloPlayedSelect" ' + eloPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '</tr><tr>'
         newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">ELO Scheduled Matches<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+
         newContent += "</tr></tbody></table>"
 
         newContent += "<hr>"
@@ -3737,6 +3761,15 @@
 
             document.getElementById('countryRankSelect').addEventListener('click', function () {
                 GM_setValue("countryRankFlag", !GM_getValue("countryRankFlag"))
+            });
+
+            document.getElementById('eloPlayedSelect').addEventListener('click', function () {
+
+                GM_setValue("eloPlayedMatchesFlag", !GM_getValue("eloPlayedMatchesFlag"))
+            });
+
+            document.getElementById('eloScheduledSelect').addEventListener('click', function () {
+                GM_setValue("eloNextMatchesFlag", !GM_getValue("eloNextMatchesFlag"))
             });
 
 
