@@ -4404,12 +4404,12 @@ border-radius: 3px;
   left: 0;
   height: 25px;
   width: 25px;
-  background-color: #eee;
+  background-color: #a1a1a1;
 }
 
 /* On mouse-over, add a grey background color */
 .containerPeqAmarillo:hover input ~ .checkmarkPeqAmarillo {
-  background-color: #ccc;
+  background-color: #5c5151;
 }
 
 /* When the checkbox is checked, add a blue background */
