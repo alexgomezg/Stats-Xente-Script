@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.108
+// @version      0.109
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -662,6 +662,13 @@
 
         }
 
+        elems = document.getElementsByClassName("bold score-cell-wrapper textCenter flex-grow-0");
+
+        Array.from(elems).forEach(function(elem) {
+            elem.innerHTML+="</br><div id='hp_loader' class='loader'></div>"
+
+        });
+
 
 
         GM_xmlhttpRequest({
@@ -697,14 +704,22 @@
                             status="up";
                         }
 
-                        elem.innerHTML+="</br><div id='showELOChange' style='display: flex;align-items: center;'>"+symbol+diff+"<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/></div>";
+                        elem.innerHTML+="<div id='showELOChange' style='display: flex;align-items: center;'>"+symbol+diff+"<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/></div>";
                     }
 
 
                 });
 
+                const elementos = document.querySelectorAll('.loader');
+                elementos.forEach(elemento => elemento.remove());
+
             }
+
+
+
         });
+
+
 
 
 
@@ -2244,6 +2259,8 @@
                     let pid = params.get('pid');
                     if (teams_[x]['inserted'][pid] === "yes") {
                         dato = document.createElement("td");
+//aa
+
                         dato.innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='20px' height='20px' id='but" + pid + "' style='cursor:pointer;'/>"
                         fila.appendChild(dato);
 
@@ -2847,7 +2864,7 @@
                 <div class="widget-content-wrapper">
                     <div class="flex-wrap" style="margin-bottom: 35px;">
                         <div class="flex-grow-0" style="margin: 0 auto">
-                            <img src="https://www.statsxente.com/MZ1/View/Images/main_icon.png" alt="" width="114" height="127">
+                            <img src="https://www.statsxente.com/MZ1/View/Images/main_icon.png" alt="" width="130" height="130">
                         </div>
                         <div class="flex-grow-1 textLeft">`
 
@@ -3962,7 +3979,7 @@
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
             let x = document.getElementById("snackbar_stx");
-            let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='15px' height='15px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version available</br></br>"
+            let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='25px' height='25px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version available</br></br>"
             txt+="<button type='button' id='button-snackbar-update'>UPDATE</button>"
             x.innerHTML = txt;
             x.className = "showSnackBar_stx";
@@ -4640,6 +4657,31 @@ font-size: 0.90rem;
 line-height: 1.5;
 border-radius: .25rem;
 cursor:pointer;
+}.loader {
+  width: 100%;
+  height: 15px;
+  border-radius: 40px;
+  color: #ffc107;
+  border: 2px solid;
+  position: relative;
+  overflow: hidden;
+}
+.loader::before {
+  content: "";
+  position: absolute;
+  margin: 2px;
+  width: 14px;
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  border-radius: inherit;
+  background: currentColor;
+  box-shadow: -10px 0 12px 3px currentColor;
+  clip-path: polygon(0 5%, 100% 0,100% 100%,0 95%,-30px 50%);
+  animation: l14 1s infinite linear;
+}
+@keyframes l14 {
+  100% {left: calc(100% + 20px)}
 }
   `)
 
