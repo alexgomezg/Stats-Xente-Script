@@ -219,6 +219,27 @@
     //Next matches page
     function nextMatches(){
 
+
+        let selectElements = document.getElementsByName('limit');
+        if (selectElements.length > 0) {
+            let selectElement = selectElements[0];
+            selectElement.addEventListener('change', function() {
+                if(GM_getValue("eloNextMatchesFlag")){
+                    waitToDOM(nextMatches, ".group", 0,7000)
+                }
+            });
+        }
+        selectElements = document.getElementsByName('selectType');
+        if (selectElements.length > 0) {
+            let selectElement = selectElements[0];
+            selectElement.addEventListener('change', function() {
+                if(GM_getValue("eloNextMatchesFlag")){
+                    waitToDOM(nextMatches, ".group", 0,7000)
+                }
+            });
+        }
+
+
         let team_id=""
         let urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('tid')){
@@ -621,14 +642,24 @@
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
-                waitToDOM(lastMatchesELO, ".group", 0,7000)
+                if(GM_getValue("eloNextMatchesFlag")){
+                    waitToDOM(nextMatches, ".group", 0,7000)
+                }
+                if(GM_getValue("eloPlayedMatchesFlag")){
+                    waitToDOM(lastMatchesELO, ".group", 0,7000)
+                }
             });
         }
         selectElements = document.getElementsByName('selectType');
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
-                waitToDOM(lastMatchesELO, ".group", 0,7000)
+                if(GM_getValue("eloNextMatchesFlag")){
+                    waitToDOM(nextMatches, ".group", 0,7000)
+                }
+                if(GM_getValue("eloPlayedMatchesFlag")){
+                    waitToDOM(lastMatchesELO, ".group", 0,7000)
+                }
             });
         }
 
