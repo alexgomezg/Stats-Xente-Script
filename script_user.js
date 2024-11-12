@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.110
+// @version      0.111
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -130,6 +130,12 @@
             teamPage()
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'rank') && (urlParams.has('sub')) &&
+            (urlParams.get('sub') === 'userrank')) {
+            usersRank()
+        }
+
+
 
 
 
@@ -215,6 +221,212 @@
         });
     }
 
+
+    //Users ranking page
+    function usersRank(){
+        let initialValues = {};
+        initialValues["senior"] = GM_getValue("league_default_senior");
+
+        let linkIds = ""
+        let tabla = document.getElementById("userRankTable");
+
+
+        let values = new Map();
+        values.set('valor23', 'U23 Value');
+        values.set('valor21', 'U21 Value');
+        values.set('valor18', 'U18 Value');
+        values.set('salario', 'Salary');
+        values.set('valorUPSenior', 'LM Value');
+        values.set('valorUPSUB23', 'U23 LM Value');
+        values.set('valorUPSUB21', 'U21 LM Value');
+        values.set('valorUPSUB18', 'U18 LM Value');
+        values.set('edad', 'Age');
+        if (window.sport === "soccer") {
+            values.set('valor11', 'TOP 11');
+            values.set('valor11_23', 'U23 TOP 11');
+            values.set('valor11_21', 'U21 TOP 11');
+            values.set('valor11_18', 'U18 TOP 11');
+        } else {
+            values.set('valor11', 'TOP 21');
+            values.set('valor11_23', 'U23 TOP 21');
+            values.set('valor11_21', 'U21 TOP 21');
+            values.set('valor11_18', 'U18 TOP 21');
+        }
+        values.set('noNac', 'Foreigners');
+        values.set('elo', 'ELO Score');
+        values.set('elo23', 'U23 ELO Score');
+        values.set('elo21', 'U21 ELO Score');
+        values.set('elo18', 'U18 ELO Score');
+        values.set('numJugadores', 'Number of players');
+        values.set('leagues_all', 'Leagues');
+        values.set('world_leagues_all', 'World Leagues');
+        values.set('youth_leagues_all', 'Youth Leagues');
+        values.set('world_youth_leagues_all', 'Youth World Leagues');
+        values.set('federation_leagues', 'Federation Leagues');
+        values.set('cup', 'Cups');
+        values.set('cup_u23', 'U23 Cups');
+        values.set('cup_u21', 'U21 Cups');
+        values.set('cup_u18', 'U18 Cups');
+        values.set('special_cup', 'Special Cups');
+
+        let contenidoNuevo = '<div id=testClick style="margin: 0 auto;">';
+        getNativeTableStyles();
+
+        ///MENU TABLE
+        contenidoNuevo += "<table id=showMenu style='margin: 0 auto;'><thead style='border-color:white; margin: 0 auto; background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'>"
+        contenidoNuevo +="<tr>";
+        contenidoNuevo += '<th style="text-align:center; margin: 0 auto; padding:4px;" colspan="4">Values</th>'
+        contenidoNuevo += "</tr>";
+
+        let styleTable = " style='margin: 0 auto; display:none;'";
+        let styleIcon = ""
+        let styleSep = "style='padding-top:5px;'";
+
+        if (GM_getValue("show_league_selects") === true) {
+            styleTable = " style='margin: 0 auto;'";
+            styleIcon = " active"
+            styleSep = " style='display:none;'";
+        }
+
+
+        contenidoNuevo += "<tr><td></td><td colspan='2' style='padding-top:5px;'>";
+        contenidoNuevo += '<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
+        contenidoNuevo += "</td><td></td></tr>";
+        contenidoNuevo += "<tr><td colspan='5' id='separatorTd'" + styleSep + "></td></tr>";
+        contenidoNuevo += "</table></center>";
+        contenidoNuevo += '<table id=show3' + styleTable + '><tr><td><label>';
+
+        if ("valor" === initialValues["senior"]) {
+            contenidoNuevo += '<input class="statsxente" type="checkbox" checked id="valor" value="Value">Value</label></td>';
+        } else {
+            contenidoNuevo += '<input class="statsxente" type="checkbox" id="valor" value="Value">Value</label></td>';
+        }
+
+        values.forEach(function (valor, clave) {
+
+            if (clave === "valorUPSenior") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
+            if (clave === "valor11") {
+                contenidoNuevo += "</tr><tr>";
+            }
+            if (clave === "elo") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
+            if (clave === "leagues") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
+            if (clave === "leagues_all") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
+            if (clave === "cup") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
+            if (clave === initialValues["senior"]) {
+                contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" checked value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
+            } else {
+                contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
+            }
+        });
+        contenidoNuevo += "</tr></table></center>"
+        contenidoNuevo += "</div></br>";
+        values.set('valor', 'Value');
+
+        tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+        if (GM_getValue("show_league_selects") === true) {
+            document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+            document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+            document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+        }
+        values.forEach(function (valor, clave) {
+            let elemento = document.getElementById(clave);
+            elemento.addEventListener('click', handleClickUserRank);
+        });
+        (function () {
+            document.getElementById("moreInfo").addEventListener('click', function () {
+                document.getElementById("moreInfo").classList.toggle('active');
+
+                if (document.getElementById("moreInfo").classList.contains("active")) {
+                    document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                    document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                    document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+                    $('#separatorTd').fadeOut(1);
+                    document.getElementById("separatorTd").style.paddingTop = "5px";
+                    $('#show3').fadeIn('slow');
+                } else {
+                    document.getElementById("line2").style.transform = 'rotateZ(45deg)';
+                    document.getElementById("line1").style.transform = 'rotateZ(-45deg)';
+                    document.getElementById("moreInfo").style.transform = 'rotateZ(45deg)';
+                    $('#separatorTd').fadeIn(1);
+                    $('#show3').fadeOut('slow');
+                }
+
+            });
+        })();
+
+
+
+        const filas = document.querySelectorAll("#userRankTable tr");
+        var contIds=0;
+        for (let i = 1; i < filas.length; i++) {
+            const fila = filas[i];
+            const tercerTd = fila.children[4];
+            const cuartoTd = fila.children[5];
+
+            var data=extractTeamData(fila.children[3].getElementsByTagName("a"))
+            linkIds += "&idEquipo" + contIds + "=" + data[0]
+            contIds++;
+            if (tercerTd && cuartoTd) {
+                tercerTd.innerHTML = cuartoTd.innerHTML + " " + tercerTd.innerHTML;
+                cuartoTd.innerHTML=""
+            }
+        }
+
+        let nuevaCeldaEncabezado = document.querySelector("#userRankTable th:last-of-type");
+        nuevaCeldaEncabezado.innerHTML = "<a href='#'>"+values.get(initialValues["senior"])+"</a>"
+        nuevaCeldaEncabezado.style.textAlign = 'center';
+        nuevaCeldaEncabezado.style.maxWidth = '8.5em';
+        nuevaCeldaEncabezado.style.width = '8.5em';
+        nuevaCeldaEncabezado.style.whiteSpace = 'nowrap';
+        nuevaCeldaEncabezado.style.overflow = 'hidden';
+        nuevaCeldaEncabezado.style.textOverflow = 'ellipsis';
+        nuevaCeldaEncabezado.id="stx_value"
+
+        document.getElementById("stx_value").addEventListener("click", function () {
+            setTimeout(function () {
+                ordenarTabla(5, false, "userRankTable",false);
+            }, 20);
+        });
+
+
+
+
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+                teams_data = JSON.parse(response.responseText);
+                const filas = document.querySelectorAll("#userRankTable tr");
+                for (let i = 1; i < filas.length; i++) {
+                    const fila = filas[i];
+                    const tercerTd = fila.children[5];
+                    var data=extractTeamData(fila.children[3].getElementsByTagName("a"))
+                    var valor = new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[data[0]]['elo']))
+                    tercerTd.innerText=valor
+                    tercerTd.align = "center";
+                }
+            }});
+    }
 
     //Next matches page
     function nextMatches(){
@@ -643,7 +855,7 @@
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
                 if(GM_getValue("eloNextMatchesFlag")){
-                    waitToDOM(nextMatches, ".group", 0,7000)
+                    //waitToDOM(nextMatches, ".group", 0,7000)
                 }
                 if(GM_getValue("eloPlayedMatchesFlag")){
                     waitToDOM(lastMatchesELO, ".group", 0,7000)
@@ -655,7 +867,7 @@
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
                 if(GM_getValue("eloNextMatchesFlag")){
-                    waitToDOM(nextMatches, ".group", 0,7000)
+                    //waitToDOM(nextMatches, ".group", 0,7000)
                 }
                 if(GM_getValue("eloPlayedMatchesFlag")){
                     waitToDOM(lastMatchesELO, ".group", 0,7000)
@@ -3183,6 +3395,137 @@
             }
         });
     }
+    function handleClickUserRank(event) {
+        let urlParams = new URLSearchParams(window.location.search);
+        let tabla = document.getElementById("userRankTable");
+        let filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+        let thSegundo = tabla.querySelector("thead th:nth-child(2)");
+
+
+
+        for (let i = 0; i < filas.length; i++) {
+            let celda = filas[i].cells[3];
+            let team_data=extractTeamData(celda.getElementsByTagName("a"));
+            let id=team_data[0]
+            let equipo=team_data[1]
+            let celdas = filas[i].getElementsByTagName("td");
+            let ultimaCelda = celdas[celdas.length - 1];
+            let selects = document.getElementsByTagName('select');
+            let index_select = 1;
+            if (selects[index_select] === undefined) {
+                index_select = 0;
+            }
+
+
+            let selectedIndex = selects[index_select].selectedIndex;
+            let selectedOption = selects[index_select].options[selectedIndex];
+            let selectedText = selectedOption.text;
+
+
+
+            let key_actual_league = "Top";
+            if (selectedText.includes(".")) {
+                key_actual_league = selectedText.substring(0, 4)
+            }
+
+            let valor = 0;
+
+            if (teams_data[id] === undefined) {
+                valor = 0
+            } else {
+
+                let table_key = "";
+                let agg_value = 0;
+                let cat
+
+                switch (event.target.id) {
+                    case 'edad':
+                        valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                        break;
+                    case "leagues":
+                        table_key = "league"
+                        agg_value = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        valor = "(" + teams_data[id]['league_' + key_actual_league] + '/' + agg_value + ")"
+                        break;
+
+                    case "world_leagues":
+                        table_key = "world_league"
+                        agg_value = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        valor = "(" + teams_data[id][table_key + '_' + key_actual_league] + '/' + agg_value + ")"
+                        break;
+
+                    case "youth_leagues":
+                        cat = GM_getValue("actual_league_cat").toLowerCase()
+                        table_key = "league_" + cat
+                        agg_value = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        valor = "(" + teams_data[id][table_key + '_' + key_actual_league] + '/' + agg_value + ")"
+                        break;
+
+                    case "world_youth_leagues":
+                        cat = GM_getValue("actual_league_cat").toLowerCase()
+                        table_key = "world_league_" + cat
+                        agg_value = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        valor = "(" + teams_data[id][table_key + '_' + key_actual_league] + '/' + agg_value + ")"
+                        break;
+
+                    case "leagues_all":
+                        table_key = "league"
+                        valor = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        break;
+
+
+                    case "world_leagues_all":
+                        table_key = "world_league"
+                        valor = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        break;
+
+                    case "youth_leagues_all":
+                        table_key = "league_u23"
+                        valor += teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        table_key = "league_u21"
+                        valor += teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        table_key = "league_u18"
+                        valor += teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        break;
+
+                    case "world_youth_leagues_all":
+                        table_key = "world_league_u23"
+                        valor += teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        table_key = "world_league_u21"
+                        valor += teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        table_key = "world_league_u18"
+                        valor += teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        break;
+
+                    case "federation_leagues":
+                        table_key = "federation_league"
+                        agg_value = teams_data[id][table_key + '_Top'] + teams_data[id][table_key + '_div1'] + teams_data[id][table_key + '_div2'] + teams_data[id][table_key + '_div3'] + teams_data[id][table_key + '_div4'] + teams_data[id][table_key + '_div5']
+                        valor = agg_value
+                        break;
+
+
+                    default:
+                        valor = new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[id][event.target.id]))
+                        break;
+
+
+                }
+            }
+
+            ultimaCelda.innerHTML = valor;
+
+        }
+        let checkboxes = document.querySelectorAll('.statsxente');
+        let thead = tabla.querySelector('thead');
+        let tr = thead.querySelectorAll('tr');
+        let td = tr[0].querySelectorAll('th');
+        td[td.length - 1].innerHTML = '<a href="#">'+event.target.value+'</a>'
+        checkboxes.forEach(function (checkbox) {
+            if (checkbox.id !== event.target.id) {
+                checkbox.checked = false;
+            }
+        });
+    }
 
     //FETCH FUNCTIONS
     function fetchExistsFL(id) {
@@ -3795,8 +4138,6 @@
 
     }
 
-
-
     function extractTeamData(as){
         let main_a=""
         Array.from(as).forEach(a => {
@@ -3811,8 +4152,6 @@
         return [urlParams.get('tid'),main_a.textContent]
 
     }
-
-
 
     function createModalEventListeners() {
         document.getElementById('leagueSelect').addEventListener('click', function () {
