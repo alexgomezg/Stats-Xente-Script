@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.111
+// @version      0.112
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -802,10 +802,25 @@
                 teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
+                teamTable+='</tbody></table>'
+                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
 
-                teamTable+='</tbody></table></div>'
                 let divToInserT=document.getElementById("streakAndCupInfo")
                 divToInserT.innerHTML=teamTable+divToInserT.innerHTML
+
+                let color=GM_getValue("bg_native")
+                let darkerColor = darkenColor(color, 25);
+
+                document.styleSheets[0].insertRule(
+                    '.btn-save:hover { background-color: '+darkerColor+' !important; }',
+                    document.styleSheets[0].cssRules.length
+                );
+
+
+                document.getElementById("eloHistoryButton").addEventListener('click', function () {
+                    let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id+"&sport=" + window.sport
+                    openWindow(link, 0.95, 1.25);
+                });
 
 
 
@@ -1415,20 +1430,127 @@
                 contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
             }
         });
-        contenidoNuevo += "</tr></table></center>"
+
+        var cats_elo = {}
+        cats_elo["senior"] = "SENIOR";
+        cats_elo["world"] = "SENIOR";
+        cats_elo["u23"] = "U23";
+        cats_elo["u21"] = "U21";
+        cats_elo["u18"] = "U18";
+        cats_elo["u23_world"] = "U23";
+        cats_elo["u21_world"] = "U21";
+        cats_elo["u18_world"] = "U18";
+
+
+        var cats_temp=["SENIOR","U23","U21","U18"];
+        contenidoNuevo += "</tr>"
+        contenidoNuevo +="<tr style='margin: 0 auto; text-align: center;'>"
+        contenidoNuevo += '<td colspan="5"><label><input class="statsxente" type="checkbox" value="ELOCompare" id="ELOCompare">ELO Compare</label></td>';
+        contenidoNuevo +="</tr>"
+        contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trELOCompare"><td colspan="5">Category: '
+        contenidoNuevo+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        for (let i = 0; i < cats_temp.length; i++) {
+            let tmp=""
+            if(cats_elo[urlParams.get('type')]===cats_temp[i]){
+                tmp="selected"
+            }
+            contenidoNuevo+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
+        }
+        contenidoNuevo +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button></td></tr>'
+        contenidoNuevo +="</table></center>"
         contenidoNuevo += "</div></br>";
         values.set('valor', 'Value');
+        let color=GM_getValue("bg_native")
+        let darkerColor = darkenColor(color, 25);
+        document.styleSheets[0].insertRule(
+            '.btn-save:hover { background-color: '+darkerColor+' !important; }',
+            document.styleSheets[0].cssRules.length
+        );
 
         elems = document.getElementsByClassName("nice_table");
         tabla = elems[0]
         tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+        document.getElementById("eloCompareButton").style.padding = "5px 3px";
+        document.getElementById("eloCompareButton").style.width = "9em";
+
+        document.getElementById("eloCompareButton").addEventListener('click', function () {
+            let elems = document.getElementsByClassName("nice_table");
+            let tabla = elems[0]
+            var link="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_compare&lang="+window.lang+"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
+            var cont=0
+            for (var i = 0; i < tabla.rows.length; i++) {
+                var fila = tabla.rows[i];
+                if (fila.cells.length > 1) {
+                    var checkboxes = fila.cells[1].querySelectorAll("input[type='checkbox']");
+                    checkboxes.forEach(function(checkbox) {
+                        if(checkbox.checked){
+                            if(cont<5){
+                                link+="&team_name"+cont+"="+encodeURIComponent(checkbox.value)+"&team_id"+cont+"="+checkbox.id
+                                cont++;
+                            }
+                        }
+                    });
+                }
+            }
+            openWindow(link, 0.95, 1.25);
+        });
+        document.getElementById("ELOCompare").addEventListener('click', function () {
+            let checkboxes = document.querySelectorAll('.statsxente');
+            checkboxes.forEach(function (checkbox) {
+                if (checkbox.id !== "ELOCompare") {
+                    checkbox.checked = false;
+                }
+            });
+            if(!document.getElementById("eloCompareCol")){
+                let elems = document.getElementsByClassName("nice_table");
+                let tabla = elems[0]
+                for (let fila of tabla.rows) {
+                    const nuevaCelda = fila.rowIndex === 0 ? document.createElement('th') : document.createElement('td');
+                    if(fila.rowIndex>0){
+                        let team_data=extractTeamData(fila.cells[1].getElementsByTagName('a'))
+                        nuevaCelda.innerHTML = '<input class="statsxente1" type="checkbox" value="'+team_data[1]+'" id="'+team_data[0]+'">';
+                    }
+
+                    fila.insertBefore(nuevaCelda, fila.cells[1]);
+                    if(fila.rowIndex==0){
+                        fila.cells[1].id="eloCompareCol"
+                        fila.cells[2].style.width="175px"
+                    }
+                }
+            }else{
+                let elems = document.getElementsByClassName("nice_table");
+                let table = elems[0]
+                var th = document.getElementById("eloCompareCol");
+                var columnIndex = th.cellIndex;
+                for (var i = 0; i < table.rows.length; i++) {
+                    var row = table.rows[i];
+                    var cell = row.cells[columnIndex];
+                    if (cell.style.display === 'none') {
+                        cell.style.display = '';
+                        th.style.fontWeight = 'normal';
+                    } else {
+                        cell.style.display = 'none';
+                        th.style.fontWeight = 'bold';
+                    }
+                }
+            }
+
+            if(document.getElementById("trELOCompare").style.display=="none"){
+                document.getElementById("trELOCompare").style.display="table-row";
+
+            }else{
+                document.getElementById("trELOCompare").style.display="none";
+            }
+
+        });
 
         if (GM_getValue("show_league_selects") === true) {
             document.getElementById("line2").style.transform = 'rotateZ(0deg)';
             document.getElementById("line1").style.transform = 'rotateZ(180deg)';
             document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
         }
-
 
         values.forEach(function (valor, clave) {
             let elemento = document.getElementById(clave);
@@ -1553,6 +1675,7 @@
 
 
         }, 200);
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
@@ -1584,15 +1707,7 @@
 
                         if (window.sport === "soccer") { eloType = 2 }
                         if (cat.includes("SUB")) { eloType = 3 }
-                        let cats_elo = {}
-                        cats_elo["senior"] = "SENIOR";
-                        cats_elo["seniorw"] = "SENIOR";
-                        cats_elo["SUB23"] = "U23";
-                        cats_elo["SUB21"] = "U21";
-                        cats_elo["SUB18"] = "U18";
-                        cats_elo["SUB23w"] = "U23";
-                        cats_elo["SUB21w"] = "U21";
-                        cats_elo["SUB18w"] = "U18";
+
 
                         let flagSenior = 0, flagSub23 = 0, flagSub21 = 0, flagSub18 = 0;
                         if (jsonResponse[id]["elo"] > 0) { flagSenior = 1 }
@@ -1633,7 +1748,7 @@
 
                         (function (currentId, currentLSport, lang) {
                             document.getElementById("but1" + currentId).addEventListener('click', function () {
-                                let link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo=" + currentId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") + "&deporte=" + currentLSport;
+                                let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=team_progress&idEquipo=" + currentId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") + "&deporte=" + currentLSport;
                                 openWindow(link, 0.95, 1.25);
                             });
                         })(id, window.lsport, window.lang);
@@ -3212,6 +3327,21 @@
 
     //HANDLERS FUNCTIONS
     function handleClick(event) {
+
+        if(document.getElementById("eloCompareCol")){
+            document.getElementById("trELOCompare").style.display="none";
+            let elems = document.getElementsByClassName("nice_table");
+            let table = elems[0]
+            var th = document.getElementById("eloCompareCol");
+            var columnIndex = th.cellIndex;
+            for (let i = 0; i < table.rows.length; i++) {
+                let row = table.rows[i];
+                if (row.cells.length > columnIndex) {
+                    row.deleteCell(columnIndex);
+                }
+            }
+        }
+
         let urlParams = new URLSearchParams(window.location.search);
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
@@ -3223,10 +3353,6 @@
         } else {
             thSegundo.style.width = "250px";
         }
-
-
-
-
 
 
         for (let i = 0; i < filas.length; i++) {
