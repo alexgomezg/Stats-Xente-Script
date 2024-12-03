@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.112
+// @version      0.113
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -2775,7 +2775,9 @@
 
 
                     }
-                    let skills = elementos[i].getElementsByClassName('skillval');
+                    let skills_container=elementos[i].getElementsByClassName('skills-container floatLeft clearfix')
+                    let skills = skills_container[0].getElementsByClassName('skillval');
+
                     if (window.sport === "hockey") {
 
                         for (let j = 1; j < skills.length; j++) {
@@ -2787,6 +2789,7 @@
 
                     } else {
                         for (let j = 0; j < skills.length - 1; j++) {
+
                             let cleanedText = skills[j].textContent.replace(')', '');
                             cleanedText = cleanedText.replace('(', '');
                             let number = parseInt(cleanedText, 10);
@@ -2796,7 +2799,6 @@
                     players.push(player_values)
                 }
             }
-
             if (flagStats) {
                 const container = document.getElementById("squad-search-toggle")
                 let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>"
@@ -2906,8 +2908,6 @@
                 li_t['Team'][li_t["Team"].length - 1] += 1
             }
         }
-
-
 
         const container = document.getElementById("divMenu")
         let contenidoNuevo = "<table id=showMenu style='width:95%;font-size:13px; margin: 0 auto; text-align:center;'><thead style='background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'><tr>";
