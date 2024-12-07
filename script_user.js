@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.113
+// @version      0.114
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -136,6 +136,11 @@
         }
 
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
+            waitToDOMById(training_report,"training_report",5000)
+        }
+
+
 
 
 
@@ -219,6 +224,114 @@
 
             }
         });
+    }
+
+
+    function fetchAndProcessPlayerData(link,skill,toChange) {
+        return new Promise((resolve, reject) => {
+
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url:link,
+                    onload: function (response) {
+
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
+
+                        let player_cointainer=doc.getElementById("thePlayers_0")
+
+                        let elements = player_cointainer.querySelectorAll('.skillval');
+                        elements.forEach(element => {
+
+                            let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                            let maxs = element.getElementsByClassName("maxed")
+
+                            let clips = previousTd.getElementsByClassName("clippable")
+                            if((clips[0].innerText.trim()==skill.trim())&&(maxs.length>0)){
+                                toChange.style.backgroundColor="#db5d5d"
+                                toChange.style.fontWeight="bold"
+                                toChange.style.borderRadius="5px"
+
+
+                            }
+
+
+                        });
+                        resolve("Done")
+                    },
+                    onerror: function (error) {
+                        reject(error);
+                    }
+                });
+
+            }
+        );
+
+    }
+    //Training Report
+
+    function training_report(){
+
+        if(!document.getElementById("trainingDaysId")){
+            var elem=document.getElementsByClassName("headerPanel")
+            elem[0].id="trainingDaysId"
+
+
+            document.getElementById("trainingDaysId").addEventListener('click', function () {
+                setTimeout(function () {
+                    waitToDOMById(training_report,"training_report",5000)
+                }, 500);
+
+
+            });
+        }
+        let key="ball"
+        if(window.sport=="hockey"){
+            key="puck"
+        }
+
+        var clase="loader-"+window.sport
+
+        let elements0 = document.querySelectorAll('.dailyReportRightColumn');
+        let promesas = [];
+        elements0.forEach(element0 => {
+            let previousTd = element0.previousElementSibling.previousElementSibling.previousElementSibling;
+            if((!previousTd.innerHTML.includes("training_graph_icon"))&&(previousTd.innerHTML.includes("<img"))){
+                let loaders=previousTd.getElementsByClassName("containerLoaderDiv")
+                if(loaders.length>0){
+                    loaders[0].innerHTML='<div id="hp_loader" class="'+clase+'" style="gap: 10px;display:inline-block; width:25%"></div>'+loaders[0].innerHTML;
+                }else{
+                    previousTd.innerHTML='<div id="hp_loader" class="'+clase+'" style="gap: 10px;display:inline-block; width:25%"></div>'+previousTd.innerHTML
+                    previousTd.innerHTML="<div class=containerLoaderDiv style='display: flex; align-items: center;gap: 8px;'>"+previousTd.innerHTML+"</div>"
+                }
+            }
+            if(element0.innerHTML.includes(key)){
+                let skills = element0.previousElementSibling.previousElementSibling;
+                let number_skills=skills.getElementsByClassName("skillBallSeparator")
+
+                if(number_skills.length>3){
+
+                    let player_td = element0.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                    let player_as=player_td.getElementsByTagName("a")
+                    var link=player_as[0].href
+                    promesas.push(fetchAndProcessPlayerData(link,previousTd.innerText,previousTd))
+                }
+            }
+
+        });
+
+        Promise.all(promesas)
+            .then((resultados) => {
+                const elementos = document.querySelectorAll('.'+clase);
+                elementos.forEach(elemento => elemento.remove());
+            })
+            .catch((error) => {
+                const elementos = document.querySelectorAll('.'+clase);
+                elementos.forEach(elemento => elemento.remove());
+            });
+
+
+
     }
 
 
@@ -903,15 +1016,13 @@
         const day = String(today.getDate()).padStart(2, '0');
         let finalDate = `${year}-${month}-${day}`;
 
-        let initialDate=""
+        let initialDate="undefined"
 
 
 
         let elems = document.getElementsByClassName("group");
         Array.from(elems).forEach(function(elem) {
-            let fecha=elem.innerText
-            const [day, month, year] = fecha.split("-");
-            initialDate = `${year}-${month}-${day}`;
+            initialDate=getParsedValidDateText(elem.innerText)
         });
 
         getUsernameData()
@@ -4091,10 +4202,16 @@
             GM_setValue("teamPageFlag", true)
         }
 
+        if (GM_getValue("trainingReportFlag") === undefined) {
+            GM_setValue("trainingReportFlag", true)
+        }
 
 
 
-        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag="",teamFlag=""
+
+
+
+        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -4105,6 +4222,10 @@
         if (GM_getValue("eloPlayedMatchesFlag")) eloPlayedMatchesFlag = "checked"
         if (GM_getValue("teamPageFlag")) teamFlag = "checked"
 
+        if (GM_getValue("trainingReportFlag")) trainingReportFlag = "checked"
+
+
+
 
 
         let newContent = '<div style="margin: 0 auto; text-align:center;"><img alt="" id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></div></br></br>'
@@ -4114,6 +4235,7 @@
         newContent += '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Played Matches<input type="checkbox" id="eloPlayedSelect" ' + eloPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Training Report<input type="checkbox" id="trainingReportSelect" ' + trainingReportFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '</tr><tr>'
         newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
@@ -4314,6 +4436,10 @@
             GM_setValue("teamPageFlag", !GM_getValue("teamPageFlag"))
         });
 
+        document.getElementById('trainingReportSelect').addEventListener('click', function () {
+            GM_setValue("trainingReportFlag", !GM_getValue("trainingReportFlag"))
+        });
+
 
 
 
@@ -4486,6 +4612,41 @@
         }
 
     }
+
+    function getParsedValidDateText(text){
+        let initialDate="undefined"
+        let fecha=text
+        if(fecha.includes("-")){
+
+            let [day, month, year] = fecha.split("-");
+            initialDate = `${year}-${month}-${day}`;
+        }
+        if(fecha.includes("/")){
+            let [day, month, year] = fecha.split("/");
+            initialDate = `${year}-${month}-${day}`;
+
+        }
+
+        return initialDate
+
+
+
+    }
+
+
+
+    function getParsedValidDate(texto) {
+        let fecha = new Date(texto);
+        if (!isNaN(fecha.getTime())) {
+            return fecha.toISOString().split('T')[0];
+        } else {
+            let hoy = new Date();
+            hoy.setDate(hoy.getDate() - 5);
+            return hoy.toISOString().split('T')[0];
+        }
+    }
+
+
     function notifySnackBarNewVersion(){
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
