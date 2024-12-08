@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.117
+// @version      0.118
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -60,22 +60,7 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
             && (urlParams.get('sub') === 'clash') && (GM_getValue("federationFlag"))) {
-
-            const script = document.createElement('script');
-            script.textContent = `
-    let newElement = document.createElement("input");
-        newElement.id= "deviceFormatStx";
-        newElement.type = "hidden";
-        newElement.value=window.device;
-        let body = document.body;
-        body.appendChild(newElement);
-
-`;
-            document.documentElement.appendChild(script);
-            script.remove();
-
-            window.stx_device=document.getElementById("deviceFormatStx").value
-
+            getDeviceFormat()
             waitToDOM(clash, ".fed_badge", 0,7000)
         }
 
@@ -88,6 +73,7 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))
             && (GM_getValue("playersFlag"))) {
+            getDeviceFormat()
             waitToDOM(playersPage, ".playerContainer", 0,7000)
         }
 
@@ -2875,10 +2861,12 @@
 
                 let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
                 txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
-                txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 20px; background-size: auto;'
+                txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
                 txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
-                elementos_[0].innerHTML += txt;
+                let index=0
+                if(window.stx_device!="computer"){index=1}
+                elementos_[index].innerHTML += txt;
 
                 if (flagStats) {
                     let flag_gk = false;
@@ -3151,9 +3139,14 @@
         let ids = element.getElementsByClassName('player_id_span');
         let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
         txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
-        txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 20px; background-size: auto;'
+        txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
         txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
-        elementos_[0].innerHTML += txt;
+        let index=0
+        if(window.stx_device!="computer"){
+            index=1
+        }
+
+        elementos_[index].innerHTML += txt;
         (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
             document.getElementById("but" + currentId).addEventListener('click', function () {
                 let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
@@ -4454,6 +4447,23 @@
         }
 
 
+    }
+
+    function getDeviceFormat(){
+        const script = document.createElement('script');
+        script.textContent = `
+    let newElement = document.createElement("input");
+        newElement.id= "deviceFormatStx";
+        newElement.type = "hidden";
+        newElement.value=window.device;
+        let body = document.body;
+        body.appendChild(newElement);
+
+`;
+        document.documentElement.appendChild(script);
+        script.remove();
+
+        window.stx_device=document.getElementById("deviceFormatStx").value
     }
 
     function extractTeamData(as){
