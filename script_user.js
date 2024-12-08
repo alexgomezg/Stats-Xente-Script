@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.115
+// @version      0.116
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -63,7 +63,6 @@
 
             const script = document.createElement('script');
             script.textContent = `
-    console.log('Device variable from context:', window.device);
     document.body.innerHTML += "<input type='hidden' id='deviceFormatStx' value='" + window.device + "'/>";
 `;
             document.documentElement.appendChild(script);
@@ -1144,7 +1143,7 @@
 
 
                 let contenidoNuevo = "</br></br><table style='margin: 0 auto;'><tr><td class='subheader clearfix'>Clash Compare</td></tr><tr><td><img alt='' id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td></tr></table></center>";
-                contenidoNuevo+="<table style='width:65%;margin: 0 auto;' class='hitlist challenges-list'><thead><tr>"
+                contenidoNuevo+="<table style='width:65%;margin: 0 auto; table-layout:unset;' class='hitlist challenges-list'><thead><tr>"
                 contenidoNuevo+="<th colspan='2'>Rank</th><th>Value</th><th>LM Value</th><th>ELO Score</th></tr></thead>"
                 contenidoNuevo+="<tbody>"
 
@@ -1260,9 +1259,7 @@
 
                 for (let i = 0; i < table.rows.length; i++) {
                     let row = table.rows[i];
-                    console.log(window.stx_device)
                     if(window.stx_device=="computer"){
-                        console.log("entro")
                         let thirdColumnCell = row.cells[eloCol];
                         teamNameElement = thirdColumnCell.querySelector('.team-name');
                         let href = teamNameElement.getAttribute('href');
@@ -1273,11 +1270,8 @@
                         contIds++
 
                     }else{
-                        console.log("here")
-                        console.log(row)
                         let flexs_elements = row.querySelector('.flex-grow-1');
                         if(flexs_elements){
-                            console.log(flexs_elements)
                             let as=flexs_elements.getElementsByTagName("a")
                             let team_data=extractTeamData(as)
 
@@ -1288,13 +1282,9 @@
 
                         }
 
-                        // console.log(teamNameElement)
-
                     }
 
                 }
-
-                console.log("https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds)
 
                 GM_xmlhttpRequest({
                     method: "GET",
@@ -1405,52 +1395,16 @@
                                 if(flexs_elements){
                                     let as=flexs_elements.getElementsByTagName("a")
                                     let team_data=extractTeamData(as)
-                                    console.log(team_data[0])
-                                    console.log(jsonResponse)
                                     let valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[team_data[0]]["valorUPSenior"]).toFixed(0))
                                     let elo = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[team_data[0]]["elo"]).toFixed(0))
                                     let txt="<table><tr><td>LM Value</td><td>"+valor+"</td></tr><tr><td>ELO</td><td>"+elo+"</td></tr></table>"
 
 
                                     flexs_elements.innerHTML+=txt
-                                    /*console.log(flexs_elements)
-                                        let clonedLink = flexs_elements.cloneNode(true);
-                                        let names = clonedLink.querySelector('.challenges--name')
-                                        let username = names.querySelector('.username')
-                                        let tid=users_ids[username.innerText]
-
-                                        console.log(users_ids)
-                                        console.log(username.innerText)
-                                         console.log(tid)
-                                        valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["elo"]))
-                                        username.innerText="LM Value: "+valor
-                                        username.className="stx_LM"
-                                        let results = clonedLink.querySelector('.challenges--result')
-                                        results.remove()
-
-
-
-                                        flexs_elements.parentNode.insertBefore(clonedLink, flexs_elements.nextSibling);
-            */
-                                    /*let as=flexs_elements.getElementsByTagName("a")
-                                    teamNameElement=as[2]
-
-                                        console.log(teamNameElement)
-
-                                        let href = teamNameElement.getAttribute('href');
-                                let urlParams = new URLSearchParams(href.split('?')[1]);
-                                let tid = urlParams.get('tid');
-
-                                linkIds += "&idEquipo" + contIds + "=" + tid
-                                contIds++*/
-
-
                                 }
 
 
                             }
-
-                            console.log("a")
 
                         }
 
