@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.116
+// @version      0.117
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -63,7 +63,13 @@
 
             const script = document.createElement('script');
             script.textContent = `
-    document.body.innerHTML += "<input type='hidden' id='deviceFormatStx' value='" + window.device + "'/>";
+    let newElement = document.createElement("input");
+        newElement.id= "deviceFormatStx";
+        newElement.type = "hidden";
+        newElement.value=window.device;
+        let body = document.body;
+        body.appendChild(newElement);
+
 `;
             document.documentElement.appendChild(script);
             script.remove();
