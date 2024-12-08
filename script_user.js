@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.114
+// @version      0.115
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -20,6 +20,7 @@
 
 (function () {
     'use strict';
+
 
     /*let keys = GM_listValues();
     keys.forEach(function(key) {
@@ -59,6 +60,17 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
             && (urlParams.get('sub') === 'clash') && (GM_getValue("federationFlag"))) {
+
+            const script = document.createElement('script');
+            script.textContent = `
+    console.log('Device variable from context:', window.device);
+    document.body.innerHTML += "<input type='hidden' id='deviceFormatStx' value='" + window.device + "'/>";
+`;
+            document.documentElement.appendChild(script);
+            script.remove();
+
+            window.stx_device=document.getElementById("deviceFormatStx").value
+
             waitToDOM(clash, ".fed_badge", 0,7000)
         }
 
@@ -1198,7 +1210,7 @@
 
 
 
-
+                let users_ids={}
 
 
 
@@ -1206,20 +1218,22 @@
                 let tables = document.querySelectorAll('.hitlist');
                 let table=tables[1]
 
+                if(window.stx_device=="computer"){
+                    const thead = table.querySelector("thead");
 
-                const thead = table.querySelector("thead");
+                    // Verifica si el thead no tiene th
+                    if (thead.children.length === 0) {
+                        const th1 = document.createElement("th");
+                        th1.innerText = "Equipo";
 
-                // Verifica si el thead no tiene th
-                if (thead.children.length === 0) {
-                    const th1 = document.createElement("th");
-                    th1.innerText = "Equipo";
+                        const th2 = document.createElement("th");
+                        th2.innerText = "Resultado";
+                        const nuevaFila = document.createElement("tr");
+                        nuevaFila.appendChild(th1);
+                        nuevaFila.appendChild(th2);
+                        thead.appendChild(nuevaFila);
+                    }
 
-                    const th2 = document.createElement("th");
-                    th2.innerText = "Resultado";
-                    const nuevaFila = document.createElement("tr");
-                    nuevaFila.appendChild(th1);
-                    nuevaFila.appendChild(th2);
-                    thead.appendChild(nuevaFila);
                 }
 
 
@@ -1242,17 +1256,46 @@
 
                 let contIds = 0
                 let linkIds = ""
+                let teamNameElement=""
 
-                for (let i = 1; i < table.rows.length; i++) {
+                for (let i = 0; i < table.rows.length; i++) {
                     let row = table.rows[i];
-                    let thirdColumnCell = row.cells[eloCol];
-                    let teamNameElement = thirdColumnCell.querySelector('.team-name');
-                    let href = teamNameElement.getAttribute('href');
-                    let urlParams = new URLSearchParams(href.split('?')[1]);
-                    let tid = urlParams.get('tid');
-                    linkIds += "&idEquipo" + contIds + "=" + tid
-                    contIds++
+                    console.log(window.stx_device)
+                    if(window.stx_device=="computer"){
+                        console.log("entro")
+                        let thirdColumnCell = row.cells[eloCol];
+                        teamNameElement = thirdColumnCell.querySelector('.team-name');
+                        let href = teamNameElement.getAttribute('href');
+                        let urlParams = new URLSearchParams(href.split('?')[1]);
+                        let tid = urlParams.get('tid');
+
+                        linkIds += "&idEquipo" + contIds + "=" + tid
+                        contIds++
+
+                    }else{
+                        console.log("here")
+                        console.log(row)
+                        let flexs_elements = row.querySelector('.flex-grow-1');
+                        if(flexs_elements){
+                            console.log(flexs_elements)
+                            let as=flexs_elements.getElementsByTagName("a")
+                            let team_data=extractTeamData(as)
+
+
+                            linkIds += "&idEquipo" + contIds + "=" + team_data[0]
+                            contIds++
+
+
+                        }
+
+                        // console.log(teamNameElement)
+
+                    }
+
                 }
+
+                console.log("https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds)
+
                 GM_xmlhttpRequest({
                     method: "GET",
                     url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
@@ -1265,89 +1308,156 @@
 
                         let valor=0
                         let tid=0
-                        for (let i = 0; i < table.rows.length; i++) {
-                            let row = table.rows[i];
+                        if(window.stx_device=="computer"){
+                            for (let i = 0; i < table.rows.length; i++) {
+                                let row = table.rows[i];
 
 
-                            if(i>0){
+                                if(i>0){
 
-                                let thirdColumnCell = row.cells[eloCol];
-                                let teamNameElement = thirdColumnCell.querySelector('.team-name');
-                                let href = teamNameElement.getAttribute('href');
-                                let urlParams = new URLSearchParams(href.split('?')[1]);
-                                tid = urlParams.get('tid');
-
-
-                            }
+                                    let thirdColumnCell = row.cells[eloCol];
+                                    let teamNameElement = thirdColumnCell.querySelector('.team-name');
+                                    let href = teamNameElement.getAttribute('href');
+                                    let urlParams = new URLSearchParams(href.split('?')[1]);
+                                    tid = urlParams.get('tid');
 
 
-                            let newCell1 = row.insertCell(eloCol);
-                            if (i === 0) {
+                                }
 
-                                let th = document.createElement('th');
-                                th.innerHTML = "ELO";
-                                th.style.width="50px";
-                                th.id="elo_th"
-                                newCell1.replaceWith(th);
 
-                            } else {
-                                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["elo"]))
-                                newCell1.innerHTML = valor;
-                            }
+                                let newCell1 = row.insertCell(eloCol);
+                                if (i === 0) {
 
-                            let newCell = row.insertCell(lmCol);
-                            if (i === 0) {
+                                    let th = document.createElement('th');
+                                    th.innerHTML = "ELO";
+                                    th.style.width="50px";
+                                    th.id="elo_th"
+                                    newCell1.replaceWith(th);
 
-                                let th1 = document.createElement('th');
-                                th1.innerHTML = "LM Value";
-                                th1.style.width="80px";
-                                th1.id="lm_th"
-                                newCell.replaceWith(th1);
-                            } else {
-                                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["valorUPSenior"]))
-                                newCell.innerHTML = valor;
+                                } else {
+                                    valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["elo"]))
+                                    newCell1.innerHTML = valor;
+                                }
+
+                                let newCell = row.insertCell(lmCol);
+                                if (i === 0) {
+
+                                    let th1 = document.createElement('th');
+                                    th1.innerHTML = "LM Value";
+                                    th1.style.width="80px";
+                                    th1.id="lm_th"
+                                    newCell.replaceWith(th1);
+                                } else {
+                                    valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["valorUPSenior"]))
+                                    newCell.innerHTML = valor;
+                                }
+
+
+                                if(eloCol===0){
+                                    let rankCell = row.insertCell(eloCol);
+
+                                    if (i === 0) {
+
+
+                                        let th2 = document.createElement('th'); // Creamos un elemento 'th'
+                                        th2.innerHTML = "Rank";
+                                        th2.style.width="50px";
+                                        rankCell.replaceWith(th2);
+
+
+                                    }else{
+                                        rankCell.innerHTML = i
+
+                                    }
+                                }
+
+
+
                             }
 
 
                             if(eloCol===0){
-                                let rankCell = row.insertCell(eloCol);
-
-                                if (i === 0) {
-
-
-                                    let th2 = document.createElement('th'); // Creamos un elemento 'th'
-                                    th2.innerHTML = "Rank";
-                                    th2.style.width="50px";
-                                    rankCell.replaceWith(th2);
-
-
-                                }else{
-                                    rankCell.innerHTML = i
-
-                                }
+                                eloCol++;
+                                lmCol++;
                             }
 
+                            document.getElementById("elo_th").addEventListener("click", function () {
 
+                                ordenarTabla(eloCol, false, "clash_table",true);
+                            });
+
+
+                            document.getElementById("lm_th").addEventListener("click", function () {
+
+                                ordenarTabla(lmCol, false, "clash_table",true);
+                            });
+
+
+                        }else{
+
+                            //MOBILE VIEW
+
+                            for (let i = 0; i < table.rows.length; i++) {
+                                let row = table.rows[i];
+
+
+                                let flexs_elements = row.querySelector('.flex-grow-1');
+                                if(flexs_elements){
+                                    let as=flexs_elements.getElementsByTagName("a")
+                                    let team_data=extractTeamData(as)
+                                    console.log(team_data[0])
+                                    console.log(jsonResponse)
+                                    let valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[team_data[0]]["valorUPSenior"]).toFixed(0))
+                                    let elo = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[team_data[0]]["elo"]).toFixed(0))
+                                    let txt="<table><tr><td>LM Value</td><td>"+valor+"</td></tr><tr><td>ELO</td><td>"+elo+"</td></tr></table>"
+
+
+                                    flexs_elements.innerHTML+=txt
+                                    /*console.log(flexs_elements)
+                                        let clonedLink = flexs_elements.cloneNode(true);
+                                        let names = clonedLink.querySelector('.challenges--name')
+                                        let username = names.querySelector('.username')
+                                        let tid=users_ids[username.innerText]
+
+                                        console.log(users_ids)
+                                        console.log(username.innerText)
+                                         console.log(tid)
+                                        valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[tid]["elo"]))
+                                        username.innerText="LM Value: "+valor
+                                        username.className="stx_LM"
+                                        let results = clonedLink.querySelector('.challenges--result')
+                                        results.remove()
+
+
+
+                                        flexs_elements.parentNode.insertBefore(clonedLink, flexs_elements.nextSibling);
+            */
+                                    /*let as=flexs_elements.getElementsByTagName("a")
+                                    teamNameElement=as[2]
+
+                                        console.log(teamNameElement)
+
+                                        let href = teamNameElement.getAttribute('href');
+                                let urlParams = new URLSearchParams(href.split('?')[1]);
+                                let tid = urlParams.get('tid');
+
+                                linkIds += "&idEquipo" + contIds + "=" + tid
+                                contIds++*/
+
+
+                                }
+
+
+                            }
+
+                            console.log("a")
 
                         }
 
-
-                        if(eloCol===0){
-                            eloCol++;
-                            lmCol++;
-                        }
-
-                        document.getElementById("elo_th").addEventListener("click", function () {
-
-                            ordenarTabla(eloCol, false, "clash_table",true);
-                        });
-
-
-                        document.getElementById("lm_th").addEventListener("click", function () {
-
-                            ordenarTabla(lmCol, false, "clash_table",true);
-                        });
                     }
+
+
+
                 });
 
 
