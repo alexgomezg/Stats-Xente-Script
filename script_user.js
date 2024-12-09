@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.118
+// @version      0.119
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -140,7 +140,8 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
-            waitToDOMById(training_report,"training_report",5000)
+            getDeviceFormat()
+            waitToDOMById(trainingReport,"training_report",5000)
         }
 
 
@@ -230,50 +231,8 @@
     }
 
 
-    function fetchAndProcessPlayerData(link,skill,toChange) {
-        return new Promise((resolve, reject) => {
-
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url:link,
-                    onload: function (response) {
-
-                        let parser = new DOMParser();
-                        let doc = parser.parseFromString(response.responseText, 'text/html');
-
-                        let player_cointainer=doc.getElementById("thePlayers_0")
-
-                        let elements = player_cointainer.querySelectorAll('.skillval');
-                        elements.forEach(element => {
-
-                            let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
-                            let maxs = element.getElementsByClassName("maxed")
-
-                            let clips = previousTd.getElementsByClassName("clippable")
-                            if((clips[0].innerText.trim()==skill.trim())&&(maxs.length>0)){
-                                toChange.style.backgroundColor="#db5d5d"
-                                toChange.style.fontWeight="bold"
-                                toChange.style.borderRadius="5px"
-
-
-                            }
-
-
-                        });
-                        resolve("Done")
-                    },
-                    onerror: function (error) {
-                        reject(error);
-                    }
-                });
-
-            }
-        );
-
-    }
     //Training Report
-
-    function training_report(){
+    function trainingReport(){
 
         if(!document.getElementById("trainingDaysId")){
             var elem=document.getElementsByClassName("headerPanel")
@@ -282,7 +241,7 @@
 
             document.getElementById("trainingDaysId").addEventListener('click', function () {
                 setTimeout(function () {
-                    waitToDOMById(training_report,"training_report",5000)
+                    waitToDOMById(trainingReport,"training_report",5000)
                 }, 500);
 
 
@@ -293,35 +252,66 @@
             key="puck"
         }
 
-        var clase="loader-"+window.sport
-
-        let elements0 = document.querySelectorAll('.dailyReportRightColumn');
         let promesas = [];
-        elements0.forEach(element0 => {
-            let previousTd = element0.previousElementSibling.previousElementSibling.previousElementSibling;
-            if((!previousTd.innerHTML.includes("training_graph_icon"))&&(previousTd.innerHTML.includes("<img"))){
-                let loaders=previousTd.getElementsByClassName("containerLoaderDiv")
-                if(loaders.length>0){
-                    loaders[0].innerHTML='<div id="hp_loader" class="'+clase+'" style="gap: 10px;display:inline-block; width:25%"></div>'+loaders[0].innerHTML;
-                }else{
-                    previousTd.innerHTML='<div id="hp_loader" class="'+clase+'" style="gap: 10px;display:inline-block; width:25%"></div>'+previousTd.innerHTML
-                    previousTd.innerHTML="<div class=containerLoaderDiv style='display: flex; align-items: center;gap: 8px;'>"+previousTd.innerHTML+"</div>"
+
+        var clase="loader-"+window.sport
+        if(window.stx_device=="computer"){
+
+            let elements0 = document.querySelectorAll('.dailyReportRightColumn');
+            elements0.forEach(element0 => {
+                let previousTd = element0.previousElementSibling.previousElementSibling.previousElementSibling;
+                if((!previousTd.innerHTML.includes("training_graph_icon"))&&(previousTd.innerHTML.includes("<img"))){
+                    let loaders=previousTd.getElementsByClassName("containerLoaderDiv")
+                    if(loaders.length>0){
+                        loaders[0].innerHTML='<div id="hp_loader" class="'+clase+'" style="gap: 10px;display:inline-block; width:25%"></div>'+loaders[0].innerHTML;
+                    }else{
+                        previousTd.innerHTML='<div id="hp_loader" class="'+clase+'" style="gap: 10px;display:inline-block; width:25%"></div>'+previousTd.innerHTML
+                        previousTd.innerHTML="<div class=containerLoaderDiv style='display: flex; align-items: center;gap: 8px;'>"+previousTd.innerHTML+"</div>"
+                    }
                 }
-            }
-            if(element0.innerHTML.includes(key)){
-                let skills = element0.previousElementSibling.previousElementSibling;
-                let number_skills=skills.getElementsByClassName("skillBallSeparator")
+                if(element0.innerHTML.includes(key)){
+                    let skills = element0.previousElementSibling.previousElementSibling;
+                    let number_skills=skills.getElementsByClassName("skillBallSeparator")
 
-                if(number_skills.length>3){
+                    if(number_skills.length>3){
 
-                    let player_td = element0.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
-                    let player_as=player_td.getElementsByTagName("a")
-                    var link=player_as[0].href
-                    promesas.push(fetchAndProcessPlayerData(link,previousTd.innerText,previousTd))
+                        let player_td = element0.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                        let player_as=player_td.getElementsByTagName("a")
+                        var link=player_as[0].href
+                        promesas.push(fetchAndProcessPlayerData(link,previousTd.innerText,previousTd,window.stx_device))
+                    }
                 }
-            }
 
-        });
+            });
+
+        }else{
+
+            let elements0 = document.querySelectorAll('.playerColumn.hitlist-compact-list-column');
+            elements0.forEach(element0 => {
+                let dl=element0.getElementsByClassName("hitlist-compact-list markers")
+                let newDL = document.createElement("dl");
+                newDL.className="hitlist-compact-list markers";
+                newDL.innerHTML='<div id="hp_loader" class="'+clase+'" style="display:inline-block; width:15%"></div>'
+                dl[0].appendChild(newDL)
+
+                if(element0.innerHTML.includes(key)){
+                    let number_skills=element0.getElementsByClassName("skillBallSeparator")
+
+                    if(number_skills.length>3){
+
+                        let player_as=element0.getElementsByTagName("a")
+                        var link=player_as[0].href
+                        let toChange=element0.getElementsByClassName("responsive-show floatRight")
+                        promesas.push(fetchAndProcessPlayerData(link,toChange[0].innerText,toChange[0],window.stx_device))
+                    }
+                }
+            });
+
+
+
+
+
+        }
 
         Promise.all(promesas)
             .then((resultados) => {
@@ -336,8 +326,6 @@
 
 
     }
-
-
     //Users ranking page
     function usersRank(){
         let initialValues = {};
@@ -543,7 +531,6 @@
                 }
             }});
     }
-
     //Next matches page
     function nextMatches(){
 
@@ -1249,7 +1236,13 @@
                 let linkIds = ""
                 let teamNameElement=""
 
-                for (let i = 0; i < table.rows.length; i++) {
+                let index_init=0
+                if(window.stx_device=="computer"){
+                    index_init=1
+                }
+
+
+                for (let i = index_init; i < table.rows.length; i++) {
                     let row = table.rows[i];
                     if(window.stx_device=="computer"){
                         let thirdColumnCell = row.cells[eloCol];
@@ -1257,7 +1250,6 @@
                         let href = teamNameElement.getAttribute('href');
                         let urlParams = new URLSearchParams(href.split('?')[1]);
                         let tid = urlParams.get('tid');
-
                         linkIds += "&idEquipo" + contIds + "=" + tid
                         contIds++
 
@@ -3014,7 +3006,7 @@
 
         }, 1000);
     }
-    function skillDistrib(tactic) {
+    async function skillDistrib(tactic) {
         let t = tactic
         let l=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if (window.sport === "hockey") {
@@ -3946,6 +3938,52 @@
                 }
             });
         });
+    }
+
+    function fetchAndProcessPlayerData(link,skill,toChange,device) {
+        return new Promise((resolve, reject) => {
+
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url:link,
+                    onload: function (response) {
+
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
+
+                        let player_cointainer=doc.getElementById("thePlayers_0")
+
+                        let elements = player_cointainer.querySelectorAll('.skillval');
+                        elements.forEach(element => {
+
+                            let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                            let maxs = element.getElementsByClassName("maxed")
+
+                            let clips = previousTd.getElementsByClassName("clippable")
+                            if((clips[0].innerText.trim()==skill.trim())&&(maxs.length>0)){
+
+                                if(device!="computer"){
+                                    toChange.style.padding="3px"
+                                }
+                                toChange.style.backgroundColor="#db5d5d"
+                                toChange.style.fontWeight="bold"
+                                toChange.style.borderRadius="5px"
+
+
+                            }
+
+
+                        });
+                        resolve("Done")
+                    },
+                    onerror: function (error) {
+                        reject(error);
+                    }
+                });
+
+            }
+        );
+
     }
 
     //UTILS FUNCTIONS
