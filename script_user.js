@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.119
+// @version      0.120
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -20,7 +20,6 @@
 
 (function () {
     'use strict';
-
 
     /*let keys = GM_listValues();
     keys.forEach(function(key) {
@@ -75,6 +74,7 @@
             && (GM_getValue("playersFlag"))) {
             getDeviceFormat()
             waitToDOM(playersPage, ".playerContainer", 0,7000)
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
@@ -148,14 +148,16 @@
 
 
 
+        if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
 
-
-        const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
-        elementos.forEach(function (elemento) {
-            elemento.addEventListener('click', function () {
-                waitToDOM(playersPageStats, ".player_name", 0,7000)
+            const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
+            elementos.forEach(function (elemento) {
+                elemento.addEventListener('click', function () {
+                    waitToDOM(playersPageStats, ".player_name", 0,7000)
+                });
             });
-        });
+
+        }
 
 
     }, 1000);
@@ -230,12 +232,75 @@
         });
     }
 
+    //Workers
+    const workerCode = `
+self.onmessage = function (e) {
+    const { elementos, sport, skillsNames, tacticsList, flagStats } = e.data;
+    let players = [];
+    let lines = [];
+    let gk_line = "";
+    let su_line = "";
+
+    // Procesar cada elemento
+    for (let i = 0; i < elementos.length; i++) {
+        let playerValues = {
+            id: elementos[i].id,
+            skills: [],
+            lines: [],
+            tacticsPosition: {},
+            tactics: [],
+            age: parseInt(elementos[i].age),
+        };
+
+        // Procesar tácticas y líneas
+        for (let j = 0; j < elementos[i].tactics.length; j++) {
+            const tactic = elementos[i].tactics[j].name;
+            const line = elementos[i].tactics[j].line;
+
+            if(sport=="soccer"){
+            if (line.includes(",")) {
+                                var fin = line.indexOf(',');
+                                su_line = line.substring(0, fin);
+                            }
+
+
+            }
+
+
+            playerValues.tactics.push(tactic);
+            playerValues.tacticsPosition[tactic] = line;
+
+            // Usar un Set para evitar líneas duplicadas
+            if (!lines.includes(line)) {
+                lines.push(line);
+                playerValues.lines.push(line);
+            }
+        }
+        var key=0;
+        if(sport=="soccer"){
+        key=1;
+        }
+
+        // Procesar habilidades
+        for (let j = 0; j < elementos[i].skills.length-key; j++) {
+            playerValues.skills.push(elementos[i].skills[j]);
+        }
+
+        players.push(playerValues);
+    }
+
+    // Enviar datos procesados al hilo principal
+    self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
+};
+`;
+
+
 
     //Training Report
     function trainingReport(){
 
         if(!document.getElementById("trainingDaysId")){
-            var elem=document.getElementsByClassName("headerPanel")
+            let elem=document.getElementsByClassName("headerPanel")
             elem[0].id="trainingDaysId"
 
 
@@ -248,14 +313,13 @@
             });
         }
         let key="ball"
-        if(window.sport=="hockey"){
+        if(window.sport==="hockey"){
             key="puck"
         }
 
         let promesas = [];
-
-        var clase="loader-"+window.sport
-        if(window.stx_device=="computer"){
+        let clase="loader-"+window.sport
+        if(window.stx_device==="computer"){
 
             let elements0 = document.querySelectorAll('.dailyReportRightColumn');
             elements0.forEach(element0 => {
@@ -277,7 +341,7 @@
 
                         let player_td = element0.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
                         let player_as=player_td.getElementsByTagName("a")
-                        var link=player_as[0].href
+                        let link=player_as[0].href
                         promesas.push(fetchAndProcessPlayerData(link,previousTd.innerText,previousTd,window.stx_device))
                     }
                 }
@@ -300,7 +364,7 @@
                     if(number_skills.length>3){
 
                         let player_as=element0.getElementsByTagName("a")
-                        var link=player_as[0].href
+                        let link=player_as[0].href
                         let toChange=element0.getElementsByClassName("responsive-show floatRight")
                         promesas.push(fetchAndProcessPlayerData(link,toChange[0].innerText,toChange[0],window.stx_device))
                     }
@@ -314,11 +378,11 @@
         }
 
         Promise.all(promesas)
-            .then((resultados) => {
+            .then(() => {
                 const elementos = document.querySelectorAll('.'+clase);
                 elementos.forEach(elemento => elemento.remove());
             })
-            .catch((error) => {
+            .catch(() => {
                 const elementos = document.querySelectorAll('.'+clase);
                 elementos.forEach(elemento => elemento.remove());
             });
@@ -477,13 +541,13 @@
 
 
         const filas = document.querySelectorAll("#userRankTable tr");
-        var contIds=0;
+        let contIds=0;
         for (let i = 1; i < filas.length; i++) {
             const fila = filas[i];
             const tercerTd = fila.children[4];
             const cuartoTd = fila.children[5];
 
-            var data=extractTeamData(fila.children[3].getElementsByTagName("a"))
+            let data=extractTeamData(fila.children[3].getElementsByTagName("a"))
             linkIds += "&idEquipo" + contIds + "=" + data[0]
             contIds++;
             if (tercerTd && cuartoTd) {
@@ -524,9 +588,8 @@
                 for (let i = 1; i < filas.length; i++) {
                     const fila = filas[i];
                     const tercerTd = fila.children[5];
-                    var data=extractTeamData(fila.children[3].getElementsByTagName("a"))
-                    var valor = new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[data[0]]['elo']))
-                    tercerTd.innerText=valor
+                    let data=extractTeamData(fila.children[3].getElementsByTagName("a"))
+                    tercerTd.innerText=new Intl.NumberFormat(window.userLocal).format(Math.round(teams_data[data[0]]['elo']))
                     tercerTd.align = "center";
                 }
             }});
@@ -726,9 +789,9 @@
                 elements0.forEach(element0 => {
                     let cat=element0.getElementsByClassName("responsive-hide match-reference-text-wrapper flex-grow-0");
                     let links = cat[0].querySelectorAll('a');
-                    var type=null
-                    var href=""
-                    if(links[0]!=undefined){
+                    let type
+                    let href=""
+                    if(links[0]!==undefined){
                         href=links[0].getAttribute('href')
                     }
 
@@ -1032,10 +1095,8 @@
 
         }
 
-        var clase="loader-"+window.sport
-
+        let clase="loader-"+window.sport
         elems = document.getElementsByClassName("bold score-cell-wrapper textCenter flex-grow-0");
-
         Array.from(elems).forEach(function(elem) {
             elem.innerHTML+="</br><div id='hp_loader' class='"+clase+"'></div>"
 
@@ -1185,25 +1246,13 @@
 
 
 
-
-
-
-                let users_ids={}
-
-
-
-
                 let tables = document.querySelectorAll('.hitlist');
                 let table=tables[1]
-
-                if(window.stx_device=="computer"){
+                if(window.stx_device==="computer"){
                     const thead = table.querySelector("thead");
-
-                    // Verifica si el thead no tiene th
                     if (thead.children.length === 0) {
                         const th1 = document.createElement("th");
                         th1.innerText = "Equipo";
-
                         const th2 = document.createElement("th");
                         th2.innerText = "Resultado";
                         const nuevaFila = document.createElement("tr");
@@ -1237,14 +1286,14 @@
                 let teamNameElement=""
 
                 let index_init=0
-                if(window.stx_device=="computer"){
+                if(window.stx_device==="computer"){
                     index_init=1
                 }
 
 
                 for (let i = index_init; i < table.rows.length; i++) {
                     let row = table.rows[i];
-                    if(window.stx_device=="computer"){
+                    if(window.stx_device==="computer"){
                         let thirdColumnCell = row.cells[eloCol];
                         teamNameElement = thirdColumnCell.querySelector('.team-name');
                         let href = teamNameElement.getAttribute('href');
@@ -1282,7 +1331,7 @@
 
                         let valor=0
                         let tid=0
-                        if(window.stx_device=="computer"){
+                        if(window.stx_device==="computer"){
                             for (let i = 0; i < table.rows.length; i++) {
                                 let row = table.rows[i];
 
@@ -1590,7 +1639,7 @@
             }
         });
 
-        var cats_elo = {}
+        let cats_elo = {}
         cats_elo["senior"] = "SENIOR";
         cats_elo["world"] = "SENIOR";
         cats_elo["u23"] = "U23";
@@ -1601,7 +1650,7 @@
         cats_elo["u18_world"] = "U18";
 
 
-        var cats_temp=["SENIOR","U23","U21","U18"];
+        let cats_temp=["SENIOR","U23","U21","U18"];
         contenidoNuevo += "</tr>"
         contenidoNuevo +="<tr style='margin: 0 auto; text-align: center;'>"
         contenidoNuevo += '<td colspan="5"><label><input class="statsxente" type="checkbox" value="ELOCompare" id="ELOCompare">ELO Compare</label></td>';
@@ -1637,12 +1686,12 @@
         document.getElementById("eloCompareButton").addEventListener('click', function () {
             let elems = document.getElementsByClassName("nice_table");
             let tabla = elems[0]
-            var link="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_compare&lang="+window.lang+"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
-            var cont=0
-            for (var i = 0; i < tabla.rows.length; i++) {
-                var fila = tabla.rows[i];
+            let link="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_compare&lang="+window.lang+"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
+            let cont=0
+            for (let i = 0; i < tabla.rows.length; i++) {
+                let fila = tabla.rows[i];
                 if (fila.cells.length > 1) {
-                    var checkboxes = fila.cells[1].querySelectorAll("input[type='checkbox']");
+                    let checkboxes = fila.cells[1].querySelectorAll("input[type='checkbox']");
                     checkboxes.forEach(function(checkbox) {
                         if(checkbox.checked){
                             if(cont<5){
@@ -1673,7 +1722,7 @@
                     }
 
                     fila.insertBefore(nuevaCelda, fila.cells[1]);
-                    if(fila.rowIndex==0){
+                    if(fila.rowIndex===0){
                         fila.cells[1].id="eloCompareCol"
                         fila.cells[2].style.width="175px"
                     }
@@ -1681,11 +1730,11 @@
             }else{
                 let elems = document.getElementsByClassName("nice_table");
                 let table = elems[0]
-                var th = document.getElementById("eloCompareCol");
-                var columnIndex = th.cellIndex;
-                for (var i = 0; i < table.rows.length; i++) {
-                    var row = table.rows[i];
-                    var cell = row.cells[columnIndex];
+                let th = document.getElementById("eloCompareCol");
+                let columnIndex = th.cellIndex;
+                for (let i = 0; i < table.rows.length; i++) {
+                    let row = table.rows[i];
+                    let cell = row.cells[columnIndex];
                     if (cell.style.display === 'none') {
                         cell.style.display = '';
                         th.style.fontWeight = 'normal';
@@ -1696,7 +1745,7 @@
                 }
             }
 
-            if(document.getElementById("trELOCompare").style.display=="none"){
+            if(document.getElementById("trELOCompare").style.display==="none"){
                 document.getElementById("trELOCompare").style.display="table-row";
 
             }else{
@@ -2105,7 +2154,7 @@
         let idComp="null"
         let link = "https://www.managerzone.com" + document.getElementById("ui-id-1").getAttribute('href')
         if (urlParams.get('fsid')) {
-            var fl_data= await fetchExistsFL(urlParams.get('fsid'))
+            let fl_data= await fetchExistsFL(urlParams.get('fsid'))
             idComp=fl_data['id']
             age_restriction = await fetchAgeRestriction(link);
         } else {
@@ -2368,7 +2417,7 @@
 
         }
 
-        var widthTeam="180px"
+        let widthTeam="180px"
 
         if(idComp!=="null"){
             widthTeam="150px";
@@ -2489,7 +2538,7 @@
 
                         if(idComp!=="null"){
                             let nuevaColumna1 = filasDatos[i].insertCell(2);
-                            nuevaColumna1.innerHTML = "<img src='https://www.managerzone.com/dynimg/pic.php?type=federation&fid="+fl_data["federations"][fl_data['teams'][id]['nombreFede']]['idFede']+"&size=small&sport=soccer' width='10px' height='10px'/> <span style='color:red;'>"+fl_data['teams'][id]['nombreFede']+"</span>";
+                            nuevaColumna1.innerHTML = "<img alt='' src='https://www.managerzone.com/dynimg/pic.php?type=federation&fid="+fl_data["federations"][fl_data['teams'][id]['nombreFede']]['idFede']+"&size=small&sport=soccer' width='10px' height='10px'/> <span style='color:red;'>"+fl_data['teams'][id]['nombreFede']+"</span>";
                             nuevaColumna1.style.textAlign = 'left';
                         }
 
@@ -2805,212 +2854,179 @@
     }
     //Players page
     async function playersPage() {
-        setTimeout(function () {
-            let player_images
-            let elementos = document.getElementsByClassName('playerContainer');
+        const blob = new Blob([workerCode], { type: "application/javascript" });
+        const workerURL = URL.createObjectURL(blob);
+        const worker = new Worker(workerURL);
+        const tacticsList = [];
+        const sport= window.sport
+        const elementos = Array.from(document.getElementsByClassName('playerContainer')).map((el) => {
+            const playerId = el.querySelector('.player_id_span').textContent.trim();
+            const age = el.querySelector('.dg_playerview_info table td').textContent.split(':')[1].trim();
+            const skills = Array.from(el.querySelectorAll('.skills-container .skillval')).map(skill => {
+                const cleanedText = skill.textContent.trim().replace(/[()]/g, ''); // Reemplaza ( y ) con ''
+                return parseInt(cleanedText, 10);
+            });
 
-            let player_values = {}
-            let tactics_list = []
+            let tactics
 
-            let urlParams = new URLSearchParams(window.location.search);
-            let flagStats = true
-            if (urlParams.has('tid')) {
-                flagStats = false
+            if(sport==="soccer"){
+
+                tactics = Array.from(el.querySelectorAll('.player_tactic.gradientSunriseIcon'))
+                    .map(t => ({
+                        name: t.textContent.split('(')[0].trim(),
+                        line: t.textContent.split('(')[1].split(')')[0].trim(),
+                    }))
+                    .filter((value, index, self) => {
+                        const tacticString = `${value.name}-${value.line}`;
+                        return self.findIndex(t => `${t.name}-${t.line}` === tacticString) === index;
+                    });
+
+
+
+            }else{
+
+
+                tactics = Array.from(el.querySelectorAll('.player_tactic.gradientSunriseIcon'))
+                    .map(t => {
+                        const textContent = t.textContent.trim();
+                        const [namePart, linePart] = textContent.split('(');
+
+                        const name = namePart.trim();
+                        let line = '';
+
+                        if (linePart) {
+                            line = linePart.replace(')', '').trim();
+                            if (line.includes(':')) {
+                                line = line.split(':')[0].trim();
+                            }else{
+                                gk_line=line
+                            }
+                        }
+
+
+                        return { name, line };
+                    })
+                    .filter((value, index, self) => {
+                        const tacticString = `${value.name}-${value.line}`;
+                        return self.findIndex(t => `${t.name}-${t.line}` === tacticString) === index;
+                    });
+
             }
 
-            if (flagStats) {
-                let habil_container = elementos[0].getElementsByClassName("player_skills")
-                let habil = habil_container[0].getElementsByClassName("clippable")
-
-                if (window.sport === "hockey") {
-                    for (let q = 1; q < habil.length; q++) {
-                        skills_names.push(habil[q].textContent)
-                    }
-                } else {
-
-                    for (let q = 0; q < habil.length - 1; q++) {
-                        skills_names.push(habil[q].textContent)
-                    }
-                    player_images = document.getElementsByClassName("player-image soccer")
-                }
-            }
-
-            let ids_ = []
-
-            for (let i = 0; i < elementos.length; i++) {
-                let ids = elementos[i].getElementsByClassName('player_id_span');
-
-                let elementos_ = elementos[i].getElementsByClassName('p_sublinks');
-
-                let subheaders = elementos[i].getElementsByClassName('subheader clearfix');
 
 
-                let enlace = subheaders[0].querySelector('.subheader a');
-                let playerName = enlace.querySelector('.player_name').textContent
-
-                ids_.push({ "id": ids[0].textContent, "name": playerName });
 
 
+            tactics.forEach(tactic => {
+                tacticsList.push(tactic.name);
+            });
+
+            return { id: playerId, age, skills, tactics };
+        });
+        const skillsNames = Array.from(document.querySelectorAll('.player_skills .clippable')).map(el => el.textContent.trim()).filter((value, index, self) => self.indexOf(value) === index);
+        let flagStats = true
+        let urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('tid')) {
+            flagStats = false
+
+        }
+
+        if(flagStats){
+            let elementos1 = document.getElementsByClassName('playerContainer');
+            for (let i = 0; i < elementos1.length; i++) {
+                let ids = elementos1[i].getElementsByClassName('player_id_span');
+                let elementos_ = elementos1[i].getElementsByClassName('p_sublinks');
                 let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
                 txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
                 txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
                 txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
                 let index=0
-                if(window.stx_device!="computer"){index=1}
+                if(window.stx_device!=="computer"){index=1}
                 elementos_[index].innerHTML += txt;
-
-                if (flagStats) {
-                    let flag_gk = false;
-                    let age_div = elementos[i].getElementsByClassName('dg_playerview_info');
-                    let age_table = age_div[0].getElementsByTagName('table')[0];
-
-                    let ini_age = age_table.getElementsByTagName('td')[0].textContent.indexOf(":")
-                    let age = age_table.getElementsByTagName('td')[0].textContent.substring(ini_age + 2, ini_age + 4);
-
-
-                    if ((window.sport === "soccer") && (player_images[i].innerHTML.includes("gk=1"))) {
-                        flag_gk = true
-                    }
-
-                    let tactics = elementos[i].getElementsByClassName('player_tactic gradientSunriseIcon');
-
-                    player_values = {
-                        "id": ids[0].textContent,
-                        "skills": [],
-                        "lines": [],
-                        "tactics-position": {},
-                        "tactics": [],
-                        "age": parseInt(age)
-                    }
-
-                    for (let j = 0; j < tactics.length; j++) {
-                        let fin = 0;
-                        let line = ""
-                        let ini = tactics[j].textContent.indexOf('(');
-                        let tactic = tactics[j].textContent.substring(0, ini - 1);
-
-                        if (window.sport === "hockey") {
-
-                            if (!tactics[j].textContent.includes(":")) {
-                                ini = tactics[j].textContent.indexOf('(');
-                                fin = tactics[j].textContent.indexOf(')');
-                                line = tactics[j].textContent.substring(ini + 2, fin - 1);
-                                gk_line = line;
-                            } else {
-                                ini = tactics[j].textContent.indexOf('(');
-                                fin = tactics[j].textContent.indexOf(':');
-                                line = tactics[j].textContent.substring(ini + 2, fin);
-                            }
-
-                        } else {
-                            ini = tactics[j].textContent.indexOf('(');
-                            fin = tactics[j].textContent.indexOf(')');
-                            line = tactics[j].textContent.substring(ini + 2, fin - 1);
-                            if (flag_gk) {
-                                gk_line = line;
-                            }
-                            if (tactics[j].textContent.includes(",")) {
-                                ini = tactics[j].textContent.indexOf('(');
-                                fin = tactics[j].textContent.indexOf(',');
-                                su_line = tactics[j].textContent.substring(ini + 2, fin);
-                            }
-                        }
-
-                        if (!player_values['lines'].includes(line)) {
-                            player_values['lines'].push(line);
-                        }
-                        if (!player_values['tactics'].includes(tactic)) {
-                            player_values['tactics'].push(tactic);
-                        }
-
-                        player_values['tactics-position'][tactic] = line
-
-                        if ((!lines.includes(line))) {
-                            lines.push(line);
-                        }
-
-                        if (!tactics_list.includes(tactic)) {
-                            tactics_list.push(tactic);
-                        }
-
-
-                    }
-                    let skills_container=elementos[i].getElementsByClassName('skills-container floatLeft clearfix')
-                    let skills = skills_container[0].getElementsByClassName('skillval');
-
-                    if (window.sport === "hockey") {
-
-                        for (let j = 1; j < skills.length; j++) {
-                            let cleanedText = skills[j].textContent.replace(')', '');
-                            cleanedText = cleanedText.replace('(', '');
-                            let number = parseInt(cleanedText, 10);
-                            player_values['skills'].push(number);
-                        }
-
-                    } else {
-                        for (let j = 0; j < skills.length - 1; j++) {
-
-                            let cleanedText = skills[j].textContent.replace(')', '');
-                            cleanedText = cleanedText.replace('(', '');
-                            let number = parseInt(cleanedText, 10);
-                            player_values['skills'].push(number);
-                        }
-                    }
-                    players.push(player_values)
-                }
-            }
-            if (flagStats) {
-                const container = document.getElementById("squad-search-toggle")
-                let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>"
-                contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>"
-                contenidoNuevo += "<option value='All Team'>All Team</option>"
-                for (let x = 0; x < tactics_list.length; x++) {
-                    let selected = ""
-                    if (x === 0) {
-                        selected = "selected=''";
-                    }
-                    contenidoNuevo += "<option " + selected + " value='" + tactics_list[x] + "'>" + tactics_list[x] + "</option>"
-                }
-                contenidoNuevo += "</select></div></br><div id=divMenu></div></center></div>"
-                container.innerHTML = contenidoNuevo + container.innerHTML;
-                skillDistrib(tactics_list[0]);
-                document.getElementById("tactics_select").addEventListener('change', function () {
-                    let select = document.getElementById('tactics_select');
-                    let valorSeleccionado = select.value;
-                    document.getElementById("divMenu").innerHTML = ""
-                    skillDistrib(valorSeleccionado)
-                });
-            }
-
-            let team_id
-            if(window.sport==="soccer"){
-                team_id=GM_getValue("soccer_team_id")
-            }else{
-                team_id=GM_getValue("hockey_team_id")
             }
 
 
-            for (let i = 0; i < ids_.length; i++) {
-                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                    document.getElementById("but" + currentId).addEventListener('click', function () {
-                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
-                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
-                            "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                        openWindow(link, 0.95, 1.25);
-                    });
-                })(ids_[i]['id'], team_id, window.sport, window.lang, "[undefined]", ids_[i]['name']);
+        }
+
+        if(sport==="soccer"){
+            skillsNames.pop();
+            //GK Line detect
+            const playerImages = document.querySelectorAll('.player-image');
+            const elementWithGK1 = Array.from(playerImages).find(el => {
+                return el.innerHTML.includes('gk=1');
+            });
+
+
+
+            let tactics1 = elementWithGK1.parentNode.getElementsByClassName("player_tactic gradientSunriseIcon")
+            let ini = tactics1[0].textContent.indexOf('(');
+            let fin = tactics1[0].textContent.indexOf(')');
+            gk_line = tactics1[0].textContent.substring(ini + 2, fin - 1);
+
+
+        }
+        worker.postMessage({ elementos, sport, skillsNames, tacticsList, flagStats});
+        worker.onmessage = function (e) {
+            const players=e.data.players
+            const lines=e.data.lines
+            const tacticsList=e.data.tacticsList
+            const skillsNames= e.data.skillsNames
+
+            su_line=e.data.su_line
+
+            if(su_line===""){
+                su_line="unsetted"
             }
 
+            const container = document.getElementById("squad-search-toggle");
+            let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>";
+            contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>";
+            contenidoNuevo += "<option value='All Team' selected>All Team</option>";
 
 
-        }, 1000);
+            for (let x = 0; x < tacticsList.length; x++) {
+                let selected="";
+                contenidoNuevo += `<option ${selected} value='${tacticsList[x]}'>${tacticsList[x]}</option>`;
+            }
+
+            contenidoNuevo += "</select></div></br><div id=divMenu></div></center></div>";
+            container.innerHTML = contenidoNuevo + container.innerHTML;
+
+            document.getElementById("tactics_select").addEventListener('change', function () {
+                const selectedTactic = this.value;
+                document.getElementById("divMenu").innerHTML = ""
+                skillDistrib(selectedTactic, players, lines, skillsNames,gk_line,su_line);
+            });
+
+            skillDistrib("All Team", players, lines, skillsNames,gk_line,su_line);
+
+
+            maximizationsPlayersPage()
+
+
+
+        };
     }
-    async function skillDistrib(tactic) {
+    async function maximizationsPlayersPage(){
+        let elementos1 = document.getElementsByClassName('weeklyReportBox weeklyReportBoxResponsive');
+        let elementosConBall = Array.from(elementos1).filter(el => el.innerHTML.includes('ball')&& el.innerHTML.includes('improvement'));
+        for (let i = 0; i < elementosConBall.length; i++) {
+            let improvementDiv=elementosConBall[i].getElementsByClassName("improvementLabel")
+            let trainedSkill=elementosConBall[i].getElementsByClassName("clippable")
+            let skills=elementosConBall[i].parentNode.parentNode.parentNode.parentNode.getElementsByClassName("player_skills player_skills_responsive")
+            let elementosConHola = Array.from(skills[0].getElementsByClassName("clippable")).filter(el => el.innerText.includes(trainedSkill[0].innerText));
+            let currentTd = elementosConHola[0].closest('td');
+            if(currentTd.nextElementSibling?.nextElementSibling?.nextElementSibling?.nextElementSibling?.nextElementSibling.innerHTML.includes("maxed")){
+                improvementDiv[0].style.backgroundColor="#db5d5d"
+            }
+        }
+    }
+    async function skillDistrib(tactic,players, lines, skills_names,gk_line,su_line) {
         let t = tactic
         let l=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if (window.sport === "hockey") {
-            l = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            l = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0]
         }
 
         let li_t = {}
@@ -3030,15 +3046,15 @@
         for (i = 0; i < players.length; i++) {
             if (players[i]['tactics'].includes(t)) {
                 for (j = 0; j < players[i]['skills'].length; j++) {
-                    li_t[players[i]['tactics-position'][t]][j] += players[i]['skills'][j]
+                    li_t[players[i]['tacticsPosition'][t]][j] += players[i]['skills'][j]
                     li_t['Tactic'][j] += players[i]['skills'][j]
-                    if (players[i]['tactics-position'][t] !== "Po") {
+                    if (players[i]['tacticsPosition'][t] !== gk_line) {
                         li_t[no_gk_line][j] += players[i]['skills'][j]
                     }
                 }
-                li_t[players[i]['tactics-position'][t]][j] += 1
+                li_t[players[i]['tacticsPosition'][t]][j] += 1
                 li_t['Tactic'][j] += 1
-                if (players[i]['tactics-position'][t] !== "Po") {
+                if (players[i]['tacticsPosition'][t] !== gk_line) {
                     li_t[no_gk_line][j] += 1
                 }
             } else {
@@ -3101,7 +3117,6 @@
         if (t === "All Team") {
             l_aux = ["Team", "U23", "U21", "U18"]
         }
-
         l_aux = l_aux.filter(item => !item.includes(su_line));
 
         for (let w = 0; w < l_aux.length; w++) {
@@ -3113,11 +3128,11 @@
                     contenidoNuevo += "<td style='padding:2px; margin: 0 auto; text-align:center;'>" + Math.round(li_t[key][x] / li_t[key][li_t[key].length - 1] * 100) / 100 + "</td>";
                 }
                 contenidoNuevo += "</tr>";
-
             }
         }
         container.innerHTML += contenidoNuevo;
     }
+
     //Players links to stats
     async function playersPageStats() {
         let element = document.getElementById('thePlayers_0');
@@ -3134,7 +3149,7 @@
         txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
         txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
         let index=0
-        if(window.stx_device!="computer"){
+        if(window.stx_device!=="computer"){
             index=1
         }
 
@@ -3491,6 +3506,7 @@
     }
 
 
+
     //HANDLERS FUNCTIONS
     function handleClick(event) {
 
@@ -3498,8 +3514,8 @@
             document.getElementById("trELOCompare").style.display="none";
             let elems = document.getElementsByClassName("nice_table");
             let table = elems[0]
-            var th = document.getElementById("eloCompareCol");
-            var columnIndex = th.cellIndex;
+            let th = document.getElementById("eloCompareCol");
+            let columnIndex = th.cellIndex;
             for (let i = 0; i < table.rows.length; i++) {
                 let row = table.rows[i];
                 if (row.cells.length > columnIndex) {
@@ -3526,7 +3542,6 @@
                 let celda = filas[i].cells[1];
                 let team_data=extractTeamData(celda.getElementsByTagName("a"));
                 let id=team_data[0]
-                let equipo=team_data[1]
                 let celdas = filas[i].getElementsByTagName("td");
                 let ultimaCelda = celdas[celdas.length - 2];
                 let selects = document.getElementsByTagName('select');
@@ -3688,12 +3703,8 @@
         });
     }
     function handleClickUserRank(event) {
-        let urlParams = new URLSearchParams(window.location.search);
         let tabla = document.getElementById("userRankTable");
         let filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
-        let thSegundo = tabla.querySelector("thead th:nth-child(2)");
-
-
 
         for (let i = 0; i < filas.length; i++) {
             let celda = filas[i].cells[3];
@@ -3960,9 +3971,9 @@
                             let maxs = element.getElementsByClassName("maxed")
 
                             let clips = previousTd.getElementsByClassName("clippable")
-                            if((clips[0].innerText.trim()==skill.trim())&&(maxs.length>0)){
+                            if((clips[0].innerText.trim()===skill.trim())&&(maxs.length>0)){
 
-                                if(device!="computer"){
+                                if(device!=="computer"){
                                     toChange.style.padding="3px"
                                 }
                                 toChange.style.backgroundColor="#db5d5d"
@@ -4486,7 +4497,6 @@
 
 
     }
-
     function getDeviceFormat(){
         const script = document.createElement('script');
         script.textContent = `
@@ -4503,22 +4513,18 @@
 
         window.stx_device=document.getElementById("deviceFormatStx").value
     }
-
     function extractTeamData(as){
         let main_a=""
         Array.from(as).forEach(a => {
             if (a.href.includes('tid')) {
                 main_a=a
-                return;
             }
         })
         let href = main_a.getAttribute('href');
         let urlParams = new URLSearchParams(href.split('?')[1]);
-        let tid = urlParams.get('tid');
         return [urlParams.get('tid'),main_a.textContent]
 
     }
-
     function createModalEventListeners() {
         document.getElementById('leagueSelect').addEventListener('click', function () {
             GM_setValue("leagueFlag", !GM_getValue("leagueFlag"))
@@ -4730,7 +4736,6 @@
         }
 
     }
-
     function getParsedValidDateText(text){
         let initialDate="undefined"
         let fecha=text
@@ -4750,9 +4755,6 @@
 
 
     }
-
-
-
     function getParsedValidDate(texto) {
         let fecha = new Date(texto);
         if (!isNaN(fecha.getTime())) {
@@ -4763,8 +4765,6 @@
             return hoy.toISOString().split('T')[0];
         }
     }
-
-
     function notifySnackBarNewVersion(){
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
@@ -5500,5 +5500,320 @@ cursor:pointer;
   `)
 
     }
+
+    async function playersPage1() {
+        setTimeout(function () {
+            let player_images
+            let elementos = document.getElementsByClassName('playerContainer');
+
+            let player_values = {}
+            let tactics_list = []
+
+            let urlParams = new URLSearchParams(window.location.search);
+            let flagStats = true
+            if (urlParams.has('tid')) {
+                flagStats = false
+            }
+
+            if (flagStats) {
+                let habil_container = elementos[0].getElementsByClassName("player_skills")
+                let habil = habil_container[0].getElementsByClassName("clippable")
+
+                if (window.sport === "hockey") {
+                    for (let q = 1; q < habil.length; q++) {
+                        skills_names.push(habil[q].textContent)
+                    }
+                } else {
+
+                    for (let q = 0; q < habil.length - 1; q++) {
+                        skills_names.push(habil[q].textContent)
+                    }
+                    player_images = document.getElementsByClassName("player-image soccer")
+                }
+            }
+
+            let ids_ = []
+
+            for (let i = 0; i < elementos.length; i++) {
+                let ids = elementos[i].getElementsByClassName('player_id_span');
+
+                let elementos_ = elementos[i].getElementsByClassName('p_sublinks');
+
+                let subheaders = elementos[i].getElementsByClassName('subheader clearfix');
+
+
+                let enlace = subheaders[0].querySelector('.subheader a');
+                let playerName = enlace.querySelector('.player_name').textContent
+
+                ids_.push({ "id": ids[0].textContent, "name": playerName });
+
+
+                let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
+                txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
+                txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
+                txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
+
+                let index=0
+                if(window.stx_device!=="computer"){index=1}
+                elementos_[index].innerHTML += txt;
+
+                if (flagStats) {
+                    let flag_gk = false;
+                    let age_div = elementos[i].getElementsByClassName('dg_playerview_info');
+                    let age_table = age_div[0].getElementsByTagName('table')[0];
+
+                    let ini_age = age_table.getElementsByTagName('td')[0].textContent.indexOf(":")
+                    let age = age_table.getElementsByTagName('td')[0].textContent.substring(ini_age + 2, ini_age + 4);
+
+
+                    if ((window.sport === "soccer") && (player_images[i].innerHTML.includes("gk=1"))) {
+                        flag_gk = true
+                    }
+
+                    let tactics = elementos[i].getElementsByClassName('player_tactic gradientSunriseIcon');
+
+                    player_values = {
+                        "id": ids[0].textContent,
+                        "skills": [],
+                        "lines": [],
+                        "tactics-position": {},
+                        "tactics": [],
+                        "age": parseInt(age)
+                    }
+
+                    for (let j = 0; j < tactics.length; j++) {
+                        let fin = 0;
+                        let line = ""
+                        let ini = tactics[j].textContent.indexOf('(');
+                        let tactic = tactics[j].textContent.substring(0, ini - 1);
+
+                        if (window.sport === "hockey") {
+
+                            if (!tactics[j].textContent.includes(":")) {
+                                ini = tactics[j].textContent.indexOf('(');
+                                fin = tactics[j].textContent.indexOf(')');
+                                line = tactics[j].textContent.substring(ini + 2, fin - 1);
+                                gk_line = line;
+                            } else {
+                                ini = tactics[j].textContent.indexOf('(');
+                                fin = tactics[j].textContent.indexOf(':');
+                                line = tactics[j].textContent.substring(ini + 2, fin);
+                            }
+
+                        } else {
+                            ini = tactics[j].textContent.indexOf('(');
+                            fin = tactics[j].textContent.indexOf(')');
+                            line = tactics[j].textContent.substring(ini + 2, fin - 1);
+                            if (flag_gk) {
+                                gk_line = line;
+                            }
+                            if (tactics[j].textContent.includes(",")) {
+                                ini = tactics[j].textContent.indexOf('(');
+                                fin = tactics[j].textContent.indexOf(',');
+                                su_line = tactics[j].textContent.substring(ini + 2, fin);
+                            }
+                        }
+
+                        if (!player_values['lines'].includes(line)) {
+                            player_values['lines'].push(line);
+                        }
+                        if (!player_values['tactics'].includes(tactic)) {
+                            player_values['tactics'].push(tactic);
+                        }
+
+                        player_values['tactics-position'][tactic] = line
+
+                        if ((!lines.includes(line))) {
+                            lines.push(line);
+                        }
+
+                        if (!tactics_list.includes(tactic)) {
+                            tactics_list.push(tactic);
+                        }
+
+
+                    }
+                    let skills_container=elementos[i].getElementsByClassName('skills-container floatLeft clearfix')
+                    let skills = skills_container[0].getElementsByClassName('skillval');
+
+                    if (window.sport === "hockey") {
+
+                        for (let j = 1; j < skills.length; j++) {
+                            let cleanedText = skills[j].textContent.replace(')', '');
+                            cleanedText = cleanedText.replace('(', '');
+                            let number = parseInt(cleanedText, 10);
+                            player_values['skills'].push(number);
+                        }
+
+                    } else {
+                        for (let j = 0; j < skills.length - 1; j++) {
+
+                            let cleanedText = skills[j].textContent.replace(')', '');
+                            cleanedText = cleanedText.replace('(', '');
+                            let number = parseInt(cleanedText, 10);
+                            player_values['skills'].push(number);
+                        }
+                    }
+                    players.push(player_values)
+                }
+            }
+            if (flagStats) {
+                const container = document.getElementById("squad-search-toggle")
+                let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>"
+                contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>"
+                contenidoNuevo += "<option value='All Team'>All Team</option>"
+                for (let x = 0; x < tactics_list.length; x++) {
+                    let selected = ""
+                    if (x === 0) {
+                        selected = "selected=''";
+                    }
+                    contenidoNuevo += "<option " + selected + " value='" + tactics_list[x] + "'>" + tactics_list[x] + "</option>"
+                }
+                contenidoNuevo += "</select></div></br><div id=divMenu></div></center></div>"
+                container.innerHTML = contenidoNuevo + container.innerHTML;
+                skillDistrib(tactics_list[0]);
+                document.getElementById("tactics_select").addEventListener('change', function () {
+                    let select = document.getElementById('tactics_select');
+                    let valorSeleccionado = select.value;
+                    document.getElementById("divMenu").innerHTML = ""
+                    skillDistrib(valorSeleccionado)
+                });
+            }
+
+            let team_id
+            if(window.sport==="soccer"){
+                team_id=GM_getValue("soccer_team_id")
+            }else{
+                team_id=GM_getValue("hockey_team_id")
+            }
+
+
+            for (let i = 0; i < ids_.length; i++) {
+                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                    document.getElementById("but" + currentId).addEventListener('click', function () {
+                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
+                            "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                        openWindow(link, 0.95, 1.25);
+                    });
+                })(ids_[i]['id'], team_id, window.sport, window.lang, "[undefined]", ids_[i]['name']);
+            }
+
+        }, 1000);
+    }
+    function skillDistrib1(tactic) {
+        let t = tactic
+        let l=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        if (window.sport === "hockey") {
+            l = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        }
+
+        let li_t = {}
+        for (let i = 0; i < lines.length; i++) {
+            li_t[lines[i]] = [...l];
+        }
+
+        let no_gk_line = "Tactic -(" + gk_line + ")"
+        li_t["Team"] = [...l];
+        li_t["U23"] = [...l];
+        li_t["U21"] = [...l];
+        li_t["U18"] = [...l];
+        li_t["Tactic"] = [...l];
+        li_t[no_gk_line] = [...l];
+
+        let i,j
+        for (i = 0; i < players.length; i++) {
+            if (players[i]['tactics'].includes(t)) {
+                for (j = 0; j < players[i]['skills'].length; j++) {
+                    li_t[players[i]['tactics-position'][t]][j] += players[i]['skills'][j]
+                    li_t['Tactic'][j] += players[i]['skills'][j]
+                    if (players[i]['tactics-position'][t] !== "Po") {
+                        li_t[no_gk_line][j] += players[i]['skills'][j]
+                    }
+                }
+                li_t[players[i]['tactics-position'][t]][j] += 1
+                li_t['Tactic'][j] += 1
+                if (players[i]['tactics-position'][t] !== "Po") {
+                    li_t[no_gk_line][j] += 1
+                }
+            } else {
+
+                for (let j = 0; j < players[i]['skills'].length; j++) {
+                    if (players[i]['age'] <= 23) {
+                        li_t['U23'][j] += players[i]['skills'][j]
+                    }
+                    if (players[i]['age'] <= 23) {
+                        li_t['U21'][j] += players[i]['skills'][j]
+                    }
+                    if (players[i]['age'] <= 23) {
+                        li_t['U18'][j] += players[i]['skills'][j]
+                    }
+                    li_t['Team'][j] += players[i]['skills'][j]
+                }
+
+                if (players[i]['age'] <= 23) {
+                    li_t['U23'][li_t["U23"].length - 1] += 1
+                }
+
+                if (players[i]['age'] <= 21) {
+                    li_t['U21'][li_t["U21"].length - 1] += 1
+                }
+                if (players[i]['age'] <= 18) {
+                    li_t['U18'][li_t["U18"].length - 1] += 1
+                }
+                li_t['Team'][li_t["Team"].length - 1] += 1
+            }
+        }
+
+        const container = document.getElementById("divMenu")
+        let contenidoNuevo = "<table id=showMenu style='width:95%;font-size:13px; margin: 0 auto; text-align:center;'><thead style='background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'><tr>";
+        contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;">Line</th>'
+        for (let q = 0; q < skills_names.length; q++) {
+            contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;">' + skills_names[q] + '</th>'
+        }
+        contenidoNuevo += '</tr></thead>';
+        let l_aux = lines
+        l_aux = l_aux.filter(item => item !== gk_line);
+        l_aux.sort((a, b) => {
+            let numA = parseInt(a.substring(1), 10);
+            let numB = parseInt(b.substring(1), 10);
+            return numA - numB;
+        });
+
+        l_aux.unshift(gk_line);
+        l_aux.push("Tactic");
+        l_aux.push(no_gk_line);
+
+        if (window.sport === "hockey") {
+            if (li_t["L4"][10] === 0) {
+                let index = l_aux.indexOf('L4');
+                if (index !== -1) {
+                    l_aux.splice(index, 1);
+                }
+            }
+        }
+
+        if (t === "All Team") {
+            l_aux = ["Team", "U23", "U21", "U18"]
+        }
+
+        l_aux = l_aux.filter(item => !item.includes(su_line));
+
+        for (let w = 0; w < l_aux.length; w++) {
+            let key = l_aux[w]
+            if (li_t.hasOwnProperty(key)) {
+                contenidoNuevo += "<tr>";
+                contenidoNuevo += "<td style='padding:2px; margin: 0 auto; text-align:center;'><strong>" + key + "</strong></td>";
+                for (let x = 0; x < li_t[key].length - 1; x++) {
+                    contenidoNuevo += "<td style='padding:2px; margin: 0 auto; text-align:center;'>" + Math.round(li_t[key][x] / li_t[key][li_t[key].length - 1] * 100) / 100 + "</td>";
+                }
+                contenidoNuevo += "</tr>";
+
+            }
+        }
+        container.innerHTML += contenidoNuevo;
+    }
+
+
 
 })();
