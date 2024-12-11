@@ -4631,6 +4631,15 @@ self.onmessage = function (e) {
         }
 
         let sportCookie = getCookie("MZSPORT");
+
+        if(sportCookie===""){
+            sportCookie=getSportByLink()
+        }
+
+        if(sportCookie===""){
+            sportCookie=getSportByScript()
+        }
+
         let lsport = "F"
         let sport_id = 1;
         if (sportCookie === "hockey") {
@@ -4656,6 +4665,35 @@ self.onmessage = function (e) {
         window.userLocal = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
 
     }
+    function getSportByLink(){
+        let element = document.getElementById("settings-wrapper");
+        if (element) {
+            var firstLink = element.getElementsByTagName("a")[0];
+            if (firstLink) {
+                if(firstLink.href.includes("soccer")){
+                    return "hockey"
+                }else{
+                    return "soccer"
+                }
+            }
+        }
+    }
+    function getSportByScript(){
+        const script = document.createElement('script');
+        script.textContent = `
+    let newElement = document.createElement("input");
+        newElement.id= "stx_sport";
+        newElement.type = "hidden";
+        newElement.value=window.ajaxSport;
+        let body = document.body;
+        body.appendChild(newElement);
+
+`;
+        document.documentElement.appendChild(script);
+        script.remove();
+        return document.getElementById("stx_sport").value
+    }
+
     function getUsernameData() {
         if ((GM_getValue("currency") === undefined) || (GM_getValue("currency") === "")
             ||(GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")
