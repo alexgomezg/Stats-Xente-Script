@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.122
+// @version      0.123
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3949,7 +3949,6 @@ self.onmessage = function (e) {
             });
         });
     }
-
     function fetchAndProcessPlayerData(link,skill,toChange,device) {
         return new Promise((resolve, reject) => {
 
@@ -4497,20 +4496,21 @@ self.onmessage = function (e) {
 
     }
     function getDeviceFormat(){
-        const script = document.createElement('script');
-        script.textContent = `
-    let newElement = document.createElement("input");
-        newElement.id= "deviceFormatStx";
-        newElement.type = "hidden";
-        newElement.value=window.device;
-        let body = document.body;
-        body.appendChild(newElement);
+        if(!document.getElementById("deviceFormatStx")){
+            var script = document.createElement('script');
+            script.textContent = `
+        var newElemenDeviceSTX = document.createElement("input");
+        newElemenDeviceSTX.id= "deviceFormatStx";
+        newElemenDeviceSTX.type = "hidden";
+        newElemenDeviceSTX.value=window.device;
+        document.body.appendChild(newElemenDeviceSTX);
 
 `;
-        document.documentElement.appendChild(script);
-        script.remove();
+            document.documentElement.appendChild(script);
+            script.remove();
 
-        window.stx_device=document.getElementById("deviceFormatStx").value
+            window.stx_device=document.getElementById("deviceFormatStx").value
+        }
     }
     function extractTeamData(as){
         let main_a=""
@@ -4690,7 +4690,6 @@ self.onmessage = function (e) {
         script.remove();
         return document.getElementById("stx_sport").value
     }
-
     function getUsernameData() {
         if ((GM_getValue("currency") === undefined) || (GM_getValue("currency") === "")
             ||(GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")
@@ -4790,16 +4789,6 @@ self.onmessage = function (e) {
 
 
     }
-    function getParsedValidDate(texto) {
-        let fecha = new Date(texto);
-        if (!isNaN(fecha.getTime())) {
-            return fecha.toISOString().split('T')[0];
-        } else {
-            let hoy = new Date();
-            hoy.setDate(hoy.getDate() - 5);
-            return hoy.toISOString().split('T')[0];
-        }
-    }
     function notifySnackBarNewVersion(){
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
@@ -4868,80 +4857,6 @@ self.onmessage = function (e) {
 
 
         celdas[a].innerHTML = icon + celdas[a].innerHTML;
-    }
-    function ordenarTablaq(columna, byClassName, param) {
-        let tabla
-        if (byClassName) {
-            let elems = document.getElementsByClassName(param);
-            tabla = elems[0]
-        } else {
-            tabla = document.getElementById(param)
-        }
-        let filas, switching, i, x, y, debeCambiar, direccion, cambioRealizado;
-        switching = true;
-        direccion = document.getElementById("ord_table").value
-        while (switching) {
-            switching = false;
-            filas = tabla.rows;
-            for (i = 1; i < (filas.length - 1); i++) {
-                debeCambiar = false;
-                x = filas[i].getElementsByTagName("td")[columna];
-                y = filas[i + 1].getElementsByTagName("td")[columna];
-                let xValue = parseFloat(x.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
-                let yValue = parseFloat(y.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
-                if (direccion === "ascendente") {
-                    if (isNaN(xValue)) {
-                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    } else {
-                        if (xValue > yValue) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    }
-                } else if (direccion === "descendente") {
-                    if (isNaN(xValue)) {
-                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    } else {
-                        if (xValue < yValue) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-
-
-            if (debeCambiar) {
-                filas[i].parentNode.insertBefore(filas[i + 1], filas[i]);
-                switching = true;
-                cambioRealizado = true;
-            } else {
-                if (!cambioRealizado && direccion === "descendente") {
-                    //direccion = "ascendente";
-                    switching = true;
-                }
-            }
-        }
-
-        if (document.getElementById("ord_table").value === "descendente") {
-            document.getElementById("ord_table").value = "ascendente";
-        } else {
-            document.getElementById("ord_table").value = "descendente";
-        }
-
-
-        filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
-        for (i = 0; i < filas.length; i++) {
-            let primerTd = filas[i].querySelector("td");
-            primerTd.innerHTML = (i + 1);
-        }
     }
     function darkenColor(rgb, percent) {
         let result = rgb.match(/\d+/g);
@@ -5536,6 +5451,7 @@ cursor:pointer;
 
     }
 
+
     async function playersPage1() {
         setTimeout(function () {
             let player_images
@@ -5847,6 +5763,90 @@ cursor:pointer;
             }
         }
         container.innerHTML += contenidoNuevo;
+    }
+    function getParsedValidDate(texto) {
+        let fecha = new Date(texto);
+        if (!isNaN(fecha.getTime())) {
+            return fecha.toISOString().split('T')[0];
+        } else {
+            let hoy = new Date();
+            hoy.setDate(hoy.getDate() - 5);
+            return hoy.toISOString().split('T')[0];
+        }
+    }
+    function ordenarTablaq(columna, byClassName, param) {
+        let tabla
+        if (byClassName) {
+            let elems = document.getElementsByClassName(param);
+            tabla = elems[0]
+        } else {
+            tabla = document.getElementById(param)
+        }
+        let filas, switching, i, x, y, debeCambiar, direccion, cambioRealizado;
+        switching = true;
+        direccion = document.getElementById("ord_table").value
+        while (switching) {
+            switching = false;
+            filas = tabla.rows;
+            for (i = 1; i < (filas.length - 1); i++) {
+                debeCambiar = false;
+                x = filas[i].getElementsByTagName("td")[columna];
+                y = filas[i + 1].getElementsByTagName("td")[columna];
+                let xValue = parseFloat(x.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
+                let yValue = parseFloat(y.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
+                if (direccion === "ascendente") {
+                    if (isNaN(xValue)) {
+                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                            debeCambiar = true;
+                            break;
+                        }
+                    } else {
+                        if (xValue > yValue) {
+                            debeCambiar = true;
+                            break;
+                        }
+                    }
+                } else if (direccion === "descendente") {
+                    if (isNaN(xValue)) {
+                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                            debeCambiar = true;
+                            break;
+                        }
+                    } else {
+                        if (xValue < yValue) {
+                            debeCambiar = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+
+
+            if (debeCambiar) {
+                filas[i].parentNode.insertBefore(filas[i + 1], filas[i]);
+                switching = true;
+                cambioRealizado = true;
+            } else {
+                if (!cambioRealizado && direccion === "descendente") {
+                    //direccion = "ascendente";
+                    switching = true;
+                }
+            }
+        }
+
+        if (document.getElementById("ord_table").value === "descendente") {
+            document.getElementById("ord_table").value = "ascendente";
+        } else {
+            document.getElementById("ord_table").value = "descendente";
+        }
+
+
+        filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+        for (i = 0; i < filas.length; i++) {
+            let primerTd = filas[i].querySelector("td");
+            primerTd.innerHTML = (i + 1);
+        }
     }
 
 
