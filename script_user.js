@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.121
+// @version      0.122
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -149,17 +149,14 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
-
             const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
             elementos.forEach(function (elemento) {
                 elemento.addEventListener('click', function () {
+                    getDeviceFormat()
                     waitToDOM(playersPageStats, ".player_name", 0,7000)
                 });
             });
-
         }
-
-
     }, 1000);
 
     let teams_data = "";
@@ -169,6 +166,7 @@
     let gk_line = ""
     let skills_names = []
     let su_line = "unsetted";
+    let fl_data=[]
 
     //BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
@@ -1101,6 +1099,7 @@ self.onmessage = function (e) {
             elem.innerHTML+="</br><div id='hp_loader' class='"+clase+"'></div>"
 
         });
+
 
         GM_xmlhttpRequest({
             method: "GET",
@@ -2145,7 +2144,6 @@ self.onmessage = function (e) {
         });
     }
 
-
     //Cups and FL's page
     async function friendlyCupsAndLeagues() {
 
@@ -2154,7 +2152,7 @@ self.onmessage = function (e) {
         let idComp="null"
         let link = "https://www.managerzone.com" + document.getElementById("ui-id-1").getAttribute('href')
         if (urlParams.get('fsid')) {
-            let fl_data= await fetchExistsFL(urlParams.get('fsid'))
+            fl_data= await fetchExistsFL(urlParams.get('fsid'))
             idComp=fl_data['id']
             age_restriction = await fetchAgeRestriction(link);
         } else {
@@ -3148,11 +3146,11 @@ self.onmessage = function (e) {
         txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
         txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
         txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
+
         let index=0
         if(window.stx_device!=="computer"){
             index=1
         }
-
         elementos_[index].innerHTML += txt;
         (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
             document.getElementById("but" + currentId).addEventListener('click', function () {
@@ -3841,6 +3839,7 @@ self.onmessage = function (e) {
                     "Content-Type": "application/json"
                 },
                 onload: function (response) {
+
                     let jsonResponse = JSON.parse(response.responseText);
                     resolve(jsonResponse)
                 },
@@ -4631,11 +4630,9 @@ self.onmessage = function (e) {
         }
 
         let sportCookie = getCookie("MZSPORT");
-
         if(sportCookie===""){
             sportCookie=getSportByLink()
         }
-
         if(sportCookie===""){
             sportCookie=getSportByScript()
         }
