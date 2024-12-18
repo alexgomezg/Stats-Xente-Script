@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.123
+// @version      0.124
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -36,6 +36,17 @@
                     GM_deleteValue(key);
                 });
     }*/
+
+    let cats=[]
+    let teams_data = "";
+    let searchClassName = ""
+    let players = []
+    let lines = []
+    let gk_line = ""
+    let skills_names = []
+    let su_line = "unsetted";
+    let fl_data=[]
+    let langs = new Map();
 
     setCSSStyles()
     createModalMenu()
@@ -159,14 +170,7 @@
         }
     }, 1000);
 
-    let teams_data = "";
-    let searchClassName = ""
-    let players = []
-    let lines = []
-    let gk_line = ""
-    let skills_names = []
-    let su_line = "unsetted";
-    let fl_data=[]
+
 
     //BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
@@ -1969,7 +1973,7 @@ self.onmessage = function (e) {
                                 let link = "https://statsxente.com/MZ1/View/" + src + ".php?tamper=yes&categoria=" + cat + "&idEquipo=" + currentId + "&idioma=" + lang + "&modal=yes&valor=nota&season=75&season_actual=75&equipo=-"
                                 openWindow(link, 0.95, 1.25);
                             });
-                        })(id, window.lsport, window.lang, cat);
+                        })(id, window.lsport, window.lang,cat);
 
                         (function (currentId, currentEquipo, currentCat, currentSport, lang) {
                             document.getElementById("but" + currentId).addEventListener('click', function () {
@@ -1985,7 +1989,7 @@ self.onmessage = function (e) {
                                     flagS + "&flagSub23=" + flagS23 + "&flagSub21=" + flagS21 + "&flagSub18=" + flagS18;
                                 openWindow(link, 0.95, 1.25);
                             });
-                        })(id, eloType, cats_elo[cat], window.sport, window.lang, flagSenior, flagSub23, flagSub21, flagSub18);
+                        })(id, eloType, cats_elo[urlParams.get('type')], window.sport, window.lang, flagSenior, flagSub23, flagSub21, flagSub18);
 
                     }
 
@@ -2553,6 +2557,7 @@ self.onmessage = function (e) {
                         cats_elo["SUB18w"] = "U18";
 
                         let cat = cats[detected_cat]
+                        if(cat!=="senior"){eloType=3}
 
 
                         let flagSenior = 0, flagSub23 = 0, flagSub21 = 0, flagSub18 = 0;
@@ -4612,7 +4617,7 @@ self.onmessage = function (e) {
     }
     function setLangSportCats() {
 
-        let langs = new Map();
+
         langs.set('es', 'SPANISH');
         langs.set('ar', 'SPANISH')
         langs.set('en', 'ENGLISH');
@@ -4644,7 +4649,6 @@ self.onmessage = function (e) {
             sport_id = 2;
         }
 
-        let cats = {};
         cats["senior"] = "senior";
         cats["world"] = "seniorw";
         cats["u23"] = "SUB23";
