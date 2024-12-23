@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.124
+// @version      0.125
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -81,14 +81,20 @@
             }, 2000);
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))&&(!urlParams.has('tid'))
             && (GM_getValue("playersFlag"))) {
             getDeviceFormat()
             waitToDOM(playersPage, ".playerContainer", 0,7000)
 
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid'))) {
+            getDeviceFormat()
+            waitToDOM(playersPageStatsAll, ".player_name", 0,7000)
+        }
+
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
+            getDeviceFormat()
             waitToDOM(playersPageStats, ".player_name", 0,7000)
         }
 
@@ -727,7 +733,6 @@ self.onmessage = function (e) {
         if (!team_ids.includes(team_id)) {
             linkIds += "&idEquipo" + contIds + "=" + team_id
         }
-
 
         GM_xmlhttpRequest({
             method: "GET",
@@ -2935,9 +2940,16 @@ self.onmessage = function (e) {
         }
 
         if(flagStats){
+            let team_id
+            if(window.sport==="soccer"){
+                team_id=GM_getValue("soccer_team_id")
+            }else{
+                team_id=GM_getValue("hockey_team_id")
+            }
             let elementos1 = document.getElementsByClassName('playerContainer');
             for (let i = 0; i < elementos1.length; i++) {
                 let ids = elementos1[i].getElementsByClassName('player_id_span');
+                let playerName = elementos1[i].querySelector('.player_name').textContent
                 let elementos_ = elementos1[i].getElementsByClassName('p_sublinks');
                 let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
                 txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
@@ -2947,6 +2959,21 @@ self.onmessage = function (e) {
                 let index=0
                 if(window.stx_device!=="computer"){index=1}
                 elementos_[index].innerHTML += txt;
+
+
+
+                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                    document.getElementById("but" + currentId).addEventListener('click', function () {
+                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
+                            "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                        openWindow(link, 0.95, 1.25);
+                    });
+                })(ids[0].textContent, team_id, window.sport, window.lang, "[undefined]", playerName);
+
+
+
+
             }
 
 
@@ -5851,6 +5878,37 @@ cursor:pointer;
             let primerTd = filas[i].querySelector("td");
             primerTd.innerHTML = (i + 1);
         }
+    }
+
+    function playersPageStatsAll(){
+        let params = new URLSearchParams(window.location.search);;
+        let tid = params.get('tid');
+        let elementos1 = document.getElementsByClassName('playerContainer');
+        for (let i = 0; i < elementos1.length; i++) {
+            let playerName = elementos1[i].querySelector('.player_name').textContent
+            let ids = elementos1[i].getElementsByClassName('player_id_span');
+            let elementos_ = elementos1[i].getElementsByClassName('p_sublinks');
+            let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
+            txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
+            txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
+            txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
+
+            let index=0
+            if(window.stx_device!=="computer"){index=1}
+            elementos_[index].innerHTML += txt;
+
+
+            (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                document.getElementById("but" + currentId).addEventListener('click', function () {
+                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                        + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
+                        "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                    openWindow(link, 0.95, 1.25);
+                });
+            })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
+
+        }
+
     }
 
 
