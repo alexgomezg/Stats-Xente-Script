@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.125
+// @version      0.126
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -184,7 +184,7 @@
         waitToDOMById(tableFLAndClashEventListener,"ui-id-2",5000)
     }
 
-    if (urlParams.get('p') === 'cup'){
+    if ((urlParams.get('p') === 'cup')||(urlParams.get('p') === 'private_cup')){
         waitToDOMById(tableCupsEventListener,"ui-id-4",5000)
     }
     waitToDOMById(tableLeaguesEventListener,"league_tab_table",5000)
@@ -1098,6 +1098,10 @@ self.onmessage = function (e) {
                 team_id=GM_getValue("soccer_team_id")
             }else{
                 team_id=GM_getValue("hockey_team_id")
+            }
+
+            if(team_id===undefined){
+                team_id=document.getElementById("tid1").value
             }
 
         }
@@ -4280,7 +4284,7 @@ self.onmessage = function (e) {
         body.appendChild(newElement);
 
         let newModalElement = document.createElement('div');
-        newModalElement.innerHTML = '<div id="snackbar_stx" style="margin: 0 auto; text-align:center;"></div><div id="myModal_cargando" class="modal_cargando"><div class="modal-content_cargando"  id="modal_content_div_cargando"><div id="contenido_modal_cargando" style="overflow-x:auto; background-color:#f2f2f200;"></div></div></div>'
+        newModalElement.innerHTML = '<div id="snackbar_stx" style="margin: 0 auto; text-align:center;"></div><div id="myModal_cargando-stx" class="modal_cargando-stx"><div class="modal-content_cargando-stx"  id="modal_content_div_cargando-stx"><div id="contenido_modal_cargando-stx" style="overflow-x:auto; background-color:#f2f2f200;"></div></div></div>'
         body.insertBefore(newModalElement, body.firstChild);
 
         if (GM_getValue("leagueFlag") === undefined) {
@@ -4452,10 +4456,10 @@ self.onmessage = function (e) {
 
         newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;"><button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button><button id="deleteButton" class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button></div>'
         newContent += '</div></center></br></br>';
-        document.getElementById("contenido_modal_cargando").innerHTML = newContent
+        document.getElementById("contenido_modal_cargando-stx").innerHTML = newContent
         createLeagueConfigOptionsListeners();
-        document.getElementById("contenido_modal_cargando").style.width = "75%";
-        document.getElementById("myModal_cargando").style.display = "none"
+        document.getElementById("contenido_modal_cargando-stx").style.width = "75%";
+        document.getElementById("myModal_cargando-stx").style.display = "none"
         getNativeTableStyles()
 
         document.getElementById("alert_tittle").style.backgroundColor = GM_getValue("bg_native")
@@ -4474,17 +4478,17 @@ self.onmessage = function (e) {
 
         document.getElementById("legendDiv").addEventListener('click', function () {
 
-            if (document.getElementById("myModal_cargando").style.display === "none") {
-                document.getElementById("myModal_cargando").style.display = "flex";
+            if (document.getElementById("myModal_cargando-stx").style.display === "none") {
+                document.getElementById("myModal_cargando-stx").style.display = "flex";
             } else {
-                document.getElementById("myModal_cargando").style.display = "none";
+                document.getElementById("myModal_cargando-stx").style.display = "none";
             }
 
         });
 
 
         document.getElementById("closeButton").addEventListener('click', function () {
-            document.getElementById("myModal_cargando").style.display = "none";
+            document.getElementById("myModal_cargando-stx").style.display = "none";
         });
 
 
@@ -4987,7 +4991,7 @@ self.onmessage = function (e) {
     border-color: #ffffff;
     font-weight: bold;
     text-shadow: 1px 1px #ffffff;
-}.modal_cargando {
+}.modal_cargando-stx {
         display: none;
         /* Hidden by default */
         position: fixed;
@@ -5012,7 +5016,7 @@ self.onmessage = function (e) {
         align-items: center;
     }
 
-    .modal-content_cargando {
+    .modal-content_cargando-stx {
     position:relative;
 border-radius:7px;
         background-color: #fefefe00;
@@ -5114,15 +5118,15 @@ border-radius: 3px;
     color: #fff;
   }
 
-    .close_cargando {
+    .close_cargando-stx {
         color: #aaaaaa;
         float: right;
         font-size: 28px;
         font-weight: bold;
     }
 
-    .close_cargando:hover,
-    .close_cargando:focus {
+    .close_cargando-stx:hover,
+    .close_cargando-stx:focus {
         color: #000;
         text-decoration: none;
         cursor: pointer;
