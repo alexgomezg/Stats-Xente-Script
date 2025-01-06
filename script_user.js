@@ -4664,8 +4664,10 @@ self.onmessage = function (e) {
         } else {
             window.lang = "ENGLISH";
         }
-
-        let sportCookie = getCookie("MZSPORT");
+        let sportCookie=getSportByMessenger()
+        if(sportCookie===""){
+          sportCookie = getCookie("MZSPORT");
+        }
         if(sportCookie===""){
             sportCookie=getSportByLink()
         }
@@ -4724,6 +4726,15 @@ self.onmessage = function (e) {
         document.documentElement.appendChild(script);
         script.remove();
         return document.getElementById("stx_sport").value
+    }
+    function getSportByMessenger() {
+        if (document.getElementById("messenger")) {
+
+            if ((document.getElementById("messenger").className === "soccer") || (document.getElementById("messenger").className === "hockey")) {
+                return document.getElementById("messenger").className
+            }
+        }
+        return ""
     }
     function getUsernameData() {
         if ((GM_getValue("currency") === undefined) || (GM_getValue("currency") === "")
