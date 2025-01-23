@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.126
+// @version      0.127
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -72,6 +72,7 @@
             && (urlParams.get('sub') === 'clash') && (GM_getValue("federationFlag"))) {
             getDeviceFormat()
             waitToDOM(clash, ".fed_badge", 0,7000)
+            waitToDOMById(clashEloMatches, "latest-challenges",7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match')
@@ -85,10 +86,9 @@
             && (GM_getValue("playersFlag"))) {
             getDeviceFormat()
             waitToDOM(playersPage, ".playerContainer", 0,7000)
-
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid'))) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
             getDeviceFormat()
             waitToDOM(playersPageStatsAll, ".player_name", 0,7000)
         }
@@ -398,6 +398,76 @@ self.onmessage = function (e) {
 
 
     }
+
+    //Show ELO diff on clash matches
+    function clashEloMatches() {
+        let div = document.getElementById("latest-challenges")
+        let tables = div.getElementsByTagName("table")
+        if (tables.length > 0) {
+            let table = tables[0]
+
+
+            let rows = table.querySelectorAll("tr");
+
+            let linkIds = ""
+            let contIds = 0
+
+            rows.forEach(row => {
+                let tds = row.querySelectorAll("td");
+                let secondTd = tds[1];
+                let as = secondTd.getElementsByTagName("a")
+                let urlObj = new URL("https://www.managerzone.com/" + as[0].getAttribute('href'));
+                let params = new URLSearchParams(urlObj.search);
+                let mid = params.get('mid');
+                linkIds += "&idPartido" + contIds + "=" + mid
+                contIds++
+            });
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_clash_matches_elo.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+
+                    let jsonResponse = JSON.parse(response.responseText);
+                    rows.forEach(row => {
+                        let tds = row.querySelectorAll("td");
+                        let secondTd = tds[1];
+                        let as = secondTd.getElementsByTagName("a")
+                        let urlObj = new URL("https://www.managerzone.com/" + as[0].getAttribute('href'));
+                        let params = new URLSearchParams(urlObj.search);
+                        let mid = params.get('mid');
+                        let lastTd = row.querySelector("td:last-child");
+                        if (lastTd) {
+                            const clonedTd = lastTd.cloneNode(true);
+                            let diff = jsonResponse[mid]
+                            if (diff === undefined) {
+                                diff = 0
+                            }
+                            diff = diff.toFixed(2)
+                            clonedTd.innerHTML = `
+  <div style="display: flex; align-items: center;">
+    <img width='10px' height='10px' src='https://i.imgur.com/EdfoGof.png'/>
+    <b style="margin-left: 5px;">${diff}</b>
+  </div>
+`;
+                            clonedTd.style.width = "4em"
+                            clonedTd.style.textAlign = "left"
+                            row.appendChild(clonedTd);
+                        }
+                        lastTd.style.width = "3em"
+                    });
+                }
+
+            });
+        }
+    }
+
+
+
+
     //Users ranking page
     function usersRank(){
         let initialValues = {};
@@ -885,7 +955,6 @@ self.onmessage = function (e) {
                 }
             }
         });
-
 
         GM_xmlhttpRequest({
             method: "GET",
@@ -2159,7 +2228,6 @@ self.onmessage = function (e) {
 
     //Cups and FL's page
     async function friendlyCupsAndLeagues() {
-
         let urlParams = new URLSearchParams(window.location.search);
         let age_restriction
         let idComp="null"
@@ -2173,7 +2241,6 @@ self.onmessage = function (e) {
         }
 
         let detected_cat = "senior"
-
         if (age_restriction !== "none") {
 
 
@@ -3934,11 +4001,18 @@ self.onmessage = function (e) {
                     try {
                         let doc = parser.parseFromString(response.responseText, "text/html")
                         let tables = doc.getElementsByTagName("table");
+
+                        Array.from(tables).forEach((table, index) => {
+                            if(table.querySelector("#set_default_tactic")){
+                                let tds = table.getElementsByTagName("td");
+                                resolve(tds[5].innerHTML)
+                            }
+                        });
                         let table = tables[1]
                         let tds = table.getElementsByTagName("td");
                         resolve(tds[5].innerHTML)
                     } catch (error) {
-                        reject("none");
+                        reject("Error fetching age restriction");
                     }
                 },
                 onerror: function () {
@@ -4666,7 +4740,7 @@ self.onmessage = function (e) {
         }
         let sportCookie=getSportByMessenger()
         if(sportCookie===""){
-          sportCookie = getCookie("MZSPORT");
+            sportCookie = getCookie("MZSPORT");
         }
         if(sportCookie===""){
             sportCookie=getSportByLink()
