@@ -449,7 +449,7 @@ self.onmessage = function (e) {
                             diff = diff.toFixed(2)
                             clonedTd.innerHTML = `
   <div style="display: flex; align-items: center;">
-    <img width='10px' height='10px' src='https://i.imgur.com/EdfoGof.png'/>
+    <img width='10px' height='10px' src='https://statsxente.com/MZ1/View/Images/diff_elo.png'/>
     <b style="margin-left: 5px;">${diff}</b>
   </div>
 `;
