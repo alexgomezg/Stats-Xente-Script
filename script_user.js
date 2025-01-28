@@ -697,6 +697,17 @@ self.onmessage = function (e) {
             });
         }
 
+        let played_div_menu=document.getElementById("matches_sub_nav")
+        let div_show_scores=played_div_menu.getElementsByClassName("flex-grow-0")
+        let showScoreSpan=div_show_scores[0].getElementsByTagName("span")
+
+        showScoreSpan[1].addEventListener('click', function() {
+            if(GM_getValue("eloPlayedMatchesFlag")){
+                waitToDOM(lastMatchesELO, ".group", 0,7000)
+            }
+        });
+
+
 
         let team_id=""
         let urlParams = new URLSearchParams(window.location.search);
@@ -1164,10 +1175,6 @@ self.onmessage = function (e) {
                 }
             });
         }
-
-
-
-
 
 
         const today = new Date();
