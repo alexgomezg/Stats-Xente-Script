@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.127
+// @version      0.128
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -130,8 +130,10 @@
             if(GM_getValue("eloNextMatchesFlag")){
                 waitToDOM(nextMatches, ".group", 0,7000)
             }
-            if(GM_getValue("eloPlayedMatchesFlag")){
-                waitToDOM(lastMatchesELO, ".group", 0,7000)
+            if(!urlParams.has('hidescore')){
+                if(GM_getValue("eloPlayedMatchesFlag")){
+                    waitToDOM(lastMatchesELO, ".group", 0,7000)
+                }
             }
 
         }
@@ -701,9 +703,16 @@ self.onmessage = function (e) {
         if (urlParams.has('tid')){
             team_id=urlParams.get("tid")
         }else{
+
             if(window.sport==="soccer"){
+                if ((GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")){
+                    GM_setValue("soccer_team_id", document.getElementById("tid1").value)
+                }
                 team_id=GM_getValue("soccer_team_id")
             }else{
+                if ((GM_getValue("hockey_team_id") === undefined) || (GM_getValue("hockey_team_id") === "")){
+                    GM_setValue("hockey_team_id", document.getElementById("tid1").value)
+                }
                 team_id=GM_getValue("hockey_team_id")
             }
         }
@@ -928,11 +937,35 @@ self.onmessage = function (e) {
         if (urlParams.has('tid')){
             team_id=urlParams.get("tid")
         }else{
+
+
+
+
+
             if(window.sport==="soccer"){
+                if ((GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")){
+                    let div=document.getElementById("infoAboutTeam")
+                    let dds=div.getElementsByTagName("dd")
+                    let spans=dds[0].getElementsByTagName("span")
+                    let raw_id=spans[2].innerText
+                    let id=raw_id.replace(')', '')
+                    id=id.replace('(', '')
+                    GM_setValue("soccer_team_id",id)
+                }
                 team_id=GM_getValue("soccer_team_id")
             }else{
+                if ((GM_getValue("hockey_team_id") === undefined) || (GM_getValue("hockey_team_id") === "")){
+                    let div=document.getElementById("infoAboutTeam")
+                    let dds=div.getElementsByTagName("dd")
+                    let spans=dds[0].getElementsByTagName("span")
+                    let raw_id=spans[2].innerText
+                    let id=raw_id.replace(')', '')
+                    id=id.replace('(', '')
+                    GM_setValue("hockey_team_id",id)
+                }
                 team_id=GM_getValue("hockey_team_id")
             }
+
         }
 
         let main_div=document.getElementById("infoAboutTeam")
@@ -3013,8 +3046,29 @@ self.onmessage = function (e) {
         if(flagStats){
             let team_id
             if(window.sport==="soccer"){
+
+                if ((GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")){
+                    let div_player=document.getElementById("thePlayers_0")
+                    let h2s=div_player.getElementsByTagName("h2");
+                    let as=h2s[0].getElementsByTagName("a")
+                    let urlObj = new URL("https://www.managerzone.com/"+as[0].getAttribute("href"));
+                    let params = new URLSearchParams(urlObj.search);
+                    let tid = params.get('tid');
+                    GM_setValue("soccer_team_id",tid)
+                }
+
+
                 team_id=GM_getValue("soccer_team_id")
             }else{
+                if ((GM_getValue("hockey_team_id") === undefined) || (GM_getValue("hockey_team_id") === "")){
+                    let div_player=document.getElementById("thePlayers_0")
+                    let h2s=div_player.getElementsByTagName("h2");
+                    let as=h2s[0].getElementsByTagName("a")
+                    let urlObj = new URL("https://www.managerzone.com/"+as[0].getAttribute("href"));
+                    let params = new URLSearchParams(urlObj.search);
+                    let tid = params.get('tid');
+                    GM_setValue("hockey_team_id",tid)
+                }
                 team_id=GM_getValue("hockey_team_id")
             }
             let elementos1 = document.getElementsByClassName('playerContainer');
