@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.128
+// @version      0.129
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -157,6 +157,10 @@
             usersRank()
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'rank')){
+            eloRanks()
+        }
+
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
@@ -305,6 +309,32 @@ self.onmessage = function (e) {
 `;
 
 
+    //ELO Rankings
+    function eloRanks(){
+        let original = document.getElementById("leftmenu_rank_national");
+        const elo_aux_cats = new Map();
+        elo_aux_cats.set("u18_elo", "ELO U18");
+        elo_aux_cats.set("u21_elo", "ELO U21");
+        elo_aux_cats.set("u23_elo","ELO U23");
+        elo_aux_cats.set("senior_elo", "ELO Senior");
+
+        elo_aux_cats.forEach((valor, clave) => {
+            let clon = original.cloneNode(true);
+            clon.id = clave;
+            original.parentNode.insertBefore(clon, original.nextSibling);
+            let contenedor = document.getElementById(clave);
+            let enlace = contenedor.querySelector("a");
+            enlace.textContent = valor;
+            enlace.innerHTML='<img src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width: 15px; height: 15px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;">'+enlace.innerHTML
+            enlace.removeAttribute("href");
+            enlace.addEventListener("click", function(event) {
+                event.preventDefault();
+                let link="https://statsxente.com/MZ1/Functions/redirect.php?l="+clave+"_"+window.sport+"&i="+window.lang+"&d="+GM_getValue("currency")
+                openWindow(link, 0.95, 1.25);
+            });
+        });
+    }
+
 
     //Training Report
     function trainingReport(){
@@ -446,15 +476,19 @@ self.onmessage = function (e) {
                             const clonedTd = lastTd.cloneNode(true);
                             let diff = jsonResponse[mid]
                             if (diff === undefined) {
-                                diff = 0
-                            }
-                            diff = diff.toFixed(2)
-                            clonedTd.innerHTML = `
+                                clonedTd.innerHTML = `
+  <div style="display: flex; align-items: center;">
+  </div>
+`;
+                            }else{
+                                diff = diff.toFixed(2)
+                                clonedTd.innerHTML = `
   <div style="display: flex; align-items: center;">
     <img width='10px' height='10px' src='https://statsxente.com/MZ1/View/Images/diff_elo.png'/>
     <b style="margin-left: 5px;">${diff}</b>
   </div>
 `;
+                            }
                             clonedTd.style.width = "4em"
                             clonedTd.style.textAlign = "left"
                             row.appendChild(clonedTd);
@@ -940,6 +974,15 @@ self.onmessage = function (e) {
     }
     //Team page
     function teamPage(){
+
+
+        let divToInserT=document.getElementById("streakAndCupInfo")
+
+        let clase="loader-"+window.sport
+        divToInserT.innerHTML="</br><div id='hp_loader'><center><b>Loading...</b></center><div id='loader' class='"+clase+"' style='height:25px'></div></div>"+divToInserT.innerHTML
+
+
+
         let u23_type="",u21_type="",u18_type=""
         let team_name_div=document.getElementsByClassName("teamDataText clippable");
         const team_name=encodeURI(team_name_div[0].textContent)
@@ -999,6 +1042,7 @@ self.onmessage = function (e) {
                 }
             }
         });
+
 
         GM_xmlhttpRequest({
             method: "GET",
@@ -1093,6 +1137,8 @@ self.onmessage = function (e) {
 
                 let divToInserT=document.getElementById("streakAndCupInfo")
                 divToInserT.innerHTML=teamTable+divToInserT.innerHTML
+
+                document.getElementById("hp_loader").remove()
 
                 let color=GM_getValue("bg_native")
                 let darkerColor = darkenColor(color, 25);
@@ -2791,7 +2837,6 @@ self.onmessage = function (e) {
         }
 
 
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
@@ -2801,7 +2846,6 @@ self.onmessage = function (e) {
             onload: function (response) {
 
                 let jsonResponse = JSON.parse(response.responseText);
-
                 const divs = document.querySelectorAll('div'); // Selecciona todos los divs
                 const divsConAltura15px = Array.from(divs).filter(div => {
                     const computedStyle = window.getComputedStyle(div);
