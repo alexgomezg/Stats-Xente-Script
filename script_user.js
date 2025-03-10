@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.129
+// @version      0.130
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -61,6 +61,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
             waitToDOM(leagues, ".nice_table", 0,7000)
+            waitToDOMById(topScorersTableEventListener,"league_tab_top_scorers",5000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
@@ -161,6 +162,10 @@
             eloRanks()
         }
 
+        /* if ((urlParams.has('p')) && (urlParams.get('p') === 'clubhouse')){
+            eloRanks()
+        }*/
+
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
@@ -246,6 +251,99 @@
         });
     }
 
+    function topScorersTableEventListener() {
+        if (!document.getElementById('showStats')) {
+            document.getElementById("league_tab_top_scorers").addEventListener('click', function () {
+                setTimeout(function () {
+                    let cats_stats = {}
+                    cats_stats["senior"] = "senior";
+                    cats_stats["world"] = "senior";
+                    cats_stats["u23"] = "SUB23";
+                    cats_stats["u21"] = "SUB21";
+                    cats_stats["u18"] = "SUB18";
+                    cats_stats["u23_world"] = "SUB23";
+                    cats_stats["u21_world"] = "SUB21";
+                    cats_stats["u18_world"] = "SUB18";
+                    let statsKeys = {};
+
+                    if (window.sport == "soccer") {
+                        var posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Portero">Goalkeeper</option><option value="Defensa">Defender</option><option value="Mediocentro">Midfielder</option><option value="Delantero">Striker</option></select>';
+                        statsKeys["senior"] = 1
+                        statsKeys["world"] = 5
+                        statsKeys["u23"] = 3
+                        statsKeys["u21"] = 3
+                        statsKeys["u18"] = 3
+                        statsKeys["u23_world"] = 7
+                        statsKeys["u21_world"] = 7
+                        statsKeys["u18_world"] = 7
+                        var txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:8em;" id="valor"><option value="gol">Total Goals</option><option value="gol/numPartidos">Goals Average</option><option value="golPro">Total Owngoals</option><option value="dg">Total Shots on target</option><option value="dg/numPartidos">Average Shots on target</option><option value="ds">Total Shots</option><option value="ds/numPartidos">Shots Average</option><option value="amarillas">Yellow C. Total</option><option value="amarillas/numPartidos">Average Yellow C.</option><option value="rojas">Red C. Total</option><option value="rojas/numPartidos">Average Red C.</option><option value="paT">Total Passes</option><option value="paB">Good Passes</option><option value="(paB/paT)*100">% Passes</option><option value="enT">Total Tackles</option><option value="enB">Won Tackles</option><option value="(enB/enT)*100">% Tackles</option><option value="ro">Total Interceptions</option><option value="ro/numPartidos">Average Interceptions</option><option value="para">Total Saves</option><option value="para/numPartidos">Average Saves</option><option value="(para/dispRec)*100">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="mvp">MVPs</option></select> Teams:'
+                    } else {
+                        posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Po">GK</option><option value="DI">LD</option><option value="DD">RD</option><option value="C">C</option><option value="EI">LW</option><option value="ED">RW</option></select>'
+                        statsKeys["senior"] = 2
+                        statsKeys["world"] = 6
+                        statsKeys["u23"] = 4
+                        statsKeys["u21"] = 4
+                        statsKeys["u18"] = 4
+                        statsKeys["u23_world"] = 8
+                        statsKeys["u21_world"] = 8
+                        statsKeys["u18_world"] = 8
+                        txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:10em;" id="valor"><option value="th/60">Time on Ice</option><option value="c">Shifts</option><option value="diff">+/-</option><option value="gol">Goals</option><option value="asist">Assists</option><option value="d">Shots</option><option value="round((gol/d)*100,0)">% Shots</option><option value="punt">Points</option></option><option value="per1">Period 1</option><option value="per2">Period 2</option><option value="per3">Period 3</option><option value="fg">Won Faceoff</option><option value="fp">Losed Faceoff</option><option value="(fg/(fg+fp))*100">% Face Offs</option><option value="np">Penalties</option><option value="gc">Goals Againts</option><option value="dr">Shots Against</option><option value="para">Saves</option><option value="round((para/dr)*100,0)">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="nota">Rate</option><option value="mvp">MVPs</option></select> Teams:'
+                    }
+                    var ri = document.getElementsByClassName("floatRight")
+                    var selects = ri[1].querySelectorAll("select");
+                    var select = selects[0]
+                    select.style.width = "10em"
+                    select.querySelectorAll("option").forEach(option => {
+                        option.removeAttribute("selected");
+                    });
+
+                    const nuevoOption = document.createElement("option");
+                    nuevoOption.textContent = "All"; // Texto visible
+                    nuevoOption.value = "-1"; // Valor del option
+                    nuevoOption.selected = true;
+
+                    select.insertBefore(nuevoOption, select.firstChild);
+                    select.selectedIndex = 1;
+                    select.dispatchEvent(new Event('change'));
+                    select.selectedIndex = 0;
+                    select.dispatchEvent(new Event('change'));
+
+
+                    var spans = ri[1].querySelectorAll("span");
+                    spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
+
+
+                    ri[1].innerHTML = txt + ri[1].innerHTML
+
+                    let tables = document.getElementsByClassName("hitlist hitlist-compact-list-included tablesorter marker")
+                    let table = tables[0]
+                    document.getElementById("showStats").addEventListener('click', function () {
+                        let texto = select.id;
+                        let idSelect = select.id
+                        let parts = texto.split("_");
+                        let league_id = parts[parts.length - 1];
+                        let selectValor = document.getElementById("valor");
+                        let selectedValue = selectValor.value;
+                        let urlParams = new URLSearchParams(window.location.search);
+                        var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[urlParams.get("type")] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
+                            "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[urlParams.get("type")]
+                            + "&ord=desc&posicion=" + document.getElementById("positionValue").value;
+
+                        var keyValue = selectValor.options[selectValor.selectedIndex].text;
+                        var teamId=document.getElementById(idSelect).value
+                        var ris = document.getElementsByClassName("floatRight")
+                        let clase="loader-"+window.sport
+                        ris[1].insertAdjacentHTML("afterend","<div id='hp_loader'></br></br></br><center><div style='width:50%;'><center><b>Loading...</b></center><div id='loader' class='"+clase+"' style='height:25px'></div></div></center></div>");
+                        playerStatsOnTopScores(table, txt, selectedValue, keyValue,teamId)
+
+                    });
+                }, 1000);
+            });
+
+        }
+
+    }
+
     //Workers
     const workerCode = `
 self.onmessage = function (e) {
@@ -312,6 +410,8 @@ self.onmessage = function (e) {
     //ELO Rankings
     function eloRanks(){
         let original = document.getElementById("leftmenu_rank_national");
+        //let original = document.getElementById("sub_page_nav_rank_national");
+
         const elo_aux_cats = new Map();
         elo_aux_cats.set("u18_elo", "ELO U18");
         elo_aux_cats.set("u21_elo", "ELO U21");
@@ -1268,7 +1368,6 @@ self.onmessage = function (e) {
 
         });
 
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?sport=" + window.sport + "&team_id="+team_id+"&initial_date="+initialDate+"&final_date="+finalDate,
@@ -1624,6 +1723,136 @@ self.onmessage = function (e) {
 
 
     }
+
+
+    function borrarColumnas(tabla,numColumnas) {
+        let filas = tabla.rows;
+
+        for (let i = 0; i < filas.length; i++) {
+            // Recorremos las celdas desde la última hasta la columna X+1
+            while (filas[i].cells.length > numColumnas) {
+                filas[i].deleteCell(numColumnas); // Elimina la columna después de las primeras X
+            }
+        }
+    }
+
+    //Player stats on Top Scorers table
+    function playerStatsOnTopScores(table,link,valor,keyValue,teamId){
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: link,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+                let jsonResponse = JSON.parse(response.responseText);
+                let cont=0;
+                let flag=false;
+
+                let tbody=table.querySelectorAll("tbody");
+
+                let thead=table.querySelectorAll("thead");
+                let rows=thead[0].querySelectorAll("tr");
+                if(rows[0].cells[3].id!="position"){
+                    flag=true;
+                    rows[0].insertCell(5).innerHTML = "<center>Stats Xente</center>";
+                    rows[0].insertCell(3).innerHTML = "Position";
+                    rows[0].cells[3].id = "position";
+                    rows[0].cells[3].style.textDecoration = "underline";  // Color de fondo
+                }
+                let ths=thead[0].querySelectorAll("th")
+                let aTh= ths[4].querySelectorAll("a")
+                aTh[0].textContent=keyValue
+
+                tbody[0].querySelectorAll("tr").forEach(row => {
+                    row.classList.remove('highlight_row');
+                    if(cont<jsonResponse.length){
+                        if(teamId>-1){
+                            if(teamId==jsonResponse[cont]["idEquipo"]){
+                                row.classList.add('highlight_row');
+                            }
+                        }
+                        let tds = row.querySelectorAll("td");
+                        var buttonData='<center><img id="stx_pl_'+jsonResponse[cont]["idJugador"]+'" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="cursor:pointer; width: 17px; height: 17px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;"></center>'
+                        var keyTable=4;
+                        var keyTable1=3;
+                        if(flag){
+                            row.insertCell(3).innerHTML = "<img src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
+                            row.insertCell(6).innerHTML=buttonData
+                        }else{
+                            tds[3].innerHTML="<img src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
+                            tds[6].innerHTML=buttonData
+                            keyTable1=4;
+                            keyTable=5;
+                        }
+
+
+                        (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                            document.getElementById("stx_pl_" + currentId).addEventListener('click', function () {
+
+                                let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                                    + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
+                                    "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                                openWindow(link, 0.95, 1.25);
+                            });
+                        })(jsonResponse[cont]["idJugador"],jsonResponse[cont]["idEquipo"], window.sport, window.lang,jsonResponse[cont]["equipo"],jsonResponse[cont]["nombre"]);
+
+
+                        //Player
+                        let player=tds[1].getElementsByClassName("player_link")
+                        player[0].textContent=jsonResponse[cont]["nombre"]
+                        let as = tds[1].querySelectorAll("a");
+                        as[0].href="?p=players&pid="+jsonResponse[cont]["idJugador"];
+                        let images = tds[1].querySelectorAll("img");
+                        images[0].src="nocache-929/img/flags/12/"+jsonResponse[cont]["paisJugador"]+".png";
+
+                        //Team
+                        let team=tds[2].querySelectorAll("a")
+                        team[0].textContent=jsonResponse[cont]["equipo"]
+                        images = tds[2].querySelectorAll("img");
+                        images[0].src="nocache-929/img/flags/12/"+jsonResponse[cont]["paisEquipo"]+".png";
+                        as = tds[2].querySelectorAll("a");
+                        as[0].href="?p=team&tid="+jsonResponse[cont]["idEquipo"];
+                        team[0].style.textTransform="none"
+
+                        //Played Matches
+                        tds[keyTable1].innerHTML=jsonResponse[cont]["numPartidos"]
+
+
+
+                        if((valor.includes("*"))||(valor.includes("/"))||(valor.includes("nota"))){
+
+                            tds[keyTable].innerHTML=jsonResponse[cont][valor].toFixed(2)
+                        }else{
+                            tds[keyTable].innerHTML=jsonResponse[cont][valor]
+                        }
+
+
+                    }
+
+                    cont++;
+
+                });
+
+
+
+                borrarColumnas(table,7)
+                /*let aux=select.selectedIndex
+                select.selectedIndex = 0;
+                select.dispatchEvent(new Event('change'));
+                select.selectedIndex = aux;
+                select.dispatchEvent(new Event('change'));*/
+                document.getElementById("hp_loader").remove()
+
+            }
+
+
+        });
+
+
+
+    }
+
     //Leagues page
     function leagues() {
         let urlParams = new URLSearchParams(window.location.search);
@@ -2051,9 +2280,11 @@ self.onmessage = function (e) {
 
         }, 200);
 
+
+
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "http://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
