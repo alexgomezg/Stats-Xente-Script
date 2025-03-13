@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.130
+// @version      0.131
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -38,7 +38,10 @@
     }*/
 
     let cats=[]
+    let cats_stats = {}
+    let statsKeys = {}
     let teams_data = "";
+    let teams_stats = "";
     let searchClassName = ""
     let players = []
     let lines = []
@@ -113,6 +116,10 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')
             && (urlParams.get('sub') === 'standings')) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+        }
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')){
+            waitToDOMById(topScorersTableEventListener,"ui-id-4",5000)
         }
 
 
@@ -253,91 +260,93 @@
 
     function topScorersTableEventListener() {
         if (!document.getElementById('showStats')) {
-            document.getElementById("league_tab_top_scorers").addEventListener('click', function () {
-                setTimeout(function () {
-                    let cats_stats = {}
-                    cats_stats["senior"] = "senior";
-                    cats_stats["world"] = "senior";
-                    cats_stats["u23"] = "SUB23";
-                    cats_stats["u21"] = "SUB21";
-                    cats_stats["u18"] = "SUB18";
-                    cats_stats["u23_world"] = "SUB23";
-                    cats_stats["u21_world"] = "SUB21";
-                    cats_stats["u18_world"] = "SUB18";
-                    let statsKeys = {};
-
-                    if (window.sport == "soccer") {
-                        var posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Portero">Goalkeeper</option><option value="Defensa">Defender</option><option value="Mediocentro">Midfielder</option><option value="Delantero">Striker</option></select>';
-                        statsKeys["senior"] = 1
-                        statsKeys["world"] = 5
-                        statsKeys["u23"] = 3
-                        statsKeys["u21"] = 3
-                        statsKeys["u18"] = 3
-                        statsKeys["u23_world"] = 7
-                        statsKeys["u21_world"] = 7
-                        statsKeys["u18_world"] = 7
-                        var txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:8em;" id="valor"><option value="gol">Total Goals</option><option value="gol/numPartidos">Goals Average</option><option value="golPro">Total Owngoals</option><option value="dg">Total Shots on target</option><option value="dg/numPartidos">Average Shots on target</option><option value="ds">Total Shots</option><option value="ds/numPartidos">Shots Average</option><option value="amarillas">Yellow C. Total</option><option value="amarillas/numPartidos">Average Yellow C.</option><option value="rojas">Red C. Total</option><option value="rojas/numPartidos">Average Red C.</option><option value="paT">Total Passes</option><option value="paB">Good Passes</option><option value="(paB/paT)*100">% Passes</option><option value="enT">Total Tackles</option><option value="enB">Won Tackles</option><option value="(enB/enT)*100">% Tackles</option><option value="ro">Total Interceptions</option><option value="ro/numPartidos">Average Interceptions</option><option value="para">Total Saves</option><option value="para/numPartidos">Average Saves</option><option value="(para/dispRec)*100">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="mvp">MVPs</option></select> Teams:'
-                    } else {
-                        posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Po">GK</option><option value="DI">LD</option><option value="DD">RD</option><option value="C">C</option><option value="EI">LW</option><option value="ED">RW</option></select>'
-                        statsKeys["senior"] = 2
-                        statsKeys["world"] = 6
-                        statsKeys["u23"] = 4
-                        statsKeys["u21"] = 4
-                        statsKeys["u18"] = 4
-                        statsKeys["u23_world"] = 8
-                        statsKeys["u21_world"] = 8
-                        statsKeys["u18_world"] = 8
-                        txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:10em;" id="valor"><option value="th/60">Time on Ice</option><option value="c">Shifts</option><option value="diff">+/-</option><option value="gol">Goals</option><option value="asist">Assists</option><option value="d">Shots</option><option value="round((gol/d)*100,0)">% Shots</option><option value="punt">Points</option></option><option value="per1">Period 1</option><option value="per2">Period 2</option><option value="per3">Period 3</option><option value="fg">Won Faceoff</option><option value="fp">Losed Faceoff</option><option value="(fg/(fg+fp))*100">% Face Offs</option><option value="np">Penalties</option><option value="gc">Goals Againts</option><option value="dr">Shots Against</option><option value="para">Saves</option><option value="round((para/dr)*100,0)">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="nota">Rate</option><option value="mvp">MVPs</option></select> Teams:'
+            let button_id_el="none"
+            if (document.getElementById("league_tab_top_scorers")) {
+                button_id_el="league_tab_top_scorers"
+            } else {
+                button_id_el="ui-id-4"
+            }
+            document.getElementById(button_id_el).addEventListener('click',function () {
+                setTimeout(async function () {
+                    let flagShow = true
+                    var idComp="null"
+                    if (button_id_el == "ui-id-4") {
+                        fl_data = await fetchExistsFL(urlParams.get('fsid'))
+                        idComp = fl_data['id']
+                        if (idComp == "null") {
+                            flagShow = false
+                        }
                     }
-                    var ri = document.getElementsByClassName("floatRight")
-                    var selects = ri[1].querySelectorAll("select");
-                    var select = selects[0]
-                    select.style.width = "10em"
-                    select.querySelectorAll("option").forEach(option => {
-                        option.removeAttribute("selected");
-                    });
+                    if(flagShow){
+                        if (window.sport == "soccer") {
+                            var posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Portero">Goalkeeper</option><option value="Defensa">Defender</option><option value="Mediocentro">Midfielder</option><option value="Delantero">Striker</option></select>';
+                            var txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:8em;" id="valor"><option value="gol">Total Goals</option><option value="gol/numPartidos">Goals Average</option><option value="golPro">Total Owngoals</option><option value="dg">Total Shots on target</option><option value="dg/numPartidos">Average Shots on target</option><option value="ds">Total Shots</option><option value="ds/numPartidos">Shots Average</option><option value="(dg/ds)*100">% Shoting</option><option value="amarillas">Yellow C. Total</option><option value="amarillas/numPartidos">Average Yellow C.</option><option value="rojas">Red C. Total</option><option value="rojas/numPartidos">Average Red C.</option><option value="paT">Total Passes</option><option value="paB">Good Passes</option><option value="(paB/paT)*100">% Passes</option><option value="enT">Total Tackles</option><option value="enB">Won Tackles</option><option value="(enB/enT)*100">% Tackles</option><option value="ro">Total Interceptions</option><option value="ro/numPartidos">Average Interceptions</option><option value="para">Total Saves</option><option value="para/numPartidos">Average Saves</option><option value="(para/dispRec)*100">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="mvp">MVPs</option></select> Teams:'
+                        } else {
+                            posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Po">GK</option><option value="DI">LD</option><option value="DD">RD</option><option value="C">C</option><option value="EI">LW</option><option value="ED">RW</option></select>'
+                            txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:10em;" id="valor"><option value="th/60">Time on Ice</option><option value="c">Shifts</option><option value="diff">+/-</option><option value="gol">Goals</option><option value="asist">Assists</option><option value="d">Shots</option><option value="round((gol/d)*100,0)">% Shots</option><option value="punt">Points</option></option><option value="per1">Period 1</option><option value="per2">Period 2</option><option value="per3">Period 3</option><option value="fg">Won Faceoff</option><option value="fp">Losed Faceoff</option><option value="(fg/(fg+fp))*100">% Face Offs</option><option value="np">Penalties</option><option value="gc">Goals Againts</option><option value="dr">Shots Against</option><option value="para">Saves</option><option value="round((para/dr)*100,0)">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="nota">Rate</option><option value="mvp">MVPs</option></select> Teams:'
+                        }
+                        var ri = document.getElementsByClassName("floatRight")
+                        var selects = ri[1].querySelectorAll("select");
+                        var select = selects[0]
+                        select.style.width = "10em"
+                        select.querySelectorAll("option").forEach(option => {
+                            option.removeAttribute("selected");
+                        });
 
-                    const nuevoOption = document.createElement("option");
-                    nuevoOption.textContent = "All"; // Texto visible
-                    nuevoOption.value = "-1"; // Valor del option
-                    nuevoOption.selected = true;
+                        const nuevoOption = document.createElement("option");
+                        nuevoOption.textContent = "All"; // Texto visible
+                        nuevoOption.value = "-1"; // Valor del option
+                        nuevoOption.selected = true;
 
-                    select.insertBefore(nuevoOption, select.firstChild);
-                    select.selectedIndex = 1;
-                    select.dispatchEvent(new Event('change'));
-                    select.selectedIndex = 0;
-                    select.dispatchEvent(new Event('change'));
-
-
-                    var spans = ri[1].querySelectorAll("span");
-                    spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
+                        select.insertBefore(nuevoOption, select.firstChild);
+                        select.selectedIndex = 1;
+                        select.dispatchEvent(new Event('change'));
+                        select.selectedIndex = 0;
+                        select.dispatchEvent(new Event('change'));
 
 
-                    ri[1].innerHTML = txt + ri[1].innerHTML
+                        var spans = ri[1].querySelectorAll("span");
+                        spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
 
-                    let tables = document.getElementsByClassName("hitlist hitlist-compact-list-included tablesorter marker")
-                    let table = tables[0]
-                    document.getElementById("showStats").addEventListener('click', function () {
-                        let texto = select.id;
-                        let idSelect = select.id
-                        let parts = texto.split("_");
-                        let league_id = parts[parts.length - 1];
-                        let selectValor = document.getElementById("valor");
-                        let selectedValue = selectValor.value;
-                        let urlParams = new URLSearchParams(window.location.search);
-                        var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[urlParams.get("type")] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
-                            "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[urlParams.get("type")]
-                            + "&ord=desc&posicion=" + document.getElementById("positionValue").value;
 
-                        var keyValue = selectValor.options[selectValor.selectedIndex].text;
-                        var teamId=document.getElementById(idSelect).value
-                        var ris = document.getElementsByClassName("floatRight")
-                        let clase="loader-"+window.sport
-                        ris[1].insertAdjacentHTML("afterend","<div id='hp_loader'></br></br></br><center><div style='width:50%;'><center><b>Loading...</b></center><div id='loader' class='"+clase+"' style='height:25px'></div></div></center></div>");
-                        playerStatsOnTopScores(table, txt, selectedValue, keyValue,teamId)
+                        ri[1].innerHTML = txt + ri[1].innerHTML
 
-                    });
-                }, 1000);
+                        let tables = document.getElementsByClassName("hitlist hitlist-compact-list-included tablesorter marker")
+                        let table = tables[0]
+                        document.getElementById("showStats").addEventListener('click', function () {
+                            let texto = select.id;
+                            let idSelect = select.id
+                            let parts = texto.split("_");
+                            let league_id = parts[parts.length - 1];
+                            if (idComp != "null") {
+                                league_id=idComp
+                            }
+                            let selectValor = document.getElementById("valor");
+                            let selectedValue = selectValor.value;
+                            let urlParams = new URLSearchParams(window.location.search);
+
+                            let typeKey = ""
+                            if (urlParams.has('type')) {
+                                typeKey = urlParams.get("type")
+                            } else {
+                                typeKey = "friendlyseries"
+                            }
+
+
+                            var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
+                                "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[typeKey]
+                                + "&ord=desc&posicion=" + document.getElementById("positionValue").value;
+
+                            var keyValue = selectValor.options[selectValor.selectedIndex].text;
+                            var teamId = document.getElementById(idSelect).value
+                            var ris = document.getElementsByClassName("floatRight")
+                            let clase = "loader-" + window.sport
+                            ris[1].insertAdjacentHTML("afterend", "<div id='hp_loader'></br></br></br><center><div style='width:50%;'><center><b>Loading...</b></center><div id='loader' class='" + clase + "' style='height:25px'></div></div></center></div>");
+                            playerStatsOnTopScores(table, txt, selectedValue, keyValue, teamId)
+
+                        });
+                    }
+                }, 2000);
             });
 
         }
@@ -1725,17 +1734,6 @@ self.onmessage = function (e) {
     }
 
 
-    function borrarColumnas(tabla,numColumnas) {
-        let filas = tabla.rows;
-
-        for (let i = 0; i < filas.length; i++) {
-            // Recorremos las celdas desde la última hasta la columna X+1
-            while (filas[i].cells.length > numColumnas) {
-                filas[i].deleteCell(numColumnas); // Elimina la columna después de las primeras X
-            }
-        }
-    }
-
     //Player stats on Top Scorers table
     function playerStatsOnTopScores(table,link,valor,keyValue,teamId){
         GM_xmlhttpRequest({
@@ -1836,12 +1834,7 @@ self.onmessage = function (e) {
 
 
 
-                borrarColumnas(table,7)
-                /*let aux=select.selectedIndex
-                select.selectedIndex = 0;
-                select.dispatchEvent(new Event('change'));
-                select.selectedIndex = aux;
-                select.dispatchEvent(new Event('change'));*/
+                deleteCols(table,7)
                 document.getElementById("hp_loader").remove()
 
             }
@@ -1855,6 +1848,35 @@ self.onmessage = function (e) {
 
     //Leagues page
     function leagues() {
+        let tablesSearch=document.getElementsByClassName("nice_table")
+        let clear = tablesSearch[0].previousElementSibling;
+        let selectsDiv=clear.querySelectorAll('select');
+        let selectKey=0;
+        if(selectsDiv.length>1){
+            selectKey=1;
+        }
+        let idLiga=selectsDiv[selectKey].value
+        let typeKey = ""
+        let urlParams1 = new URLSearchParams(window.location.search);
+        if (urlParams1.has('type')) {
+            typeKey = urlParams1.get("type")
+        } else {
+            typeKey = "friendlyseries"
+        }
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idLiga+"&categoria="+cats_stats[typeKey],
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+                teams_stats=JSON.parse(response.responseText);
+            },
+        });
+
+
+
         let urlParams = new URLSearchParams(window.location.search);
         let initialValues = {};
         initialValues["senior"] = GM_getValue("league_default_senior");
@@ -2049,7 +2071,9 @@ self.onmessage = function (e) {
         let cats_temp=["SENIOR","U23","U21","U18"];
         contenidoNuevo += "</tr>"
         contenidoNuevo +="<tr style='margin: 0 auto; text-align: center;'>"
-        contenidoNuevo += '<td colspan="5"><label><input class="statsxente" type="checkbox" value="ELOCompare" id="ELOCompare">ELO Compare</label></td>';
+        contenidoNuevo += '<td colspan="2"><label><input class="statsxente" type="checkbox" value="ELOCompare" id="ELOCompare">ELO Compare</label></td>';
+        contenidoNuevo += '<td colspan="1"></td>';
+        contenidoNuevo += '<td colspan="2"><label><input class="statsxente" type="checkbox" value="TeamStats" id="TeamStats">Team Stats</label></td>';
         contenidoNuevo +="</tr>"
         contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trELOCompare"><td colspan="5">Category: '
         contenidoNuevo+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
@@ -2062,6 +2086,17 @@ self.onmessage = function (e) {
             contenidoNuevo+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
         }
         contenidoNuevo +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button></td></tr>'
+
+        //Team Stats data
+        contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trTeamStats"><td colspan="5">Stats: '
+        contenidoNuevo+='<select id="statsSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        if(window.sport=="soccer"){
+            contenidoNuevo+='<option value="gol">Choose Value</option> <option value="gol">Total Goals</option> <option value="gol/numPartidos">Goals Average</option> <option value="golPro">Total Owngoals</option> <option value="dg">Total Shots on target</option> <option value="dg/numPartidos">Average Shots on target</option> <option value="ds">Total Shots</option> <option value="ds/numPartidos">Shots Average</option> <option value="(dg/ds)*100">% Shoting</option> <option value="amarillas">Yellow C. Total</option> <option value="amarillas/numPartidos">Average Yellow C.</option> <option value="rojas">Red C. Total</option> <option value="rojas/numPartidos">Average Red C.</option> <option value="(rojas*2)+(amarillas)">Cards Points</option> <option value="paT">Total Passes</option> <option value="paB">Good Passes</option> <option value="(paB/paT)*100">% Passes</option> <option value="enT">Total Tackles</option> <option value="enB">Won Tackles</option> <option value="(enB/enT)*100">% Tackles</option> <option value="ro">Total Interceptions</option> <option value="ro/numPartidos">Average Interceptions</option> <option value="para">Total Saves</option> <option value="para/numPartidos">Average Saves</option> <option value="(para/dispRec)*100">% Saves</option> <option value="nota/numPartidos">Average Rate</option>'
+        }else{
+            contenidoNuevo+='<option value="th/60">Choose Value</option> <option value="th/60">Time on Ice</option> <option value="c">Shifts</option> <option value="diff">+/-</option> <option value="gol">Goals</option> <option value="asist">Assists</option> <option value="d">Shots</option> <option value="(gol/d)*100">% Shots</option> <option value="punt">Points</option><option value="per1">Period 1</option> <option value="per2">Period 2</option> <option value="per3">Period 3</option><option value="fg">Won Faceoff</option> <option value="fp">Losed Faceoff</option> <option value="(fg/(fp+fg))*100">% Face Offs</option> <option value="np">Penalties</option> <option value="gc">Goals Againts</option> <option value="dr">Shots Against</option> <option value="para">Saves</option> <option value="(para/dr)*100">% Saves</option> <option value="nota/numPartidos">Average Rate</option> <option value="nota">Rate</option>'
+        }
+        contenidoNuevo +='</select>'
         contenidoNuevo +="</table></center>"
         contenidoNuevo += "</div></br>";
         values.set('valor', 'Value');
@@ -2075,6 +2110,95 @@ self.onmessage = function (e) {
         elems = document.getElementsByClassName("nice_table");
         tabla = elems[0]
         tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+
+
+
+        //Team Stats
+
+        document.getElementById("TeamStats").addEventListener('click', function () {
+
+            let checkboxes = document.querySelectorAll('.statsxente');
+            checkboxes.forEach(function (checkbox) {
+                if (checkbox.id !== "TeamStats") {
+                    checkbox.checked = false;
+                }
+            });
+
+            if(document.getElementById("trTeamStats").style.display==="none"){
+                document.getElementById("trTeamStats").style.display="table-row";
+                document.getElementById("trELOCompare").style.display="none";
+            }else{
+                document.getElementById("trTeamStats").style.display="none";
+            }
+
+        });
+
+
+        document.getElementById("statsSelect").addEventListener('change', function () {
+
+            let elems = document.getElementsByClassName("nice_table");
+            let tabla = elems[0]
+            let filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+
+            for (let i = 0; i < filas.length; i++) {
+                if (checkClassNameExists(filas[i], searchClassName)) {
+                    let celda = filas[i].cells[1];
+                    let team_data=extractTeamData(celda.getElementsByTagName("a"));
+                    let id=team_data[0]
+                    let celdas = filas[i].getElementsByTagName("td");
+                    let ultimaCelda = celdas[celdas.length - 2];
+                    let selects = document.getElementsByTagName('select');
+                    let index_select = 1;
+                    if (selects[index_select] === undefined) {
+                        index_select = 0;
+                    }
+
+
+                    let selectedIndex = selects[index_select].selectedIndex;
+                    let selectedOption = selects[index_select].options[selectedIndex];
+                    let selectedText = selectedOption.text;
+
+                    let valor=0
+                    if (teams_stats[id] === undefined) {
+                        valor = -1
+                    } else {
+                        let parsedValue=evaluarExpresion(document.getElementById("statsSelect").value,teams_stats[id])
+                        valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(parsedValue).toFixed(2))
+
+                    }
+
+                    ultimaCelda.innerHTML = valor;
+                }
+            }
+
+
+
+
+            let thead = tabla.querySelector('thead');
+            let tr = thead.querySelectorAll('tr');
+            let td = tr[0].querySelectorAll('th');
+            let select = document.getElementById("statsSelect");
+            td[td.length - 2].textContent = select.options[select.selectedIndex].text
+
+
+
+        });
+
+
+
+
+        function evaluarExpresion(expresion, datos) {
+            // Reemplazamos las claves en la expresión con sus valores reales
+            Object.keys(datos).forEach(clave => {
+                expresion = expresion.replace(new RegExp(`\\b${clave}\\b`, 'g'), datos[clave]);
+            });
+
+            // Evaluamos la expresión de manera segura usando Function
+            return new Function(`return ${expresion};`)();
+        }
+
+
 
         document.getElementById("eloCompareButton").style.padding = "5px 3px";
         document.getElementById("eloCompareButton").style.width = "9em";
@@ -2143,6 +2267,7 @@ self.onmessage = function (e) {
 
             if(document.getElementById("trELOCompare").style.display==="none"){
                 document.getElementById("trELOCompare").style.display="table-row";
+                document.getElementById("trTeamStats").style.display="none";
 
             }else{
                 document.getElementById("trELOCompare").style.display="none";
@@ -2404,6 +2529,12 @@ self.onmessage = function (e) {
                 });
             }
         });
+
+
+
+
+
+
     }
     //Clash leagues page
     function clashLeagues() {
@@ -3961,6 +4092,10 @@ self.onmessage = function (e) {
             }
         }
 
+        if(document.getElementById("trTeamStats").style.display=="table-row"){
+            document.getElementById("trTeamStats").style.display="none";
+        }
+
         let urlParams = new URLSearchParams(window.location.search);
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
@@ -4442,6 +4577,16 @@ self.onmessage = function (e) {
     }
 
     //UTILS FUNCTIONS
+    function deleteCols(tabla,numColumnas) {
+        let filas = tabla.rows;
+
+        for (let i = 0; i < filas.length; i++) {
+            // Recorremos las celdas desde la última hasta la columna X+1
+            while (filas[i].cells.length > numColumnas) {
+                filas[i].deleteCell(numColumnas); // Elimina la columna después de las primeras X
+            }
+        }
+    }
     function waitToDOM(function_to_execute, classToSearch, elementIndex,miliseconds) {
         let interval = setInterval(function () {
             let elements = document.querySelectorAll(classToSearch);
@@ -5100,6 +5245,37 @@ self.onmessage = function (e) {
         cats["u23_world"] = "SUB23w";
         cats["u21_world"] = "SUB21w";
         cats["u18_world"] = "SUB18w";
+
+
+        cats_stats["senior"] = "senior";
+        cats_stats["world"] = "senior";
+        cats_stats["u23"] = "SUB23";
+        cats_stats["u21"] = "SUB21";
+        cats_stats["u18"] = "SUB18";
+        cats_stats["u23_world"] = "SUB23";
+        cats_stats["u21_world"] = "SUB21";
+        cats_stats["u18_world"] = "SUB18";
+        cats_stats["friendlyseries"] = "senior";
+
+
+        statsKeys["senior_soccer"] = 1
+        statsKeys["world_soccer"] = 5
+        statsKeys["u23_soccer"] = 3
+        statsKeys["u21_soccer"] = 3
+        statsKeys["u18_soccer"] = 3
+        statsKeys["u23_world_soccer"] = 7
+        statsKeys["u21_world_soccer"] = 7
+        statsKeys["u18_world_soccer"] = 7
+        statsKeys["friendlyseries_soccer"] = 9;
+        statsKeys["senior_hockey"] = 2
+        statsKeys["world_hockey"] = 6
+        statsKeys["u23_hockey"] = 4
+        statsKeys["u21_hockey"] = 4
+        statsKeys["u18_hockey"] = 4
+        statsKeys["u23_world_hockey"] = 8
+        statsKeys["u21_world_hockey"] = 8
+        statsKeys["u18_world_hockey"] = 8
+        statsKeys["friendlyseries_hockey"] = 10;
 
 
         window.cats = cats;
