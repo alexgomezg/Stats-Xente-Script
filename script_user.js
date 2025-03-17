@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.131
+// @version      0.132
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -20,6 +20,8 @@
 
 (function () {
     'use strict';
+
+
 
     /*let keys = GM_listValues();
     keys.forEach(function(key) {
@@ -57,6 +59,8 @@
     setLangSportCats()
     getUsernameData()
     checkScriptVersion()
+    getSelects()
+
 
     /// FUNCTIONS MENU
     setTimeout(function () {
@@ -258,6 +262,96 @@
         });
     }
 
+    async function showTopScorersData(button_id_el){
+
+        let flagShow = true
+        var idComp="null"
+        if (button_id_el == "ui-id-4") {
+            fl_data = await fetchExistsFL(urlParams.get('fsid'))
+            idComp = fl_data['id']
+            if (idComp == "null") {
+                flagShow = false
+            }
+        }
+        if(flagShow){
+            var posSelect=GM_getValue("posSelect")
+            var stats_select=GM_getValue("statsSelect")
+            var sortSelect = '<select style="width: 7em;" id="sortValue"><option value="DESC">Descending</option><option value="ASC">Ascending</option></select>';
+
+            var txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
+            txt+=' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
+            txt+=' Min Value: <input style="width:2.25em;" type="text" id="minValue" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
+            txt+='Stats:'+ stats_select + ' Teams:'
+            var ri = document.getElementsByClassName("floatRight")
+            var selects = ri[1].querySelectorAll("select");
+
+            var li = document.getElementsByClassName("floatLeft")
+            var spans = ri[1].querySelectorAll("span");
+
+            var clone = spans[0].cloneNode(true);
+            li[0].appendChild(clone);
+            //spans[0].remove();
+
+            var select = selects[0]
+            select.style.width = "10em"
+            select.querySelectorAll("option").forEach(option => {
+                option.removeAttribute("selected");
+            });
+
+            const nuevoOption = document.createElement("option");
+            nuevoOption.textContent = "All"; // Texto visible
+            nuevoOption.value = "-1"; // Valor del option
+            nuevoOption.selected = true;
+
+            select.insertBefore(nuevoOption, select.firstChild);
+            select.selectedIndex = 1;
+            select.dispatchEvent(new Event('change'));
+            select.selectedIndex = 0;
+            select.dispatchEvent(new Event('change'));
+
+
+            spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
+            spans[0].remove();
+            ri[1].innerHTML = txt + ri[1].innerHTML
+
+            let tables = document.getElementsByClassName("hitlist hitlist-compact-list-included tablesorter marker")
+            let table = tables[0]
+            document.getElementById("showStats").addEventListener('click', function () {
+                let texto = select.id;
+                let idSelect = select.id
+                let parts = texto.split("_");
+                let league_id = parts[parts.length - 1];
+                if (idComp != "null") {
+                    league_id=idComp
+                }
+                let selectValor = document.getElementById("valor");
+                let selectedValue = selectValor.value;
+                let urlParams = new URLSearchParams(window.location.search);
+
+                let typeKey = ""
+                if (urlParams.has('type')) {
+                    typeKey = urlParams.get("type")
+                } else {
+                    typeKey = "friendlyseries"
+                }
+
+
+                var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
+                    "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[typeKey]
+                    + "&ord="+document.getElementById("sortValue").value+"&posicion=" + document.getElementById("positionValue").value+"&minValue="+document.getElementById("minValue").value;
+                console.log(txt)
+                var keyValue = selectValor.options[selectValor.selectedIndex].text;
+                var teamId = document.getElementById(idSelect).value
+                var ris = document.getElementsByClassName("floatRight")
+                let clase = "loader-" + window.sport
+                ris[1].insertAdjacentHTML("afterend", "<div id='hp_loader'></br></br></br><center><div style='width:50%;'><center><b>Loading...</b></center><div id='loader' class='" + clase + "' style='height:25px'></div></div></center></div>");
+                playerStatsOnTopScores(table, txt, selectedValue, keyValue, teamId)
+
+            });
+        }
+    }
+
+
     function topScorersTableEventListener() {
         if (!document.getElementById('showStats')) {
             let button_id_el="none"
@@ -267,86 +361,10 @@
                 button_id_el="ui-id-4"
             }
             document.getElementById(button_id_el).addEventListener('click',function () {
-                setTimeout(async function () {
-                    let flagShow = true
-                    var idComp="null"
-                    if (button_id_el == "ui-id-4") {
-                        fl_data = await fetchExistsFL(urlParams.get('fsid'))
-                        idComp = fl_data['id']
-                        if (idComp == "null") {
-                            flagShow = false
-                        }
-                    }
-                    if(flagShow){
-                        if (window.sport == "soccer") {
-                            var posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Portero">Goalkeeper</option><option value="Defensa">Defender</option><option value="Mediocentro">Midfielder</option><option value="Delantero">Striker</option></select>';
-                            var txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:8em;" id="valor"><option value="gol">Total Goals</option><option value="gol/numPartidos">Goals Average</option><option value="golPro">Total Owngoals</option><option value="dg">Total Shots on target</option><option value="dg/numPartidos">Average Shots on target</option><option value="ds">Total Shots</option><option value="ds/numPartidos">Shots Average</option><option value="(dg/ds)*100">% Shoting</option><option value="amarillas">Yellow C. Total</option><option value="amarillas/numPartidos">Average Yellow C.</option><option value="rojas">Red C. Total</option><option value="rojas/numPartidos">Average Red C.</option><option value="paT">Total Passes</option><option value="paB">Good Passes</option><option value="(paB/paT)*100">% Passes</option><option value="enT">Total Tackles</option><option value="enB">Won Tackles</option><option value="(enB/enT)*100">% Tackles</option><option value="ro">Total Interceptions</option><option value="ro/numPartidos">Average Interceptions</option><option value="para">Total Saves</option><option value="para/numPartidos">Average Saves</option><option value="(para/dispRec)*100">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="mvp">MVPs</option></select> Teams:'
-                        } else {
-                            posSelect = '<select style="width: 5em;" id="positionValue"><option value="">All</option><option value="Po">GK</option><option value="DI">LD</option><option value="DD">RD</option><option value="C">C</option><option value="EI">LW</option><option value="ED">RW</option></select>'
-                            txt = 'Pos: ' + posSelect + ' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> Stats:<select style="width:10em;" id="valor"><option value="th/60">Time on Ice</option><option value="c">Shifts</option><option value="diff">+/-</option><option value="gol">Goals</option><option value="asist">Assists</option><option value="d">Shots</option><option value="round((gol/d)*100,0)">% Shots</option><option value="punt">Points</option></option><option value="per1">Period 1</option><option value="per2">Period 2</option><option value="per3">Period 3</option><option value="fg">Won Faceoff</option><option value="fp">Losed Faceoff</option><option value="(fg/(fg+fp))*100">% Face Offs</option><option value="np">Penalties</option><option value="gc">Goals Againts</option><option value="dr">Shots Against</option><option value="para">Saves</option><option value="round((para/dr)*100,0)">% Saves</option><option value="nota/numPartidos">Average Rate</option><option value="nota">Rate</option><option value="mvp">MVPs</option></select> Teams:'
-                        }
-                        var ri = document.getElementsByClassName("floatRight")
-                        var selects = ri[1].querySelectorAll("select");
-                        var select = selects[0]
-                        select.style.width = "10em"
-                        select.querySelectorAll("option").forEach(option => {
-                            option.removeAttribute("selected");
-                        });
 
-                        const nuevoOption = document.createElement("option");
-                        nuevoOption.textContent = "All"; // Texto visible
-                        nuevoOption.value = "-1"; // Valor del option
-                        nuevoOption.selected = true;
+                waitToDOMArgs(showTopScorersData, ".hitlist.hitlist-compact-list-included.tablesorter.marker", 0,7000,button_id_el)
+                console.log("aa")
 
-                        select.insertBefore(nuevoOption, select.firstChild);
-                        select.selectedIndex = 1;
-                        select.dispatchEvent(new Event('change'));
-                        select.selectedIndex = 0;
-                        select.dispatchEvent(new Event('change'));
-
-
-                        var spans = ri[1].querySelectorAll("span");
-                        spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
-
-
-                        ri[1].innerHTML = txt + ri[1].innerHTML
-
-                        let tables = document.getElementsByClassName("hitlist hitlist-compact-list-included tablesorter marker")
-                        let table = tables[0]
-                        document.getElementById("showStats").addEventListener('click', function () {
-                            let texto = select.id;
-                            let idSelect = select.id
-                            let parts = texto.split("_");
-                            let league_id = parts[parts.length - 1];
-                            if (idComp != "null") {
-                                league_id=idComp
-                            }
-                            let selectValor = document.getElementById("valor");
-                            let selectedValue = selectValor.value;
-                            let urlParams = new URLSearchParams(window.location.search);
-
-                            let typeKey = ""
-                            if (urlParams.has('type')) {
-                                typeKey = urlParams.get("type")
-                            } else {
-                                typeKey = "friendlyseries"
-                            }
-
-
-                            var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
-                                "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[typeKey]
-                                + "&ord=desc&posicion=" + document.getElementById("positionValue").value;
-
-                            var keyValue = selectValor.options[selectValor.selectedIndex].text;
-                            var teamId = document.getElementById(idSelect).value
-                            var ris = document.getElementsByClassName("floatRight")
-                            let clase = "loader-" + window.sport
-                            ris[1].insertAdjacentHTML("afterend", "<div id='hp_loader'></br></br></br><center><div style='width:50%;'><center><b>Loading...</b></center><div id='loader' class='" + clase + "' style='height:25px'></div></div></center></div>");
-                            playerStatsOnTopScores(table, txt, selectedValue, keyValue, teamId)
-
-                        });
-                    }
-                }, 2000);
             });
 
         }
@@ -1847,7 +1865,7 @@ self.onmessage = function (e) {
     }
 
     //Leagues page
-    function leagues() {
+    async function leagues() {
         let tablesSearch=document.getElementsByClassName("nice_table")
         let clear = tablesSearch[0].previousElementSibling;
         let selectsDiv=clear.querySelectorAll('select');
@@ -2091,11 +2109,8 @@ self.onmessage = function (e) {
         contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trTeamStats"><td colspan="5">Stats: '
         contenidoNuevo+='<select id="statsSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
         contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
-        if(window.sport=="soccer"){
-            contenidoNuevo+='<option value="gol">Choose Value</option> <option value="gol">Total Goals</option> <option value="gol/numPartidos">Goals Average</option> <option value="golPro">Total Owngoals</option> <option value="dg">Total Shots on target</option> <option value="dg/numPartidos">Average Shots on target</option> <option value="ds">Total Shots</option> <option value="ds/numPartidos">Shots Average</option> <option value="(dg/ds)*100">% Shoting</option> <option value="amarillas">Yellow C. Total</option> <option value="amarillas/numPartidos">Average Yellow C.</option> <option value="rojas">Red C. Total</option> <option value="rojas/numPartidos">Average Red C.</option> <option value="(rojas*2)+(amarillas)">Cards Points</option> <option value="paT">Total Passes</option> <option value="paB">Good Passes</option> <option value="(paB/paT)*100">% Passes</option> <option value="enT">Total Tackles</option> <option value="enB">Won Tackles</option> <option value="(enB/enT)*100">% Tackles</option> <option value="ro">Total Interceptions</option> <option value="ro/numPartidos">Average Interceptions</option> <option value="para">Total Saves</option> <option value="para/numPartidos">Average Saves</option> <option value="(para/dispRec)*100">% Saves</option> <option value="nota/numPartidos">Average Rate</option>'
-        }else{
-            contenidoNuevo+='<option value="th/60">Choose Value</option> <option value="th/60">Time on Ice</option> <option value="c">Shifts</option> <option value="diff">+/-</option> <option value="gol">Goals</option> <option value="asist">Assists</option> <option value="d">Shots</option> <option value="(gol/d)*100">% Shots</option> <option value="punt">Points</option><option value="per1">Period 1</option> <option value="per2">Period 2</option> <option value="per3">Period 3</option><option value="fg">Won Faceoff</option> <option value="fp">Losed Faceoff</option> <option value="(fg/(fp+fg))*100">% Face Offs</option> <option value="np">Penalties</option> <option value="gc">Goals Againts</option> <option value="dr">Shots Against</option> <option value="para">Saves</option> <option value="(para/dr)*100">% Saves</option> <option value="nota/numPartidos">Average Rate</option> <option value="nota">Rate</option>'
-        }
+        contenidoNuevo+=GM_getValue("statsTeamsSelect")
+
         contenidoNuevo +='</select>'
         contenidoNuevo +="</table></center>"
         contenidoNuevo += "</div></br>";
@@ -2185,18 +2200,6 @@ self.onmessage = function (e) {
 
         });
 
-
-
-
-        function evaluarExpresion(expresion, datos) {
-            // Reemplazamos las claves en la expresión con sus valores reales
-            Object.keys(datos).forEach(clave => {
-                expresion = expresion.replace(new RegExp(`\\b${clave}\\b`, 'g'), datos[clave]);
-            });
-
-            // Evaluamos la expresión de manera segura usando Function
-            return new Function(`return ${expresion};`)();
-        }
 
 
 
@@ -2676,6 +2679,12 @@ self.onmessage = function (e) {
 
     //Cups and FL's page
     async function friendlyCupsAndLeagues() {
+
+
+
+
+
+
         let urlParams = new URLSearchParams(window.location.search);
         let age_restriction
         let idComp="null"
@@ -2687,6 +2696,32 @@ self.onmessage = function (e) {
         } else {
             age_restriction = await fetchCupAgeRestriction(link);
         }
+
+
+        if(idComp!="null"){
+            let urlParams1 = new URLSearchParams(window.location.search);
+            let typeKey = ""
+            if (urlParams1.has('type')) {
+                typeKey = urlParams1.get("type")
+            } else {
+                typeKey = "friendlyseries"
+            }
+
+            console.log("http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idComp+"&categoria="+cats_stats[typeKey])
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idComp+"&categoria="+cats_stats[typeKey],
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    teams_stats=JSON.parse(response.responseText);
+                },
+            });
+        }
+
+
+
 
         let detected_cat = "senior"
         if (age_restriction !== "none") {
@@ -2829,7 +2864,53 @@ self.onmessage = function (e) {
                 contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
             }
         });
-        contenidoNuevo += "</tr></table></center>"
+        contenidoNuevo += "</tr>"
+
+        let cats_elo = {}
+        cats_elo["senior"] = "SENIOR";
+        cats_elo["world"] = "SENIOR";
+        cats_elo["u23"] = "U23";
+        cats_elo["u21"] = "U21";
+        cats_elo["u18"] = "U18";
+        cats_elo["u23_world"] = "U23";
+        cats_elo["u21_world"] = "U21";
+        cats_elo["u18_world"] = "U18";
+
+        let disabled=""
+        if(idComp==="null"){
+            disabled="disabled"
+        }
+
+        let cats_temp=["SENIOR","U23","U21","U18"];
+        contenidoNuevo +="<tr style='margin: 0 auto; text-align: center;'>"
+        contenidoNuevo += '<td colspan="2"><label><input class="statsxente" type="checkbox" value="ELOCompare" id="ELOCompare">ELO Compare</label></td>';
+        contenidoNuevo += '<td colspan="1"></td>';
+        contenidoNuevo += '<td colspan="2"><label><input class="statsxente" type="checkbox" value="TeamStats" id="TeamStats" '+disabled+'>Team Stats</label></td>';
+        contenidoNuevo +="</tr>"
+        contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trELOCompare"><td colspan="5">Category: '
+        contenidoNuevo+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        for (let i = 0; i < cats_temp.length; i++) {
+            let tmp=""
+            if(cats_elo[urlParams.get('type')]===cats_temp[i]){
+                tmp="selected"
+            }
+            contenidoNuevo+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
+        }
+        contenidoNuevo +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button></td></tr>'
+
+        //Team Stats data
+        contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trTeamStats"><td colspan="5">Stats: '
+        contenidoNuevo+='<select id="statsSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        contenidoNuevo +=GM_getValue("statsTeamsSelect")
+        contenidoNuevo +='</select>'
+
+
+
+
+
+        contenidoNuevo+="</table></center>"
         contenidoNuevo += "</div></br>";
 
 
@@ -2896,6 +2977,156 @@ self.onmessage = function (e) {
             tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
 
         }
+
+
+
+        //Team Stats
+
+        document.getElementById("TeamStats").addEventListener('click', function () {
+
+            let checkboxes = document.querySelectorAll('.statsxente');
+            checkboxes.forEach(function (checkbox) {
+                if (checkbox.id !== "TeamStats") {
+                    checkbox.checked = false;
+                }
+            });
+
+            if(document.getElementById("trTeamStats").style.display==="none"){
+                document.getElementById("trTeamStats").style.display="table-row";
+                document.getElementById("trELOCompare").style.display="none";
+            }else{
+                document.getElementById("trTeamStats").style.display="none";
+            }
+
+        });
+
+
+        document.getElementById("statsSelect").addEventListener('change', function () {
+
+            let elems = document.getElementsByClassName("nice_table");
+            let tabla = elems[0]
+            let filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+
+            for (let i = 0; i < filas.length; i++) {
+                if (checkClassNameExists(filas[i], searchClassName)) {
+                    let celda = filas[i].cells[1];
+                    let team_data=extractTeamData(celda.getElementsByTagName("a"));
+                    let id=team_data[0]
+                    let celdas = filas[i].getElementsByTagName("td");
+                    let ultimaCelda = celdas[celdas.length - 2];
+                    let selects = document.getElementsByTagName('select');
+                    let index_select = 1;
+                    if (selects[index_select] === undefined) {
+                        index_select = 0;
+                    }
+
+
+                    let selectedIndex = selects[index_select].selectedIndex;
+                    let selectedOption = selects[index_select].options[selectedIndex];
+                    let selectedText = selectedOption.text;
+
+                    let valor=0
+                    if (teams_stats[id] === undefined) {
+                        valor = -1
+                    } else {
+                        let parsedValue=evaluarExpresion(document.getElementById("statsSelect").value,teams_stats[id])
+                        valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(parsedValue).toFixed(2))
+
+                    }
+
+                    ultimaCelda.innerHTML = valor;
+                }
+            }
+
+
+
+
+            let thead = tabla.querySelector('thead');
+            let tr = thead.querySelectorAll('tr');
+            let td = tr[0].querySelectorAll('th');
+            let select = document.getElementById("statsSelect");
+            td[td.length - 2].textContent = select.options[select.selectedIndex].text
+
+
+
+        });
+
+
+        document.getElementById("eloCompareButton").style.padding = "5px 3px";
+        document.getElementById("eloCompareButton").style.width = "9em";
+
+        document.getElementById("eloCompareButton").addEventListener('click', function () {
+            let elems = document.getElementsByClassName("nice_table");
+            let tabla = elems[0]
+            let link="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_compare&lang="+window.lang+"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
+            let cont=0
+            for (let i = 0; i < tabla.rows.length; i++) {
+                let fila = tabla.rows[i];
+                if (fila.cells.length > 1) {
+                    let checkboxes = fila.cells[1].querySelectorAll("input[type='checkbox']");
+                    checkboxes.forEach(function(checkbox) {
+                        if(checkbox.checked){
+                            if(cont<5){
+                                link+="&team_name"+cont+"="+encodeURIComponent(checkbox.value)+"&team_id"+cont+"="+checkbox.id
+                                cont++;
+                            }
+                        }
+                    });
+                }
+            }
+            openWindow(link, 0.95, 1.25);
+        });
+        document.getElementById("ELOCompare").addEventListener('click', function () {
+            let checkboxes = document.querySelectorAll('.statsxente');
+            checkboxes.forEach(function (checkbox) {
+                if (checkbox.id !== "ELOCompare") {
+                    checkbox.checked = false;
+                }
+            });
+            if(!document.getElementById("eloCompareCol")){
+                let elems = document.getElementsByClassName("nice_table");
+                let tabla = elems[0]
+                for (let fila of tabla.rows) {
+                    const nuevaCelda = fila.rowIndex === 0 ? document.createElement('th') : document.createElement('td');
+                    if(fila.rowIndex>0){
+                        let team_data=extractTeamData(fila.cells[1].getElementsByTagName('a'))
+                        nuevaCelda.innerHTML = '<input class="statsxente1" type="checkbox" value="'+team_data[1]+'" id="'+team_data[0]+'">';
+                    }
+
+                    fila.insertBefore(nuevaCelda, fila.cells[1]);
+                    if(fila.rowIndex===0){
+                        fila.cells[1].id="eloCompareCol"
+                        fila.cells[2].style.width="175px"
+                    }
+                }
+            }else{
+                let elems = document.getElementsByClassName("nice_table");
+                let table = elems[0]
+                let th = document.getElementById("eloCompareCol");
+                let columnIndex = th.cellIndex;
+                for (let i = 0; i < table.rows.length; i++) {
+                    let row = table.rows[i];
+                    let cell = row.cells[columnIndex];
+                    if (cell.style.display === 'none') {
+                        cell.style.display = '';
+                        th.style.fontWeight = 'normal';
+                    } else {
+                        cell.style.display = 'none';
+                        th.style.fontWeight = 'bold';
+                    }
+                }
+            }
+
+            if(document.getElementById("trELOCompare").style.display==="none"){
+                document.getElementById("trELOCompare").style.display="table-row";
+                document.getElementById("trTeamStats").style.display="none";
+
+            }else{
+                document.getElementById("trELOCompare").style.display="none";
+            }
+
+        });
+
 
 
 
@@ -4403,6 +4634,29 @@ self.onmessage = function (e) {
     }
 
     //FETCH FUNCTIONS
+    function fetchSelects() {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_selects.php?sport="+window.sport,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    GM_setValue("posSelect",jsonResponse['posSelect'])
+                    GM_setValue("statsSelect",jsonResponse['statsSelect'])
+                    GM_setValue("statsTeamsSelect",jsonResponse["statsTeamSelect"])
+                    resolve(jsonResponse)
+                },
+                onerror: function () {
+                    reject("none");
+                }
+            });
+        });
+    }
+
+
     function fetchExistsFL(id) {
         return new Promise((resolve, reject) => {
 
@@ -4587,6 +4841,24 @@ self.onmessage = function (e) {
             }
         }
     }
+
+    function waitToDOMArgs(function_to_execute, classToSearch, elementIndex,miliseconds,...args) {
+        let interval = setInterval(function () {
+            let elements = document.querySelectorAll(classToSearch);
+            if (elements.length > 0 && elements[elementIndex]) {
+                clearInterval(interval);
+                clearTimeout(timeout);
+                function_to_execute(...args);
+            }
+        }, 100);
+
+
+        let timeout = setTimeout(function () {
+            clearInterval(interval);
+        }, miliseconds);
+    }
+
+
     function waitToDOM(function_to_execute, classToSearch, elementIndex,miliseconds) {
         let interval = setInterval(function () {
             let elements = document.querySelectorAll(classToSearch);
@@ -4602,6 +4874,25 @@ self.onmessage = function (e) {
             clearInterval(interval);
         }, miliseconds);
     }
+
+    function waitToDOMByIdArgs(function_to_execute, idToSearch,miliseconds,...args) {
+        let interval = setInterval(function () {
+            let element = document.getElementById(idToSearch);
+            if (element) {
+                clearInterval(interval);
+                clearTimeout(timeout);
+                function_to_execute(...args);
+            }
+        }, 100);
+
+
+        let timeout = setTimeout(function () {
+            clearInterval(interval);
+        }, miliseconds);
+    }
+
+
+
     function waitToDOMById(function_to_execute, idToSearch,miliseconds) {
         let interval = setInterval(function () {
             let element = document.getElementById(idToSearch);
@@ -4646,8 +4937,10 @@ self.onmessage = function (e) {
         let rows = Array.from(table.tBodies[0].rows);
         let isAsc = document.getElementById("ord_table").value === "ascendente";
         rows.sort(function (a, b) {
-            let aNum = parseFloat(a.cells[col].textContent.trim().replace(/\./g, '').replace(/,/g, '')) || 0;
-            let bNum = parseFloat(b.cells[col].textContent.trim().replace(/\./g, '').replace(/,/g, '')) || 0;
+            /*let aNum = parseFloat(a.cells[col].textContent.trim().replace(/\./g, '').replace(/,/g, '')) || 0;
+            let bNum = parseFloat(b.cells[col].textContent.trim().replace(/\./g, '').replace(/,/g, '')) || 0;*/
+            let aNum=parseNumber(a.cells[col].textContent.trim())
+            let bNum=parseNumber(b.cells[col].textContent.trim())
             return isAsc ? aNum - bNum : bNum - aNum;
         });
 
@@ -4669,6 +4962,18 @@ self.onmessage = function (e) {
 
 
     }
+
+
+    async function getSelects(){
+        const actual_date=getActualDate()
+        if(actual_date!==GM_getValue("date_checked_selects")){
+            GM_setValue("date_checked_selects", actual_date)
+            var selects_data=await fetchSelects()
+        }
+    }
+
+
+
     function ordenarTablaText(col, byClassName, param,putSortIconFlag) {
         let table = document.getElementById(param)
         let rows = Array.from(table.tBodies[0].rows);
@@ -5009,7 +5314,12 @@ self.onmessage = function (e) {
 
 
 
-        newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;"><button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button><button id="deleteButton" class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button></div>'
+        newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;">'
+        newContent+='<button id="reloadSelects" class="btn-delete" style="margin-left:10px; width:10em; background-color:#ff9800;"><i class="bi bi-arrow-clockwise" style="font-style:normal;">Reload Selects</i></button>'
+        newContent+='</br></br>'
+        newContent +='<button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button>'
+        newContent+='<button id="deleteButton" class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button>'
+        newContent+='</div>';
         newContent += '</div></center></br></br>';
         document.getElementById("contenido_modal_cargando-stx").innerHTML = newContent
         createLeagueConfigOptionsListeners();
@@ -5064,6 +5374,13 @@ self.onmessage = function (e) {
             });
         })();
 
+        (function () {
+            document.getElementById("reloadSelects").addEventListener('click', function () {
+                getSelects()
+                window.location.reload();
+            });
+        })();
+
 
 
 
@@ -5086,6 +5403,21 @@ self.onmessage = function (e) {
 
 
     }
+
+
+    function evaluarExpresion(expresion, datos) {
+        // Reemplazamos las claves en la expresión con sus valores reales
+        Object.keys(datos).forEach(clave => {
+            expresion = expresion.replace(new RegExp(`\\b${clave}\\b`, 'g'), datos[clave]);
+        });
+
+        // Evaluamos la expresión de manera segura usando Function
+        return new Function(`return ${expresion};`)();
+    }
+
+
+
+
     function getDeviceFormat(){
         if(!document.getElementById("deviceFormatStx")){
             var script = document.createElement('script');
@@ -6510,6 +6842,27 @@ cursor:pointer;
 
         }
 
+    }
+
+
+    function parseNumber(numStr) {
+        if (/^\d{1,3}(,\d{3})*\.\d+$/.test(numStr)) {
+            return parseFloat(numStr.replace(/,/g, ''));
+        }
+
+
+        if (/^\d{1,3}(\.\d{3})*,\d+$/.test(numStr)) {
+            return parseFloat(numStr.replace(/\./g, '').replace(',', '.'));
+        }
+
+        if (/^\d{1,3}(,\d{3})+$/.test(numStr)) {
+            return parseFloat(numStr.replace(/,/g, ''));
+        }
+
+        if (/^\d{1,3}(\.\d{3})+$/.test(numStr)) {
+            return parseFloat(numStr.replace(/\./g, ''));
+        }
+        return parseFloat(numStr.replace(',', '.'));
     }
 
 
