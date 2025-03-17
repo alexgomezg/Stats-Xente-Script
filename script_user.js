@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.133
+// @version      0.134
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -274,8 +274,8 @@
             }
         }
         if(flagShow){
-            var posSelect=GM_getValue("posSelect")
-            var stats_select=GM_getValue("statsSelect")
+            var posSelect=GM_getValue("posSelect_"+window.sport)
+            var stats_select=GM_getValue("statsSelect_"+window.sport)
             var sortSelect = '<select style="width: 4.5em;" id="sortValue"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>';
 
             var txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
@@ -339,7 +339,7 @@
                 var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
                     "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[typeKey]
                     + "&ord="+document.getElementById("sortValue").value+"&posicion=" + document.getElementById("positionValue").value+"&minValue="+document.getElementById("minValue").value;
-                console.log(txt)
+
                 var keyValue = selectValor.options[selectValor.selectedIndex].text;
                 var teamId = document.getElementById(idSelect).value
                 var ris = document.getElementsByClassName("floatRight")
@@ -363,7 +363,6 @@
             document.getElementById(button_id_el).addEventListener('click',function () {
 
                 waitToDOMArgs(showTopScorersData, ".hitlist.hitlist-compact-list-included.tablesorter.marker", 0,7000,button_id_el)
-                console.log("aa")
 
             });
 
@@ -2109,7 +2108,7 @@ self.onmessage = function (e) {
         contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trTeamStats"><td colspan="5">Stats: '
         contenidoNuevo+='<select id="statsSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
         contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
-        contenidoNuevo+=GM_getValue("statsTeamsSelect")
+        contenidoNuevo+=GM_getValue("statsTeamsSelect_"+window.sport)
 
         contenidoNuevo +='</select>'
         contenidoNuevo +="</table></center>"
@@ -2707,7 +2706,6 @@ self.onmessage = function (e) {
                 typeKey = "friendlyseries"
             }
 
-            console.log("http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idComp+"&categoria="+cats_stats[typeKey])
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idComp+"&categoria="+cats_stats[typeKey],
@@ -2903,7 +2901,7 @@ self.onmessage = function (e) {
         contenidoNuevo +='<tr style="margin: 0 auto; text-align: center; display:none;" id="trTeamStats"><td colspan="5">Stats: '
         contenidoNuevo+='<select id="statsSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
         contenidoNuevo+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
-        contenidoNuevo +=GM_getValue("statsTeamsSelect")
+        contenidoNuevo +=GM_getValue("statsTeamsSelect_"+window.sport)
         contenidoNuevo +='</select>'
 
 
@@ -4638,15 +4636,18 @@ self.onmessage = function (e) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_selects.php?sport="+window.sport,
+                url: "https://statsxente.com/MZ1/Functions/tamper_selects.php",
                 headers: {
                     "Content-Type": "application/json"
                 },
                 onload: function (response) {
                     let jsonResponse = JSON.parse(response.responseText);
-                    GM_setValue("posSelect",jsonResponse['posSelect'])
-                    GM_setValue("statsSelect",jsonResponse['statsSelect'])
-                    GM_setValue("statsTeamsSelect",jsonResponse["statsTeamSelect"])
+                    GM_setValue("posSelect_soccer",jsonResponse['posSelect_soccer'])
+                    GM_setValue("statsSelect_soccer",jsonResponse['statsSelect_soccer'])
+                    GM_setValue("statsTeamsSelect_soccer",jsonResponse["statsTeamSelect_soccer"])
+                    GM_setValue("posSelect_hockey",jsonResponse['posSelect_hockey'])
+                    GM_setValue("statsSelect_hockey",jsonResponse['statsSelect_hockey'])
+                    GM_setValue("statsTeamsSelect_hockey",jsonResponse["statsTeamSelect_hockey"])
                     resolve(jsonResponse)
                 },
                 onerror: function () {
@@ -5376,6 +5377,7 @@ self.onmessage = function (e) {
 
         (function () {
             document.getElementById("reloadSelects").addEventListener('click', function () {
+                GM_setValue("date_checked_selects","0")
                 getSelects()
                 window.location.reload();
             });
