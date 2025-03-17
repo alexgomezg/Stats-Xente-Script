@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.132
+// @version      0.133
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -276,7 +276,7 @@
         if(flagShow){
             var posSelect=GM_getValue("posSelect")
             var stats_select=GM_getValue("statsSelect")
-            var sortSelect = '<select style="width: 7em;" id="sortValue"><option value="DESC">Descending</option><option value="ASC">Ascending</option></select>';
+            var sortSelect = '<select style="width: 4.5em;" id="sortValue"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>';
 
             var txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
             txt+=' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
