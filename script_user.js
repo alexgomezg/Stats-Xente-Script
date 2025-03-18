@@ -5396,7 +5396,7 @@ self.onmessage = function (e) {
             document.getElementById("reloadSelects").addEventListener('click', function () {
                 GM_setValue("date_checked_selects","0")
                 getSelects()
-                //window.location.reload();
+                window.location.reload();
             });
         })();
 
