@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.136
+// @version      0.137
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -276,8 +276,8 @@
             }
         }
         if(flagShow){
-            let minValue=" Min Goals:"
-            if(window.sport=="hockey"){minValue=" Min Time:"}
+            let minValueText=" Min Goals:"
+            if(window.sport=="hockey"){minValueText=" Min Time:"}
             var posSelect=GM_getValue("posSelect_"+window.sport)
             var stats_select=GM_getValue("statsSelect_"+window.sport)
             var min_values=GM_getValue("minValues")
@@ -285,7 +285,7 @@
 
             var txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
             txt+=' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
-            txt+=' <span id="minValue">'+minValue+'</span> <input style="width:2.25em;" type="text" id="minValue" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
+            txt+=' <span id="minValueText">'+minValueText+'</span> <input style="width:2.25em;" type="text" id="minValue" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
             txt+='Stats:'+ stats_select + ' Teams:'
             var ri = document.getElementsByClassName("floatRight")
             var selects = ri[1].querySelectorAll("select");
@@ -325,7 +325,7 @@
 
 
             document.getElementById('valor').addEventListener('change', function(e) {
-                document.getElementById("minValue").innerText=" Min "+min_values[e.target.value]+":"
+                document.getElementById("minValueText").innerText=" Min "+min_values[e.target.value]+":"
             });
 
 
