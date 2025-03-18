@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.134
+// @version      0.135
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -59,6 +59,8 @@
     setLangSportCats()
     getUsernameData()
     checkScriptVersion()
+
+    //GM_deleteValue("date_checked_selects");
     getSelects()
 
 
@@ -274,13 +276,16 @@
             }
         }
         if(flagShow){
+            let minValue=" Min Goals:"
+            if(window.sport=="hockey"){minValue=" Min Time:"}
             var posSelect=GM_getValue("posSelect_"+window.sport)
             var stats_select=GM_getValue("statsSelect_"+window.sport)
+            var min_values=GM_getValue("minValues")
             var sortSelect = '<select style="width: 4.5em;" id="sortValue"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>';
 
             var txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
             txt+=' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
-            txt+=' Min Value: <input style="width:2.25em;" type="text" id="minValue" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
+            txt+=' <span id="minValue">'+minValue+'</span> <input style="width:2.25em;" type="text" id="minValue" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
             txt+='Stats:'+ stats_select + ' Teams:'
             var ri = document.getElementsByClassName("floatRight")
             var selects = ri[1].querySelectorAll("select");
@@ -316,6 +321,14 @@
 
             let tables = document.getElementsByClassName("hitlist hitlist-compact-list-included tablesorter marker")
             let table = tables[0]
+
+
+
+            document.getElementById('valor').addEventListener('change', function(e) {
+                document.getElementById("minValue").innerText=" Min "+min_values[e.target.value]+":"
+            });
+
+
             document.getElementById("showStats").addEventListener('click', function () {
                 let texto = select.id;
                 let idSelect = select.id
@@ -339,7 +352,6 @@
                 var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
                     "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[typeKey]
                     + "&ord="+document.getElementById("sortValue").value+"&posicion=" + document.getElementById("positionValue").value+"&minValue="+document.getElementById("minValue").value;
-
                 var keyValue = selectValor.options[selectValor.selectedIndex].text;
                 var teamId = document.getElementById(idSelect).value
                 var ris = document.getElementsByClassName("floatRight")
@@ -363,7 +375,6 @@
             document.getElementById(button_id_el).addEventListener('click',function () {
 
                 waitToDOMArgs(showTopScorersData, ".hitlist.hitlist-compact-list-included.tablesorter.marker", 0,7000,button_id_el)
-
             });
 
         }
@@ -1823,6 +1834,11 @@ self.onmessage = function (e) {
 
                         //Team
                         let team=tds[2].querySelectorAll("a")
+                        //If fired player
+                        if(team.length==0){
+                            tds[2].innerHTML='<img title="Spain" src="nocache-930/img/flags/12/es.png" width="12" height="12" style="border: none" alt="">&nbsp;<a href="/?p=team&amp;tid=771617" title="Xente" style="text-transform: uppercase;">STX</a>'
+                        }
+                        team=tds[2].querySelectorAll("a")
                         team[0].textContent=jsonResponse[cont]["equipo"]
                         images = tds[2].querySelectorAll("img");
                         images[0].src="nocache-929/img/flags/12/"+jsonResponse[cont]["paisEquipo"]+".png";
@@ -4648,6 +4664,7 @@ self.onmessage = function (e) {
                     GM_setValue("posSelect_hockey",jsonResponse['posSelect_hockey'])
                     GM_setValue("statsSelect_hockey",jsonResponse['statsSelect_hockey'])
                     GM_setValue("statsTeamsSelect_hockey",jsonResponse["statsTeamSelect_hockey"])
+                    GM_setValue("minValues",jsonResponse["minValues"])
                     resolve(jsonResponse)
                 },
                 onerror: function () {
@@ -5379,7 +5396,7 @@ self.onmessage = function (e) {
             document.getElementById("reloadSelects").addEventListener('click', function () {
                 GM_setValue("date_checked_selects","0")
                 getSelects()
-                window.location.reload();
+                //window.location.reload();
             });
         })();
 
