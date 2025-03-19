@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.137
+// @version      0.138
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1792,6 +1792,8 @@ self.onmessage = function (e) {
 
                 tbody[0].querySelectorAll("tr").forEach(row => {
                     row.classList.remove('highlight_row');
+                    if(row.style.display=="none"){row.style.display="table-row"}
+
                     if(cont<jsonResponse.length){
                         if(teamId>-1){
                             if(teamId==jsonResponse[cont]["idEquipo"]){
@@ -1859,6 +1861,8 @@ self.onmessage = function (e) {
                         }
 
 
+                    }else{
+                        row.style.display = 'none';
                     }
 
                     cont++;
