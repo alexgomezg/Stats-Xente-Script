@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.140
+// @version      0.141
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -152,8 +152,10 @@
                 }
             }else{
 
-                if(GM_getValue("eloHiddenPlayedMatchesFlag")){
-                    waitToDOM(nextMatches, ".group", 0,7000)
+                if(GM_getValue("eloNextMatchesFlag")){
+                    if(GM_getValue("eloHiddenPlayedMatchesFlag")){
+                        waitToDOM(nextMatches, ".group", 0,7000)
+                    }
                 }
 
             }
