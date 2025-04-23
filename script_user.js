@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.138
+// @version      0.139
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -141,13 +141,21 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
-            if(GM_getValue("eloNextMatchesFlag")){
-                waitToDOM(nextMatches, ".group", 0,7000)
-            }
+
             if(!urlParams.has('hidescore')){
                 if(GM_getValue("eloPlayedMatchesFlag")){
                     waitToDOM(lastMatchesELO, ".group", 0,7000)
                 }
+
+                if(GM_getValue("eloNextMatchesFlag")){
+                    waitToDOM(nextMatches, ".group", 0,7000)
+                }
+            }else{
+
+                if(GM_getValue("eloHiddenPlayedMatchesFlag")){
+                    waitToDOM(nextMatches, ".group", 0,7000)
+                }
+
             }
 
         }
@@ -5233,13 +5241,18 @@ self.onmessage = function (e) {
         if (GM_getValue("trainingReportFlag") === undefined) {
             GM_setValue("trainingReportFlag", true)
         }
+        if (GM_getValue("eloHiddenPlayedMatchesFlag") === undefined) {
+            GM_setValue("eloHiddenPlayedMatchesFlag", true)
+        }
 
 
 
 
 
 
-        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag=""
+
+
+        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -5251,6 +5264,7 @@ self.onmessage = function (e) {
         if (GM_getValue("teamPageFlag")) teamFlag = "checked"
 
         if (GM_getValue("trainingReportFlag")) trainingReportFlag = "checked"
+        if (GM_getValue("eloHiddenPlayedMatchesFlag")) eloHiddenPlayedMatchesFlag = "checked"
 
 
 
@@ -5269,6 +5283,7 @@ self.onmessage = function (e) {
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Team<input type="checkbox" id="teamSelect" ' + teamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Scheduled Matches<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">ELO Hidden Played Matches<input type="checkbox" id="eloHiddenPlayedMatchesSelect" ' + eloHiddenPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += "</tr></tbody></table>"
 
@@ -5500,6 +5515,12 @@ self.onmessage = function (e) {
         document.getElementById('eloScheduledSelect').addEventListener('click', function () {
             GM_setValue("eloNextMatchesFlag", !GM_getValue("eloNextMatchesFlag"))
         });
+
+        document.getElementById('eloHiddenPlayedMatchesSelect').addEventListener('click', function () {
+            GM_setValue("eloHiddenPlayedMatchesFlag", !GM_getValue("eloHiddenPlayedMatchesFlag"))
+        });
+
+
 
         document.getElementById('teamSelect').addEventListener('click', function () {
             GM_setValue("teamPageFlag", !GM_getValue("teamPageFlag"))
