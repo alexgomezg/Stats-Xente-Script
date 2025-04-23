@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.139
+// @version      0.140
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -5276,13 +5276,13 @@ self.onmessage = function (e) {
         newContent += '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">ELO Played Matches<input type="checkbox" id="eloPlayedSelect" ' + eloPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">ELO Changes<input type="checkbox" id="eloPlayedSelect" ' + eloPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Training Report<input type="checkbox" id="trainingReportSelect" ' + trainingReportFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '</tr><tr>'
         newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Team<input type="checkbox" id="teamSelect" ' + teamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">ELO Scheduled Matches<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">ELO Teams Scores<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Hidden Played Matches<input type="checkbox" id="eloHiddenPlayedMatchesSelect" ' + eloHiddenPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += "</tr></tbody></table>"
