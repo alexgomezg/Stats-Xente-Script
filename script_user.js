@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.141
+// @version      0.142
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -120,21 +120,21 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')
-            && (urlParams.get('sub') === 'standings')) {
+            && (urlParams.get('sub') === 'standings')&& (GM_getValue("flFlag"))) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')){
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')&& (GM_getValue("flFlag"))){
             waitToDOMById(topScorersTableEventListener,"ui-id-4",5000)
         }
 
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'cup') && (urlParams.get('sub') === 'groupplay')) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'cup') && (urlParams.get('sub') === 'groupplay')&& (GM_getValue("cupFlag"))) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.get('sub') === 'groupplay')) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.get('sub') === 'groupplay')&& (GM_getValue("cupFlag"))) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
         }
 
@@ -195,6 +195,30 @@
             waitToDOMById(trainingReport,"training_report",5000)
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'statistics')){
+            test()
+        }
+
+
+        function test(){
+            let elements = document.querySelectorAll('.leagueStats');
+            console.log(elements)
+            elements[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
+            let listItems = elements[0].querySelectorAll('li')
+            let as = listItems[0].querySelectorAll('a')
+            console.log(as[0].href)
+            let urlObj = new URL(as[0].href);
+            let params = new URLSearchParams(urlObj.search);
+            let type = params.get('type');
+            let tid = params.get('tid');
+            var link="https://statsxente.com/MZ1/Graficos/graficoHistoricoDivisiones.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid
+
+            document.getElementById("showStats").addEventListener("click", function(event) {
+                openWindow(link, 0.95, 1.25);
+            });
+
+        }
+
 
 
 
@@ -209,6 +233,8 @@
             });
         }
     }, 1000);
+
+
 
 
 
@@ -235,7 +261,9 @@
     function tableCupsEventListener(){
         document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
             if (document.getElementById("showMenu") === null) {
-                waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                if(GM_getValue("cupFlag")){
+                    waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                }
             }
 
 
@@ -252,7 +280,9 @@
             if ((event.target) &&((event.target.parentNode.id === 'view_btn')||(event.target.parentNode.parentNode.id === 'view_btn'))) {
                 setTimeout(function () {
                     if (document.getElementById("showMenu") === null) {
-                        waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                        if(GM_getValue("cupFlag")){
+                            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                        }
                     }
                 }, 1000);
             }
@@ -265,7 +295,9 @@
             if (document.getElementById("showMenu") === null) {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('fsid')) {
-                    waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                    if(GM_getValue("flFlag")){
+                        waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                    }
                 } else {
                     waitToDOM(clashLeagues, ".nice_table", 0,7000)
                 }
@@ -5247,6 +5279,13 @@ self.onmessage = function (e) {
             GM_setValue("eloHiddenPlayedMatchesFlag", true)
         }
 
+        if (GM_getValue("flFlag") === undefined) {
+            GM_setValue("flFlag", true)
+        }
+
+        if (GM_getValue("cupFlag") === undefined) {
+            GM_setValue("cupFlag", true)
+        }
 
 
 
@@ -5254,7 +5293,9 @@ self.onmessage = function (e) {
 
 
 
-        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag=""
+
+        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",
+            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -5264,9 +5305,10 @@ self.onmessage = function (e) {
         if (GM_getValue("eloNextMatchesFlag")) eloNextMatchesFlag = "checked"
         if (GM_getValue("eloPlayedMatchesFlag")) eloPlayedMatchesFlag = "checked"
         if (GM_getValue("teamPageFlag")) teamFlag = "checked"
-
         if (GM_getValue("trainingReportFlag")) trainingReportFlag = "checked"
         if (GM_getValue("eloHiddenPlayedMatchesFlag")) eloHiddenPlayedMatchesFlag = "checked"
+        if (GM_getValue("flFlag")) flFlag = "checked"
+        if (GM_getValue("cupFlag")) cupFlag = "checked"
 
 
 
@@ -5285,7 +5327,11 @@ self.onmessage = function (e) {
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Team<input type="checkbox" id="teamSelect" ' + teamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Teams Scores<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '</tr><tr>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Hidden Played Matches<input type="checkbox" id="eloHiddenPlayedMatchesSelect" ' + eloHiddenPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+
+        newContent += '<td><label class="containerPeqAmarillo">Friendly Leagues<input type="checkbox" id="flFlagSelect" ' + flFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Cups<input type="checkbox" id="cupFlagSelect" ' + cupFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += "</tr></tbody></table>"
 
@@ -5523,7 +5569,6 @@ self.onmessage = function (e) {
         });
 
 
-
         document.getElementById('teamSelect').addEventListener('click', function () {
             GM_setValue("teamPageFlag", !GM_getValue("teamPageFlag"))
         });
@@ -5532,7 +5577,13 @@ self.onmessage = function (e) {
             GM_setValue("trainingReportFlag", !GM_getValue("trainingReportFlag"))
         });
 
+        document.getElementById('flFlagSelect').addEventListener('click', function () {
+            GM_setValue("flFlag", !GM_getValue("flFlag"))
+        });
 
+        document.getElementById('cupFlagSelect').addEventListener('click', function () {
+            GM_setValue("cupFlag", !GM_getValue("cupFlag"))
+        });
 
 
         document.getElementById('show_league_checkbox').addEventListener('click', function () {
