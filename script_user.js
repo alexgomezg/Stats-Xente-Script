@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.143
+// @version      0.144
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3516,6 +3516,12 @@ self.onmessage = function (e) {
         }
         let teams_ = []
 
+        const divs = document.querySelectorAll('div.scoreboard.shadow');
+        const innerDivs = divs[0].querySelectorAll('div');
+
+
+
+
         console.log("a")
         let urlParams = new URLSearchParams(window.location.search);
         var match_id=urlParams.get("mid")
@@ -3527,15 +3533,14 @@ self.onmessage = function (e) {
             },
             onload: function (response) {
                 var elo_data= JSON.parse(response.responseText);
-                const matchResultDiv = document.getElementById('gw_match_result');
-                const parentDiv = matchResultDiv?.parentNode;
+
                 const newDiv = document.createElement('div');
                 var newT = '<center><div style="border-radius: 5px;padding: 5px;max-width: 30%; background-color:' + GM_getValue("bg_native") + '; color:' + GM_getValue("color_native") + '; align-items: center; color:white;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png">'
                 newT+='<span style="font-weight:bold; margin-left: 5px;">'+elo_data['elo_variation'].toFixed(2)+'</span></div></center>'
                 newDiv.innerHTML = newT;
-                if (parentDiv) {
-                    parentDiv.appendChild(newDiv);
-                }
+
+                innerDivs[0].appendChild(newDiv);
+
 
             }});
         console.log("a-fin")
