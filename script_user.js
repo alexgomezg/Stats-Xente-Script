@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.145
+// @version      0.146
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3537,12 +3537,12 @@ self.onmessage = function (e) {
 //const newDiv = document.createElement('div');
                 /*var newT = '<center><div style="border-radius: 5px;padding: 5px;max-width: 30%; background-color:' + GM_getValue("bg_native") + '; color:' + GM_getValue("color_native") + '; align-items: center; color:white;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png">'
                 newT+='<span style="font-weight:bold; margin-left: 5px;">'+elo_data['elo_variation'].toFixed(2)+'</span></div></center>'*/
-                var newT = '<center><div style="width: 4em;" class="matchIcon  large shadow"><i style="color: black;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+                var newT = '<center><div style="width: 4.5em;" class="matchIcon  large shadow"><i style="color: black;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
                 newT+=elo_data['elo_variation'].toFixed(2)+'</i>'
 //newDiv.innerHTML = newT;
 
-                innerDivs[0].innerHTML+=newT;
-                innerDivs[0].style.marginBottom = '-5px'
+                document.getElementById("tactic-board").innerHTML+=newT;
+                //innerDivs[0].style.marginBottom = '-5px'
 
 
             }});
