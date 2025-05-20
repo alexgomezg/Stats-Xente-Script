@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.149
+// @version      0.150
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -553,6 +553,7 @@ self.onmessage = function (e) {
 `;
     //Match Predictor
     function matchPredictor(){
+        getDeviceFormat()
         let elementos = document.querySelectorAll('.match-predictor-wrapper');
         if(elementos.length>0) {
             let tables = elementos[0].querySelectorAll('.hitlist.match-list');
@@ -598,9 +599,16 @@ self.onmessage = function (e) {
                                 let midValue = params.get('mid');
                                 let elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
                                 let elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
-                                let lm_home=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_home']))
-                                let lm_away=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_away']))
-                                primerTd.innerHTML += "<b>ELO:</b> " + elo_home + " - " + elo_away+"</br><b>LM:</b>  "+ lm_home + " - " + lm_away
+                                let lm_home
+                                let lm_away
+                                if(window.stx_device==="computer"){
+                                    lm_home=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_home']))
+                                    lm_away=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_away']))
+                                }else{
+                                    lm_home= Math.round(jsonResponse[midValue]['lm_home'] / 1_000_000) + "M";
+                                    lm_away= Math.round(jsonResponse[midValue]['lm_away'] / 1_000_000) + "M";
+                                }
+                                primerTd.innerHTML += "<b>ELO:</b> " + elo_home + " - " + elo_away+"</br><b>LMV:</b> "+ lm_home + " - " + lm_away
                                 document.getElementById("hp_loader"+midValue).remove();
 
                             }
