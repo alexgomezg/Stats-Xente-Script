@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.150
+// @version      0.151
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -582,7 +582,7 @@ self.onmessage = function (e) {
 
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?sport=" + window.sport + linkIds,
+                url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?currency="+GM_getValue("currency")+"&sport=" + window.sport + linkIds,
                 headers: {
                     "Content-Type": "application/json"
                 },
