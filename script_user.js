@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.146
+// @version      0.147
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -20,8 +20,6 @@
 
 (function () {
     'use strict';
-
-
 
     /*let keys = GM_listValues();
     keys.forEach(function(key) {
@@ -96,16 +94,19 @@
             && (GM_getValue("playersFlag"))) {
             getDeviceFormat()
             waitToDOM(playersPage, ".playerContainer", 0,7000)
+            waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
             getDeviceFormat()
             waitToDOM(playersPageStatsAll, ".player_name", 0,7000)
+            waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
             getDeviceFormat()
             waitToDOM(playersPageStats, ".player_name", 0,7000)
+            waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
         }
 
 
@@ -116,6 +117,8 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'clubhouse')) {
             StatsXenteNextMatchesClubhouse()
+            matchPredictor()
+
         }
 
 
@@ -196,78 +199,9 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'statistics')){
-            test()
+            statsPage()
             statsPageEventListeners()
         }
-
-        function statsPageEventListeners(){
-
-            let mainDiv = document.querySelectorAll('.statsTabs');
-            let uls = mainDiv[0].querySelectorAll('ul');
-            let lis = uls[0].querySelectorAll('li');
-
-            lis.forEach(li => {
-                li.addEventListener('click', () => {
-                    console.log('Click en:', li.textContent);
-                    setTimeout(function() {
-                        test()
-                    }, 1000);
-
-                });
-            });
-
-            console.log(lis)
-        }
-
-
-        function test(){
-            console.log("here")
-
-            let elemento = document.getElementById('showGrafStats');
-            if (elemento) {
-                elemento.remove();
-            }
-
-            let elements = document.querySelectorAll('.leagueStats');
-            console.log(elements)
-            elements[elements.length-1].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
-            let listItems = elements[elements.length-1].querySelectorAll('li')
-            let as = listItems[0].querySelectorAll('a')
-            console.log(as[0].href)
-            let urlObj = new URL(as[0].href);
-            let params = new URLSearchParams(urlObj.search);
-            let type = params.get('type');
-            let tid = params.get('tid');
-            var link="https://statsxente.com/MZ1/Graficos/graficoHistoricoDivisiones.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid
-
-            document.getElementById("showGrafStats").addEventListener("click", function(event) {
-                openWindow(link, 0.95, 1.25);
-            });
-
-            elemento = document.getElementById('showGrafScorers');
-            if (elemento) {
-                elemento.remove();
-            }
-
-            elements = document.querySelectorAll('.topScorers');
-            console.log(elements)
-            elements[elements.length-1].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafScorers"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
-            listItems = elements[elements.length-1].querySelectorAll('li')
-            as = listItems[0].querySelectorAll('a')
-            console.log(as[0].href)
-            urlObj = new URL(as[0].href);
-            params = new URLSearchParams(urlObj.search);
-            type = params.get('type');
-            tid = params.get('tid');
-            var link1="https://statsxente.com/MZ1/Graficos/graficoTopScorers.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15"
-
-            document.getElementById("showGrafScorers").addEventListener("click", function(event) {
-                openWindow(link1, 0.95, 1.25);
-            });
-
-        }
-
-
 
 
 
@@ -277,12 +211,11 @@
                 elemento.addEventListener('click', function () {
                     getDeviceFormat()
                     waitToDOM(playersPageStats, ".player_name", 0,7000)
+                    waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
                 });
             });
         }
     }, 1000);
-
-
 
 
 
@@ -296,6 +229,112 @@
         waitToDOMById(tableCupsEventListener,"ui-id-4",5000)
     }
     waitToDOMById(tableLeaguesEventListener,"league_tab_table",5000)
+
+
+    function scoutReportEventListeners(){
+        document.querySelectorAll('.player_icon_placeholder.scout_report')
+            .forEach(element => {
+                element.addEventListener('click', function (event) {
+                    // Tu lógica aquí
+                    console.log('Elemento clickeado:', this);
+                    const countsArray = [];
+
+// Map: key = índice, value = cantidad
+                    const countsMap = new Map();
+
+                    setTimeout(() => {
+
+                        var starsSpans = document.querySelectorAll('span.stars');
+                        starsSpans.forEach((span, index) => {
+                            var is = span.querySelectorAll('i.fa.fa-star.fa-2x.lit');
+                            /*console.log(span.textContent); // o span.innerHTML, o cualquier otra propiedad
+                                           var is = span.querySelectorAll('i.fa.fa-star.fa-2x.lit');
+
+                            console.log(`Span #${index + 1} tiene ${is.length} <i> con la clase 'fa fa-star fa-2x lit'`);
+                                         countsArray[index] = is.length;*/
+                            countsMap.set(index, is.length);
+                        });
+
+                        console.log(countsMap)
+
+
+                        var dl = document.querySelector('dl');
+
+// 2. Crear el nuevo elemento <dd>
+                        var dd = document.createElement('dd');
+                        dd.style.display = 'block';
+                        dd.style.justifyContent = 'center';
+                        dd.style.alignItems = 'center';
+
+// 3. Insertar el HTML del botón dentro del <dd>
+                        dd.innerHTML = `
+  <button class="btn-save" id="showScout" style="
+    display: block;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    width: 25em;
+    height: 1.75em;
+    padding: 0 10px;
+    color: white;
+    background-color: rgb(228, 200, 0);
+    font-family: 'Roboto';
+    font-weight: bold;
+    font-size: revert;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  ">
+    <img src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15" height="15" alt="icon">
+    <span>Scout Analysis</span>
+  </button>
+
+`;
+
+// 4. Agregar el <dd> al final del <dl>
+                        if (dl) {
+                            dl.appendChild(dd);
+                        } else {
+                            console.warn('No se encontró ningún elemento <dl> en el DOM.');
+                        }
+
+                        const btn = document.getElementById('showScout');
+
+                        btn.addEventListener('click', (event) => {
+                            // Aquí va el código que quieres ejecutar al hacer click
+                            var link="https://statsxente.com/MZ1/View/scoutReportAnalyzer.php?tamper=yes&sport=soccer&maxStar="+countsMap.get(0)+"&minStar="+countsMap.get(1)+"&sp="+countsMap.get(2);
+                            openWindow(link, 0.95, 1.25);
+                        });
+
+
+
+
+
+                    }, 1000);
+
+
+                });
+            });
+    }
+
+    function statsPageEventListeners(){
+
+        let mainDiv = document.querySelectorAll('.statsTabs');
+        let uls = mainDiv[0].querySelectorAll('ul');
+        let lis = uls[0].querySelectorAll('li');
+
+        lis.forEach(li => {
+            li.addEventListener('click', () => {
+                setTimeout(function() {
+                    statsPage()
+                }, 1000);
+
+            });
+        });
+
+    }
 
     function tableLeaguesEventListener(){
         document.getElementById("league_tab_table").addEventListener('click', function () {
@@ -532,8 +571,159 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
+    //Match Predictor
+    function matchPredictor(){
+        let elementos = document.querySelectorAll('.match-predictor-wrapper');
+        if(elementos.length>0) {
+            var tables = elementos[0].querySelectorAll('.hitlist.match-list');
+            let filas = tables[0].querySelectorAll('table tr');
+            let linkIds = ""
+            let contIds = 0
+
+            filas.forEach(fila => {
+                let primerTd = fila.querySelector('td');
+                if (primerTd) {
+                    let enlace = primerTd.querySelector('a');
+                    if (enlace) {
+                        let urlObj = new URL(enlace.href);
+                        let params = new URLSearchParams(urlObj.search);
+                        let midValue = params.get('mid');
+                        linkIds += "&idPartido" + contIds + "=" + midValue
+                        contIds++
+                        let clase="loader-"+window.sport
+                        primerTd.innerHTML+="</br><div id='hp_loader"+midValue+"'><div id='loader' class='"+clase+"' style='width:8em; height:1.5em;'></div>"
 
 
+                    }
+                }
+            });
+
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?sport=" + window.sport + linkIds,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+
+                    filas.forEach(fila => {
+                        let primerTd = fila.querySelector('td');
+                        if (primerTd) {
+                            let enlace = primerTd.querySelector('a');
+                            if (enlace) {
+                                let urlObj = new URL(enlace.href);
+                                let params = new URLSearchParams(urlObj.search);
+                                let midValue = params.get('mid');
+                                var elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
+                                var elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
+                                primerTd.innerHTML += "<b>ELO:</b> " + elo_home + "-" + elo_away
+                                document.getElementById("hp_loader"+midValue).remove();
+
+                            }
+                        }
+                    });
+
+
+
+                }
+            });
+        }
+    }
+    //Stats Page
+    function statsPage(){
+        console.log("here")
+
+        let elemento = document.getElementById('showGrafStats');
+        if (elemento) {
+            elemento.remove();
+        }
+
+        let elements = document.querySelectorAll('.leagueStats');
+        console.log(elements)
+        elements[elements.length-1].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
+        let listItems = elements[elements.length-1].querySelectorAll('li')
+        let as = listItems[0].querySelectorAll('a')
+        console.log(as[0].href)
+        let urlObj = new URL(as[0].href);
+        let params = new URLSearchParams(urlObj.search);
+        let type = params.get('type');
+        let tid = params.get('tid');
+        var link="https://statsxente.com/MZ1/Graficos/graficoHistoricoDivisiones.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid
+
+        document.getElementById("showGrafStats").addEventListener("click", function(event) {
+            openWindow(link, 0.95, 1.25);
+        });
+
+        elemento = document.getElementById('showGrafScorers');
+        if (elemento) {
+            elemento.remove();
+        }
+
+        elements = document.querySelectorAll('.topScorers');
+        console.log(elements)
+        var topScorersHtml='<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafScorers">'
+        topScorersHtml+='<i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button> '
+        if(window.sport=="hockey"){
+            topScorersHtml+='Order By: <select id="sortScorers" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px;">'
+            topScorersHtml+='<option value="goals">Goals</option><option value="assists">Assists</option><option value="points">Points</option></select></br></br>';
+        }
+        elements[elements.length-1].insertAdjacentHTML("beforebegin",topScorersHtml)
+        listItems = elements[elements.length-1].querySelectorAll('li')
+        as = listItems[0].querySelectorAll('a')
+        console.log(as[0].href)
+        urlObj = new URL(as[0].href);
+        params = new URLSearchParams(urlObj.search);
+        type = params.get('type');
+        tid = params.get('tid');
+        var link1=""
+        document.getElementById("showGrafScorers").addEventListener("click", function(event) {
+            if(window.sport=="soccer"){
+                link1="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_scorers&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15"
+            }else{
+                link1="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_scorers_hockey&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15&sort="+document.getElementById("sortScorers").value
+            }
+            openWindow(link1, 0.95, 1.25);
+        });
+
+
+
+        ///Bans
+
+        elemento = document.getElementById('showGrafBans');
+        if (elemento) {
+            elemento.remove();
+        }
+
+        elements = document.querySelectorAll('.topBadBoys');
+        console.log(elements)
+        var topBansHtml='<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafBans">'
+        topBansHtml+='<i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button> '
+        if(window.sport=="soccer"){
+            topBansHtml+='Order By: <select id="sortScorers" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px;">'
+            topBansHtml+='<option value="points">Points</option><option value="yellow">Yellows</option><option value="red">Reds</option></select></br></br>';
+        }
+        elements[elements.length-1].insertAdjacentHTML("beforebegin",topBansHtml)
+        listItems = elements[elements.length-1].querySelectorAll('li')
+        as = listItems[0].querySelectorAll('a')
+        console.log(as[0].href)
+        urlObj = new URL(as[0].href);
+        params = new URLSearchParams(urlObj.search);
+        type = params.get('type');
+        tid = params.get('tid');
+        var link2=""
+        document.getElementById("showGrafBans").addEventListener("click", function(event) {
+            if(window.sport=="soccer"){
+                link2="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_bans&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15&sort="+document.getElementById("sortScorers").value
+            }else{
+                link2="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_bans_hockey&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15"
+            }
+            openWindow(link2, 0.95, 1.25);
+        });
+
+
+    }
     //ELO Rankings
     function eloRanks(){
         let original = document.getElementById("leftmenu_rank_national");
@@ -561,8 +751,6 @@ self.onmessage = function (e) {
             });
         });
     }
-
-
     //Training Report
     function trainingReport(){
 
@@ -657,7 +845,6 @@ self.onmessage = function (e) {
 
 
     }
-
     //Show ELO diff on clash matches
     function clashEloMatches() {
         let div = document.getElementById("latest-challenges")
@@ -727,10 +914,6 @@ self.onmessage = function (e) {
             });
         }
     }
-
-
-
-
     //Users ranking page
     function usersRank(){
         let initialValues = {};
@@ -1850,8 +2033,6 @@ self.onmessage = function (e) {
 
 
     }
-
-
     //Player stats on Top Scorers table
     function playerStatsOnTopScores(table,link,valor,keyValue,teamId){
         GM_xmlhttpRequest({
@@ -1972,7 +2153,6 @@ self.onmessage = function (e) {
 
 
     }
-
     //Leagues page
     async function leagues() {
         let tablesSearch=document.getElementsByClassName("nice_table")
@@ -2785,7 +2965,6 @@ self.onmessage = function (e) {
             });
         });
     }
-
     //Cups and FL's page
     async function friendlyCupsAndLeagues() {
 
@@ -3518,11 +3697,6 @@ self.onmessage = function (e) {
 
         const divs = document.querySelectorAll('div.scoreboard.shadow');
         const innerDivs = divs[0].querySelectorAll('div');
-
-
-
-
-        console.log("a")
         let urlParams = new URLSearchParams(window.location.search);
         var match_id=urlParams.get("mid")
         GM_xmlhttpRequest({
@@ -3533,21 +3707,10 @@ self.onmessage = function (e) {
             },
             onload: function (response) {
                 var elo_data= JSON.parse(response.responseText);
-
-//const newDiv = document.createElement('div');
-                /*var newT = '<center><div style="border-radius: 5px;padding: 5px;max-width: 30%; background-color:' + GM_getValue("bg_native") + '; color:' + GM_getValue("color_native") + '; align-items: center; color:white;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png">'
-                newT+='<span style="font-weight:bold; margin-left: 5px;">'+elo_data['elo_variation'].toFixed(2)+'</span></div></center>'*/
-                var newT = '<center><div style="width: 4.5em;" class="matchIcon  large shadow"><i style="color: black;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+                var newT = '</br><center><div style="width: 4.5em;" class="matchIcon  large shadow"><i style="color: black;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
                 newT+=elo_data['elo_variation'].toFixed(2)+'</i>'
-//newDiv.innerHTML = newT;
-
-                document.getElementById("tactic-board").innerHTML+=newT;
-                //innerDivs[0].style.marginBottom = '-5px'
-
-
+                document.getElementById("match-tactic-facts-wrapper").insertAdjacentHTML('afterbegin', newT);
             }});
-        console.log("a-fin")
-
 
 
         let linkIds=""
@@ -4067,7 +4230,6 @@ self.onmessage = function (e) {
         }
         container.innerHTML += contenidoNuevo;
     }
-
     //Players links to stats
     async function playersPageStats() {
         let element = document.getElementById('thePlayers_0');
@@ -5466,21 +5628,22 @@ self.onmessage = function (e) {
         newContent += "<label><input type='checkbox' id='tabsConfig' " + checkedTab + ">Tabs</label>";
         newContent += "</td></tr></table></br>"
 
-        if(GM_getValue("available_new_version")==="yes"){
-            newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;"><h2>New vesion available: '+GM_getValue("stx_latest_version")+'</h2></div>'
-        }
-
-
-
-
 
         newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;">'
         if(GM_getValue("available_new_version")==="yes"){
+            newContent += '<h2>New vesion available: '+GM_getValue("stx_latest_version")+'</h2>'
+        }
+
+        if(GM_getValue("available_new_version")==="yes"){
             newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button>'
         }
-        newContent+='<button id="reloadSelects" class="btn-delete" style="margin-left:10px; width:10em; background-color:#ff9800;"><i class="bi bi-arrow-clockwise" style="font-style:normal;">Reload Selects</i></button>'
-        newContent+='</br></br>'
+        newContent+='</br>'
+        newContent+="<center><h4>Changes History:</h4>";
+        newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a></center>'
+        newContent +="</br>";
         newContent +='<button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button>'
+        newContent+='<button id="reloadSelects" class="btn-delete" style="margin-left:10px; width:10em; background-color:#ff9800;"><i class="bi bi-arrow-clockwise" style="font-style:normal;">Reload Selects</i></button>'
+
         newContent+='<button id="deleteButton" class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button>'
         newContent+='</div>';
         newContent += '</div></center></br></br>';
@@ -5933,7 +6096,8 @@ self.onmessage = function (e) {
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
             let x = document.getElementById("snackbar_stx");
             let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='25px' height='25px'> <span style='color:#2da8ef; font-size: 17px;'>Stats Xente Script: </span>New version available</br></br>"
-            txt+="<button type='button' id='button-snackbar-update'>UPDATE</button>"
+            txt+="<button type='button' id='button-snackbar-update'><i class='bi bi-arrow-down-circle-fill' style='font-style:normal;'>&nbsp;UPDATE&nbsp;</i></button>"
+            txt+="&nbsp;<a href='https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer' target='_blank'><button type='button' id='button-snackbar-update'><i class='bi bi-eye-fill' style='font-style:normal;'>&nbsp;DETAILS&nbsp;</i></button></a>"
             x.innerHTML = txt;
             x.className = "showSnackBar_stx";
             document.getElementById("button-snackbar-update").addEventListener('click', function () {
