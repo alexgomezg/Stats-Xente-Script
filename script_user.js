@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.147
+// @version      0.148
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -17,6 +17,8 @@
 // @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
 // @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
 // ==/UserScript==
+
+
 
 (function () {
     'use strict';
@@ -234,39 +236,19 @@
     function scoutReportEventListeners(){
         document.querySelectorAll('.player_icon_placeholder.scout_report')
             .forEach(element => {
-                element.addEventListener('click', function (event) {
-                    // Tu lógica aquí
-                    console.log('Elemento clickeado:', this);
-                    const countsArray = [];
-
-// Map: key = índice, value = cantidad
-                    const countsMap = new Map();
-
+                element.addEventListener('click', function () {
+                    let countsMap = new Map();
                     setTimeout(() => {
-
-                        var starsSpans = document.querySelectorAll('span.stars');
+                        let starsSpans = document.querySelectorAll('span.stars');
                         starsSpans.forEach((span, index) => {
-                            var is = span.querySelectorAll('i.fa.fa-star.fa-2x.lit');
-                            /*console.log(span.textContent); // o span.innerHTML, o cualquier otra propiedad
-                                           var is = span.querySelectorAll('i.fa.fa-star.fa-2x.lit');
-
-                            console.log(`Span #${index + 1} tiene ${is.length} <i> con la clase 'fa fa-star fa-2x lit'`);
-                                         countsArray[index] = is.length;*/
+                            let is = span.querySelectorAll('i.fa.fa-star.fa-2x.lit');
                             countsMap.set(index, is.length);
                         });
-
-                        console.log(countsMap)
-
-
-                        var dl = document.querySelector('dl');
-
-// 2. Crear el nuevo elemento <dd>
-                        var dd = document.createElement('dd');
+                        let dl = document.querySelector('dl');
+                        let dd = document.createElement('dd');
                         dd.style.display = 'block';
                         dd.style.justifyContent = 'center';
                         dd.style.alignItems = 'center';
-
-// 3. Insertar el HTML del botón dentro del <dd>
                         dd.innerHTML = `
   <button class="btn-save" id="showScout" style="
     display: block;
@@ -278,7 +260,7 @@
     padding: 0 10px;
     color: white;
     background-color: rgb(228, 200, 0);
-    font-family: 'Roboto';
+    font-family: 'Roboto',serif;
     font-weight: bold;
     font-size: revert;
     border: none;
@@ -293,18 +275,12 @@
 
 `;
 
-// 4. Agregar el <dd> al final del <dl>
                         if (dl) {
                             dl.appendChild(dd);
-                        } else {
-                            console.warn('No se encontró ningún elemento <dl> en el DOM.');
                         }
-
-                        const btn = document.getElementById('showScout');
-
-                        btn.addEventListener('click', (event) => {
-                            // Aquí va el código que quieres ejecutar al hacer click
-                            var link="https://statsxente.com/MZ1/View/scoutReportAnalyzer.php?tamper=yes&sport=soccer&maxStar="+countsMap.get(0)+"&minStar="+countsMap.get(1)+"&sp="+countsMap.get(2);
+                        let btn = document.getElementById('showScout');
+                        btn.addEventListener('click', () => {
+                            let link="https://statsxente.com/MZ1/View/scoutReportAnalyzer.php?tamper=yes&sport="+window.sport+"&maxStar="+countsMap.get(0)+"&minStar="+countsMap.get(1)+"&sp="+countsMap.get(2);
                             openWindow(link, 0.95, 1.25);
                         });
 
@@ -396,37 +372,37 @@
     async function showTopScorersData(button_id_el){
 
         let flagShow = true
-        var idComp="null"
-        if (button_id_el == "ui-id-4") {
+        let idComp="null"
+        if (button_id_el === "ui-id-4") {
             fl_data = await fetchExistsFL(urlParams.get('fsid'))
             idComp = fl_data['id']
-            if (idComp == "null") {
+            if (idComp === "null") {
                 flagShow = false
             }
         }
         if(flagShow){
             let minValueText=" Min Goals:"
-            if(window.sport=="hockey"){minValueText=" Min Time:"}
-            var posSelect=GM_getValue("posSelect_"+window.sport)
-            var stats_select=GM_getValue("statsSelect_"+window.sport)
-            var min_values=GM_getValue("minValues")
-            var sortSelect = '<select style="width: 4.5em;" id="sortValue"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>';
+            if(window.sport==="hockey"){minValueText=" Min Time:"}
+            let posSelect=GM_getValue("posSelect_"+window.sport)
+            let stats_select=GM_getValue("statsSelect_"+window.sport)
+            let min_values=GM_getValue("minValues")
+            let sortSelect = '<select style="width: 4.5em;" id="sortValue"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>';
 
-            var txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
+            let txt = 'Sort: ' + sortSelect + 'Pos: ' + posSelect
             txt+=' Matches: <input style="width:2.25em;" type="text" id="pj" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
             txt+=' <span id="minValueText">'+minValueText+'</span> <input style="width:2.25em;" type="text" id="minValue" value="0" placeholder="Minimium matches" data-np-intersection-state="visible"> '
             txt+='Stats:'+ stats_select + ' Teams:'
-            var ri = document.getElementsByClassName("floatRight")
-            var selects = ri[1].querySelectorAll("select");
+            let ri = document.getElementsByClassName("floatRight")
+            let selects = ri[1].querySelectorAll("select");
 
-            var li = document.getElementsByClassName("floatLeft")
-            var spans = ri[1].querySelectorAll("span");
+            let li = document.getElementsByClassName("floatLeft")
+            let spans = ri[1].querySelectorAll("span");
 
-            var clone = spans[0].cloneNode(true);
+            let clone = spans[0].cloneNode(true);
             li[0].appendChild(clone);
             //spans[0].remove();
 
-            var select = selects[0]
+            let select = selects[0]
             select.style.width = "10em"
             select.querySelectorAll("option").forEach(option => {
                 option.removeAttribute("selected");
@@ -444,7 +420,7 @@
             select.dispatchEvent(new Event('change'));
 
 
-            spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
+            spans[0].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Stats</i></button>');
             spans[0].remove();
             ri[1].innerHTML = txt + ri[1].innerHTML
 
@@ -463,14 +439,14 @@
                 let idSelect = select.id
                 let parts = texto.split("_");
                 let league_id = parts[parts.length - 1];
-                if (idComp != "null") {
+                if (idComp !== "null") {
                     league_id=idComp
                 }
                 let selectValor = document.getElementById("valor");
                 let selectedValue = selectValor.value;
                 let urlParams = new URLSearchParams(window.location.search);
 
-                let typeKey = ""
+                let typeKey
                 if (urlParams.has('type')) {
                     typeKey = urlParams.get("type")
                 } else {
@@ -478,14 +454,14 @@
                 }
 
 
-                var txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
+                let txt = "https://statsxente.com/MZ1/Functions/tamper_player_stats_records.php?table=" + statsKeys[typeKey+"_"+window.sport] + "&pj=" + document.getElementById("pj").value + "&idLiga=" + league_id +
                     "&valor=" + encodeURIComponent(selectedValue) + "&equipo=" + document.getElementById(idSelect).value + "&categoria=" + cats_stats[typeKey]
                     + "&ord="+document.getElementById("sortValue").value+"&posicion=" + document.getElementById("positionValue").value+"&minValue="+document.getElementById("minValue").value;
-                var keyValue = selectValor.options[selectValor.selectedIndex].text;
-                var teamId = document.getElementById(idSelect).value
-                var ris = document.getElementsByClassName("floatRight")
+                let keyValue = selectValor.options[selectValor.selectedIndex].text;
+                let teamId = document.getElementById(idSelect).value
+                let ris = document.getElementsByClassName("floatRight")
                 let clase = "loader-" + window.sport
-                ris[1].insertAdjacentHTML("afterend", "<div id='hp_loader'></br></br></br><center><div style='width:50%;'><center><b>Loading...</b></center><div id='loader' class='" + clase + "' style='height:25px'></div></div></center></div>");
+                ris[1].insertAdjacentHTML("afterend", "<div id='hp_loader'></br></br></br><div style='width:50%; margin: 0 auto; text-align: center;'><b>Loading...</b><div id='loader' class='" + clase + "' style='height:25px'></div></div></div>");
                 playerStatsOnTopScores(table, txt, selectedValue, keyValue, teamId)
 
             });
@@ -575,7 +551,7 @@ self.onmessage = function (e) {
     function matchPredictor(){
         let elementos = document.querySelectorAll('.match-predictor-wrapper');
         if(elementos.length>0) {
-            var tables = elementos[0].querySelectorAll('.hitlist.match-list');
+            let tables = elementos[0].querySelectorAll('.hitlist.match-list');
             let filas = tables[0].querySelectorAll('table tr');
             let linkIds = ""
             let contIds = 0
@@ -616,8 +592,8 @@ self.onmessage = function (e) {
                                 let urlObj = new URL(enlace.href);
                                 let params = new URLSearchParams(urlObj.search);
                                 let midValue = params.get('mid');
-                                var elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
-                                var elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
+                                let elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
+                                let elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
                                 primerTd.innerHTML += "<b>ELO:</b> " + elo_home + "-" + elo_away
                                 document.getElementById("hp_loader"+midValue).remove();
 
@@ -633,26 +609,21 @@ self.onmessage = function (e) {
     }
     //Stats Page
     function statsPage(){
-        console.log("here")
-
         let elemento = document.getElementById('showGrafStats');
         if (elemento) {
             elemento.remove();
         }
-
         let elements = document.querySelectorAll('.leagueStats');
-        console.log(elements)
-        elements[elements.length-1].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
+        elements[elements.length-1].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
         let listItems = elements[elements.length-1].querySelectorAll('li')
         let as = listItems[0].querySelectorAll('a')
-        console.log(as[0].href)
         let urlObj = new URL(as[0].href);
         let params = new URLSearchParams(urlObj.search);
         let type = params.get('type');
         let tid = params.get('tid');
         var link="https://statsxente.com/MZ1/Graficos/graficoHistoricoDivisiones.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid
 
-        document.getElementById("showGrafStats").addEventListener("click", function(event) {
+        document.getElementById("showGrafStats").addEventListener("click", function() {
             openWindow(link, 0.95, 1.25);
         });
 
@@ -662,24 +633,22 @@ self.onmessage = function (e) {
         }
 
         elements = document.querySelectorAll('.topScorers');
-        console.log(elements)
-        var topScorersHtml='<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafScorers">'
+        let topScorersHtml='<button class="btn-save" style="width: 8em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafScorers">'
         topScorersHtml+='<i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button> '
-        if(window.sport=="hockey"){
+        if(window.sport==="hockey"){
             topScorersHtml+='Order By: <select id="sortScorers" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px;">'
             topScorersHtml+='<option value="goals">Goals</option><option value="assists">Assists</option><option value="points">Points</option></select></br></br>';
         }
         elements[elements.length-1].insertAdjacentHTML("beforebegin",topScorersHtml)
         listItems = elements[elements.length-1].querySelectorAll('li')
         as = listItems[0].querySelectorAll('a')
-        console.log(as[0].href)
         urlObj = new URL(as[0].href);
         params = new URLSearchParams(urlObj.search);
         type = params.get('type');
         tid = params.get('tid');
-        var link1=""
-        document.getElementById("showGrafScorers").addEventListener("click", function(event) {
-            if(window.sport=="soccer"){
+        let link1=""
+        document.getElementById("showGrafScorers").addEventListener("click", function() {
+            if(window.sport==="soccer"){
                 link1="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_scorers&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15"
             }else{
                 link1="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_scorers_hockey&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15&sort="+document.getElementById("sortScorers").value
@@ -697,24 +666,22 @@ self.onmessage = function (e) {
         }
 
         elements = document.querySelectorAll('.topBadBoys');
-        console.log(elements)
-        var topBansHtml='<button class="btn-save" style="width: 8em; height:1.75em; padding: 0px 0px; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafBans">'
+        let topBansHtml='<button class="btn-save" style="width: 8em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafBans">'
         topBansHtml+='<i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button> '
-        if(window.sport=="soccer"){
+        if(window.sport==="soccer"){
             topBansHtml+='Order By: <select id="sortScorers" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px;">'
             topBansHtml+='<option value="points">Points</option><option value="yellow">Yellows</option><option value="red">Reds</option></select></br></br>';
         }
         elements[elements.length-1].insertAdjacentHTML("beforebegin",topBansHtml)
         listItems = elements[elements.length-1].querySelectorAll('li')
         as = listItems[0].querySelectorAll('a')
-        console.log(as[0].href)
         urlObj = new URL(as[0].href);
         params = new URLSearchParams(urlObj.search);
         type = params.get('type');
         tid = params.get('tid');
-        var link2=""
-        document.getElementById("showGrafBans").addEventListener("click", function(event) {
-            if(window.sport=="soccer"){
+        let link2=""
+        document.getElementById("showGrafBans").addEventListener("click", function() {
+            if(window.sport==="soccer"){
                 link2="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_bans&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15&sort="+document.getElementById("sortScorers").value
             }else{
                 link2="https://statsxente.com/MZ1/Functions/graphLoader.php?graph=top_bans_hockey&idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid+"&limit=15"
@@ -742,7 +709,7 @@ self.onmessage = function (e) {
             let contenedor = document.getElementById(clave);
             let enlace = contenedor.querySelector("a");
             enlace.textContent = valor;
-            enlace.innerHTML='<img src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width: 15px; height: 15px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;">'+enlace.innerHTML
+            enlace.innerHTML='<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width: 15px; height: 15px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;">'+enlace.innerHTML
             enlace.removeAttribute("href");
             enlace.addEventListener("click", function(event) {
                 event.preventDefault();
@@ -898,7 +865,7 @@ self.onmessage = function (e) {
                                 diff = diff.toFixed(2)
                                 clonedTd.innerHTML = `
   <div style="display: flex; align-items: center;">
-    <img width='10px' height='10px' src='https://statsxente.com/MZ1/View/Images/diff_elo.png'/>
+    <img width='10px' height='10px' src='https://statsxente.com/MZ1/View/Images/diff_elo.png' alt=""/>
     <b style="margin-left: 5px;">${diff}</b>
   </div>
 `;
@@ -1384,13 +1351,15 @@ self.onmessage = function (e) {
     }
     //Team page
     function teamPage(){
-
-
         let divToInserT=document.getElementById("streakAndCupInfo")
-
         let clase="loader-"+window.sport
-        divToInserT.innerHTML="</br><div id='hp_loader'><center><b>Loading...</b></center><div id='loader' class='"+clase+"' style='height:25px'></div></div>"+divToInserT.innerHTML
-
+        divToInserT.innerHTML =
+            "</br>" +
+            "<div id='hp_loader'>" +
+            "<div style='text-align:center;'><b>Loading...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
+            "</div>" +
+            divToInserT.innerHTML;
 
 
         let u23_type="",u21_type="",u18_type=""
@@ -2050,12 +2019,13 @@ self.onmessage = function (e) {
 
                 let thead=table.querySelectorAll("thead");
                 let rows=thead[0].querySelectorAll("tr");
-                if(rows[0].cells[3].id!="position"){
+                if(rows[0].cells[3].id!=="position"){
                     flag=true;
-                    rows[0].insertCell(5).innerHTML = "<center>Stats Xente</center>";
+                    rows[0].insertCell(5).innerHTML = '<div style="text-align: center;">Stats Xente</div>';
                     rows[0].insertCell(3).innerHTML = "Position";
                     rows[0].cells[3].id = "position";
-                    rows[0].cells[3].style.textDecoration = "underline";  // Color de fondo
+                    rows[0].cells[3].style.textDecoration = "underline"
+
                 }
                 let ths=thead[0].querySelectorAll("th")
                 let aTh= ths[4].querySelectorAll("a")
@@ -2063,23 +2033,23 @@ self.onmessage = function (e) {
 
                 tbody[0].querySelectorAll("tr").forEach(row => {
                     row.classList.remove('highlight_row');
-                    if(row.style.display=="none"){row.style.display="table-row"}
+                    if(row.style.display==="none"){row.style.display="table-row"}
 
                     if(cont<jsonResponse.length){
                         if(teamId>-1){
-                            if(teamId==jsonResponse[cont]["idEquipo"]){
+                            if(teamId===jsonResponse[cont]["idEquipo"]){
                                 row.classList.add('highlight_row');
                             }
                         }
                         let tds = row.querySelectorAll("td");
-                        var buttonData='<center><img id="stx_pl_'+jsonResponse[cont]["idJugador"]+'" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="cursor:pointer; width: 17px; height: 17px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;"></center>'
+                        var buttonData='<div style="text-align: center;"><img alt="" id="stx_pl_'+jsonResponse[cont]["idJugador"]+'" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="cursor:pointer; width: 17px; height: 17px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;"></div>'
                         var keyTable=4;
                         var keyTable1=3;
                         if(flag){
-                            row.insertCell(3).innerHTML = "<img src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
+                            row.insertCell(3).innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
                             row.insertCell(6).innerHTML=buttonData
                         }else{
-                            tds[3].innerHTML="<img src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
+                            tds[3].innerHTML="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
                             tds[6].innerHTML=buttonData
                             keyTable1=4;
                             keyTable=5;
@@ -2107,9 +2077,8 @@ self.onmessage = function (e) {
 
                         //Team
                         let team=tds[2].querySelectorAll("a")
-                        //If fired player
-                        if(team.length==0){
-                            tds[2].innerHTML='<img title="Spain" src="nocache-930/img/flags/12/es.png" width="12" height="12" style="border: none" alt="">&nbsp;<a href="/?p=team&amp;tid=771617" title="Xente" style="text-transform: uppercase;">STX</a>'
+                        if(team.length===0){
+                            tds[2].innerHTML='<img title="Spain" src="https://www.managerzone.com/nocache-930/img/flags/12/es.png" width="12" height="12" style="border: none" alt="">&nbsp;<a href="/?p=team&amp;tid=771617" title="Xente" style="text-transform: uppercase;">STX</a>'
                         }
                         team=tds[2].querySelectorAll("a")
                         team[0].textContent=jsonResponse[cont]["equipo"]
@@ -2163,7 +2132,7 @@ self.onmessage = function (e) {
             selectKey=1;
         }
         let idLiga=selectsDiv[selectKey].value
-        let typeKey = ""
+        let typeKey
         let urlParams1 = new URLSearchParams(window.location.search);
         if (urlParams1.has('type')) {
             typeKey = urlParams1.get("type")
@@ -2457,12 +2426,6 @@ self.onmessage = function (e) {
                     if (selects[index_select] === undefined) {
                         index_select = 0;
                     }
-
-
-                    let selectedIndex = selects[index_select].selectedIndex;
-                    let selectedOption = selects[index_select].options[selectedIndex];
-                    let selectedText = selectedOption.text;
-
                     let valor=0
                     if (teams_stats[id] === undefined) {
                         valor = -1
@@ -2697,11 +2660,9 @@ self.onmessage = function (e) {
 
         }, 200);
 
-
-
         GM_xmlhttpRequest({
             method: "GET",
-            url: "http://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -2981,9 +2942,9 @@ self.onmessage = function (e) {
         }
 
 
-        if(idComp!="null"){
+        if(idComp!=="null"){
             let urlParams1 = new URLSearchParams(window.location.search);
-            let typeKey = ""
+            let typeKey
             if (urlParams1.has('type')) {
                 typeKey = urlParams1.get("type")
             } else {
@@ -3301,12 +3262,6 @@ self.onmessage = function (e) {
                     if (selects[index_select] === undefined) {
                         index_select = 0;
                     }
-
-
-                    let selectedIndex = selects[index_select].selectedIndex;
-                    let selectedOption = selects[index_select].options[selectedIndex];
-                    let selectedText = selectedOption.text;
-
                     let valor=0
                     if (teams_stats[id] === undefined) {
                         valor = -1
@@ -3694,9 +3649,6 @@ self.onmessage = function (e) {
             team_div = document.getElementsByClassName("flex-grow-0 textCenter team-table no-match-buttons block")
         }
         let teams_ = []
-
-        const divs = document.querySelectorAll('div.scoreboard.shadow');
-        const innerDivs = divs[0].querySelectorAll('div');
         let urlParams = new URLSearchParams(window.location.search);
         var match_id=urlParams.get("mid")
         GM_xmlhttpRequest({
@@ -3707,8 +3659,8 @@ self.onmessage = function (e) {
             },
             onload: function (response) {
                 var elo_data= JSON.parse(response.responseText);
-                var newT = '</br><center><div style="width: 4.5em;" class="matchIcon  large shadow"><i style="color: black;"><img width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
-                newT+=elo_data['elo_variation'].toFixed(2)+'</i>'
+                var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+                newT+=elo_data['elo_variation'].toFixed(2)+'</i></div>'
                 document.getElementById("match-tactic-facts-wrapper").insertAdjacentHTML('afterbegin', newT);
             }});
 
@@ -4621,7 +4573,7 @@ self.onmessage = function (e) {
             }
         }
 
-        if(document.getElementById("trTeamStats").style.display=="table-row"){
+        if(document.getElementById("trTeamStats").style.display==="table-row"){
             document.getElementById("trTeamStats").style.display="none";
         }
 
@@ -4811,7 +4763,6 @@ self.onmessage = function (e) {
             let celda = filas[i].cells[3];
             let team_data=extractTeamData(celda.getElementsByTagName("a"));
             let id=team_data[0]
-            let equipo=team_data[1]
             let celdas = filas[i].getElementsByTagName("td");
             let ultimaCelda = celdas[celdas.length - 1];
             let selects = document.getElementsByTagName('select');
@@ -5029,7 +4980,7 @@ self.onmessage = function (e) {
                         let doc = parser.parseFromString(response.responseText, "text/html")
                         let tables = doc.getElementsByTagName("table");
 
-                        Array.from(tables).forEach((table, index) => {
+                        Array.from(tables).forEach((table) => {
                             if(table.querySelector("#set_default_tactic")){
                                 let tds = table.getElementsByTagName("td");
                                 resolve(tds[5].innerHTML)
@@ -5270,7 +5221,7 @@ self.onmessage = function (e) {
         const actual_date=getActualDate()
         if(actual_date!==GM_getValue("date_checked_selects")){
             GM_setValue("date_checked_selects", actual_date)
-            var selects_data=await fetchSelects()
+            await fetchSelects()
         }
     }
 
@@ -5638,8 +5589,8 @@ self.onmessage = function (e) {
             newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button>'
         }
         newContent+='</br>'
-        newContent+="<center><h4>Changes History:</h4>";
-        newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a></center>'
+        newContent+="<div style='text-align: center;'><h4>Changes History:</h4>";
+        newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a></div>'
         newContent +="</br>";
         newContent +='<button class="btn-save" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button>'
         newContent+='<button id="reloadSelects" class="btn-delete" style="margin-left:10px; width:10em; background-color:#ff9800;"><i class="bi bi-arrow-clockwise" style="font-style:normal;">Reload Selects</i></button>'
@@ -5958,7 +5909,7 @@ self.onmessage = function (e) {
     function getSportByLink(){
         let element = document.getElementById("settings-wrapper");
         if (element) {
-            var firstLink = element.getElementsByTagName("a")[0];
+            let firstLink = element.getElementsByTagName("a")[0];
             if (firstLink) {
                 if(firstLink.href.includes("soccer")){
                     return "hockey"
@@ -5999,7 +5950,7 @@ self.onmessage = function (e) {
             let username = document.getElementById("header-username").innerText
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "http://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&username=" + username,
+                url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&username=" + username,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -6032,7 +5983,7 @@ self.onmessage = function (e) {
                     }
                     GM_xmlhttpRequest({
                         method: "GET",
-                        url: "http://www.managerzone.com/xml/team_playerlist.php?sport_id=" + window.sport_id + "&team_id=" + userTeamsData[index].getAttribute("teamId"),
+                        url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id=" + window.sport_id + "&team_id=" + userTeamsData[index].getAttribute("teamId"),
                         headers: {
                             "Content-Type": "application/json"
                         },
@@ -7153,13 +7104,13 @@ cursor:pointer;
     }
 
     function playersPageStatsAll(){
-        let params = new URLSearchParams(window.location.search);;
-        let tid = params.get('tid');
-        let elementos1 = document.getElementsByClassName('playerContainer');
+        let params = new URLSearchParams(window.location.search)
+        let tid = params.get('tid')
+        let elementos1 = document.getElementsByClassName('playerContainer')
         for (let i = 0; i < elementos1.length; i++) {
             let playerName = elementos1[i].querySelector('.player_name').textContent
-            let ids = elementos1[i].getElementsByClassName('player_id_span');
-            let elementos_ = elementos1[i].getElementsByClassName('p_sublinks');
+            let ids = elementos1[i].getElementsByClassName('player_id_span')
+            let elementos_ = elementos1[i].getElementsByClassName('p_sublinks')
             let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
             txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
             txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
