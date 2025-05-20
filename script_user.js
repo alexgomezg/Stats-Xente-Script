@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.148
+// @version      0.149
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -120,7 +120,11 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'clubhouse')) {
             StatsXenteNextMatchesClubhouse()
             matchPredictor()
+        }
 
+        if (![...urlParams].length) {
+            StatsXenteNextMatchesClubhouse()
+            matchPredictor()
         }
 
 
@@ -594,7 +598,9 @@ self.onmessage = function (e) {
                                 let midValue = params.get('mid');
                                 let elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
                                 let elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
-                                primerTd.innerHTML += "<b>ELO:</b> " + elo_home + "-" + elo_away
+                                let lm_home=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_home']))
+                                let lm_away=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_away']))
+                                primerTd.innerHTML += "<b>ELO:</b> " + elo_home + " - " + elo_away+"</br><b>LM:</b>  "+ lm_home + " - " + lm_away
                                 document.getElementById("hp_loader"+midValue).remove();
 
                             }
@@ -3767,95 +3773,96 @@ self.onmessage = function (e) {
 
 
         let elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
-        for (let x = 0; x < 2; x++) {
-            let linkIds = ""
-            let contIds = 0;
-            let tabla = elems[x]
-            let filas = tabla.getElementsByTagName("tr");
-            let fila = filas[1];
-
-            for (let i = 2; i < filas.length - 1; i++) {
-
-                fila = filas[i];
-                let tds = fila.getElementsByTagName("td");
-                let as_ = tds[2].getElementsByTagName("a");
-                let urlObj = new URL("https://www.managerzone.com/" + as_[0].getAttribute("href"));
-                let params = new URLSearchParams(urlObj.search);
-                let pid = params.get('pid');
-
-                linkIds += "&id" + contIds + "=" + pid
-                contIds++;
-            }
-
-            let link = "http://statsxente.com/MZ1/Functions/tamper_check_stats_player.php?sport=" + window.sport + linkIds
-            teams_[x]["inserted"]= await fetchExistPlayers(link);
-
-        }
-
-
-        elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
-        for (let x = 0; x < 2; x++) {
-            if (teams_[x]['inserted']['total'] > 0) {
+        if(elems.length) {
+            for (let x = 0; x < 2; x++) {
+                let linkIds = ""
+                let contIds = 0;
                 let tabla = elems[x]
-                let firstTrThead = tabla.querySelector('thead td');
-                let currentColspan = firstTrThead.getAttribute('colspan');
-                currentColspan = parseInt(currentColspan, 10) + 1;
-                firstTrThead.setAttribute('colspan', currentColspan);
-                let secondTrThead = tabla.querySelector('thead tr:nth-of-type(2)')
-                let newTd = document.createElement('td');
-                newTd.textContent = '';
-                secondTrThead.appendChild(newTd);
                 let filas = tabla.getElementsByTagName("tr");
-                let dato = document.createElement("td");
-                let tfoot = tabla.querySelector("tfoot");
-                let primeraFilaTfoot = tfoot.querySelector("tr");
-                let primerTDTfoot = primeraFilaTfoot.querySelector("td");
-                primerTDTfoot.setAttribute("colspan", "9");
-
-                let elems2 = document.getElementsByClassName("listHeadColor");
-                let lista = elems2[0]
-
-                let nuevoElementoDD = document.createElement("dd");
-                nuevoElementoDD.textContent = "Nuevo elemento";
-                nuevoElementoDD.className = "c6"
-                lista.appendChild(nuevoElementoDD);
+                let fila = filas[1];
 
                 for (let i = 2; i < filas.length - 1; i++) {
-                    let fila = filas[i];
 
+                    fila = filas[i];
                     let tds = fila.getElementsByTagName("td");
                     let as_ = tds[2].getElementsByTagName("a");
                     let urlObj = new URL("https://www.managerzone.com/" + as_[0].getAttribute("href"));
                     let params = new URLSearchParams(urlObj.search);
                     let pid = params.get('pid');
-                    if (teams_[x]['inserted'][pid] === "yes") {
-                        dato = document.createElement("td");
+
+                    linkIds += "&id" + contIds + "=" + pid
+                    contIds++;
+                }
+
+                let link = "http://statsxente.com/MZ1/Functions/tamper_check_stats_player.php?sport=" + window.sport + linkIds
+                teams_[x]["inserted"] = await fetchExistPlayers(link);
+
+            }
+
+
+            elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
+            for (let x = 0; x < 2; x++) {
+                if (teams_[x]['inserted']['total'] > 0) {
+                    let tabla = elems[x]
+                    let firstTrThead = tabla.querySelector('thead td');
+                    let currentColspan = firstTrThead.getAttribute('colspan');
+                    currentColspan = parseInt(currentColspan, 10) + 1;
+                    firstTrThead.setAttribute('colspan', currentColspan);
+                    let secondTrThead = tabla.querySelector('thead tr:nth-of-type(2)')
+                    let newTd = document.createElement('td');
+                    newTd.textContent = '';
+                    secondTrThead.appendChild(newTd);
+                    let filas = tabla.getElementsByTagName("tr");
+                    let dato = document.createElement("td");
+                    let tfoot = tabla.querySelector("tfoot");
+                    let primeraFilaTfoot = tfoot.querySelector("tr");
+                    let primerTDTfoot = primeraFilaTfoot.querySelector("td");
+                    primerTDTfoot.setAttribute("colspan", "9");
+
+                    let elems2 = document.getElementsByClassName("listHeadColor");
+                    let lista = elems2[0]
+
+                    let nuevoElementoDD = document.createElement("dd");
+                    nuevoElementoDD.textContent = "Nuevo elemento";
+                    nuevoElementoDD.className = "c6"
+                    lista.appendChild(nuevoElementoDD);
+
+                    for (let i = 2; i < filas.length - 1; i++) {
+                        let fila = filas[i];
+
+                        let tds = fila.getElementsByTagName("td");
+                        let as_ = tds[2].getElementsByTagName("a");
+                        let urlObj = new URL("https://www.managerzone.com/" + as_[0].getAttribute("href"));
+                        let params = new URLSearchParams(urlObj.search);
+                        let pid = params.get('pid');
+                        if (teams_[x]['inserted'][pid] === "yes") {
+                            dato = document.createElement("td");
 //aa
 
-                        dato.innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='20px' height='20px' id='but" + pid + "' style='cursor:pointer;'/>"
-                        fila.appendChild(dato);
+                            dato.innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='20px' height='20px' id='but" + pid + "' style='cursor:pointer;'/>"
+                            fila.appendChild(dato);
 
 
+                            (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                                document.getElementById("but" + currentId).addEventListener('click', function () {
 
-                        (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                            document.getElementById("but" + currentId).addEventListener('click', function () {
-
-                                let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
-                                    + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
-                                    "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                                openWindow(link, 0.95, 1.25);
-                            });
-                        })(pid, teams_[x]['team_id'], window.sport, window.lang, teams_[x]['team_name'], as_[0].innerHTML);
+                                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                                        + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
+                                        "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                                    openWindow(link, 0.95, 1.25);
+                                });
+                            })(pid, teams_[x]['team_id'], window.sport, window.lang, teams_[x]['team_name'], as_[0].innerHTML);
 
 
-                    }else{
-                        dato = document.createElement("td");
-                        fila.appendChild(dato);
+                        } else {
+                            dato = document.createElement("td");
+                            fila.appendChild(dato);
+                        }
                     }
                 }
             }
-        }
 
+        }
 
 
     }
@@ -5577,7 +5584,7 @@ self.onmessage = function (e) {
 
         newContent += "<label><input type='checkbox' id='windowsConfig' " + checkedWin + ">Windows</label>";
         newContent += "<label><input type='checkbox' id='tabsConfig' " + checkedTab + ">Tabs</label>";
-        newContent += "</td></tr></table></br>"
+        newContent += "</td></tr></table>"
 
 
         newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;">'
@@ -5588,7 +5595,6 @@ self.onmessage = function (e) {
         if(GM_getValue("available_new_version")==="yes"){
             newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button>'
         }
-        newContent+='</br>'
         newContent+="<div style='text-align: center;'><h4>Changes History:</h4>";
         newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a></div>'
         newContent +="</br>";
