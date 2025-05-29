@@ -1884,7 +1884,7 @@ self.onmessage = function (e) {
                 let contenidoNuevo = "</br></br><table style='width:45%; margin: 0 auto; table-layout:unset;' class='hitlist challenges-list' style='border-collapse:collapse; margin: 0 auto; padding: 7px;'><thead><tr>"
                 contenidoNuevo+="<th style='border-top-left-radius: 5px; padding: 5px; font-weight: bold;'>Clash Compare</td>"
                 contenidoNuevo+="<th style='border-top-right-radius: 5px; padding: 5px; font-weight: bold;'>Clash Matcher</td></tr>"
-                contenidoNuevo+="<thead><tr><td style='border-bottom-left-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_compare.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
+                contenidoNuevo+="</thead><tr><td style='border-bottom-left-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_compare.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
                 contenidoNuevo+=""
                 contenidoNuevo+="<td style='border-bottom-right-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashMatcher src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
                 contenidoNuevo+="</tr></table></center></br>";
