@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.152
+// @version      0.153
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1388,7 +1388,7 @@ self.onmessage = function (e) {
         if (!team_ids.includes(team_id)) {
             linkIds += "&idEquipo" + contIds + "=" + team_id
         }
-        
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_elo_values.php?sport=" + window.sport + linkIds+cIds,
@@ -1881,10 +1881,10 @@ self.onmessage = function (e) {
 
 
 
-                let contenidoNuevo = "</br></br><table style='border-collapse:collapse; margin: 0 auto; padding: 7px;'><tr>"
-                contenidoNuevo+="<td style='text-decoration: underline; border-top-left-radius: 5px; padding: 5px; font-weight: bold; background: #E4C800;color: #000;border-color: #8C7900;'>Clash Compare</td>"
-                contenidoNuevo+="<td style='text-decoration: underline; border-top-right-radius: 5px; padding: 5px; font-weight: bold; background: #E4C800;color: #000;border-color: #8C7900;'>Clash Matcher</td></tr>"
-                contenidoNuevo+="<tr><td style='border-bottom-left-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_compare.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
+                let contenidoNuevo = "</br></br><table style='width:45%; margin: 0 auto; table-layout:unset;' class='hitlist challenges-list' style='border-collapse:collapse; margin: 0 auto; padding: 7px;'><thead><tr>"
+                contenidoNuevo+="<th style='border-top-left-radius: 5px; padding: 5px; font-weight: bold;'>Clash Compare</td>"
+                contenidoNuevo+="<th style='border-top-right-radius: 5px; padding: 5px; font-weight: bold;'>Clash Matcher</td></tr>"
+                contenidoNuevo+="<thead><tr><td style='border-bottom-left-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_compare.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
                 contenidoNuevo+=""
                 contenidoNuevo+="<td style='border-bottom-right-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashMatcher src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
                 contenidoNuevo+="</tr></table></center></br>";
