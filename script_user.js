@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.153
+// @version      0.154
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -198,6 +198,20 @@
             eloRanks()
         }*/
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'cup') && (urlParams.has('sub')) &&
+            (urlParams.get('sub') === 'list')) {
+            cupsListEventListener()
+        }
+
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.has('cuptype')) &&
+            (urlParams.get('cuptype') === 'partner')) {
+            cupsListEventListener()
+        }
+
+
+
+
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
@@ -225,7 +239,7 @@
 
 
 
-    //BUTTONS EVENTS LISTENERS
+//BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
     if ((urlParams.get('p') === 'friendlyseries')||(urlParams.get('p') === 'federations')){
         waitToDOMById(tableFLAndClashEventListener,"ui-id-2",5000)
@@ -472,7 +486,6 @@
         }
     }
 
-
     function topScorersTableEventListener() {
         if (!document.getElementById('showStats')) {
             let button_id_el="none"
@@ -490,7 +503,18 @@
 
     }
 
-    //Workers
+    function cupsListEventListener(){
+        document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
+            if (document.getElementById("showMenu") === null) {
+                waitToDOM(showCountriesAndTeamIds, ".hitlist.hitlist-compact-list-included", 0,7000)
+
+            }
+
+        });
+    }
+
+
+//Workers
     const workerCode = `
 self.onmessage = function (e) {
     const { elementos, sport, skillsNames, tacticsList, flagStats } = e.data;
@@ -551,7 +575,9 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
-    //Match Predictor
+
+
+//Match Predictor
     function matchPredictor(){
         getDeviceFormat()
         let elementos = document.querySelectorAll('.match-predictor-wrapper');
@@ -619,7 +645,130 @@ self.onmessage = function (e) {
             });
         }
     }
-    //Stats Page
+//Shot ids and countries on cups lists
+    function showCountriesAndTeamIds(){
+
+        let elements = document.querySelectorAll('.ui-tabs-nav.ui-helper-reset.ui-helper-clearfix.ui-widget-header.ui-corner-all');
+        console.log(elements)
+        let secondUl = elements[1];
+        let newLi = document.createElement('li');
+        newLi.innerHTML = '<button class="btn-save" style="margin-top: 3px; width: 6.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") +'; background-color:' + GM_getValue("bg_native")+' ;font-family: Roboto; font-weight:bold; font-size:revert;" id="showData"><i class="bi bi-plus-circle" style="font-style:normal;"> Show More</i></button>';
+        secondUl.appendChild(newLi);
+
+        document.getElementById("showData").parentNode.addEventListener('click', function () {
+            let aElement = document.querySelector('a[href="#joined_cups"]')
+            var table_id=1;
+            var cols_default=4
+            if (aElement) {
+                let parentLi = aElement.closest('li'); // Busca el li más cercano padre
+                if (parentLi && parentLi.classList.contains('ui-tabs-active')) {
+                    table_id=0
+                    cols_default=5
+                }
+            }
+
+            let tables = document.querySelectorAll('.hitlist.hitlist-compact-list-included');
+
+            console.log(tables[table_id].rows[0].cells.length)
+            if(tables[table_id].rows[0].cells.length>cols_default){
+
+                let lastColIndex = tables[table_id].rows[0].cells.length - 1;
+                for (let row of tables[table_id].rows) {
+                    if (row.cells.length > lastColIndex) {
+                        row.deleteCell(lastColIndex);
+                    }
+                }
+                lastColIndex = tables[table_id].rows[0].cells.length - 1;
+                for (let row of tables[table_id].rows) {
+                    if (row.cells.length > lastColIndex) {
+                        row.deleteCell(lastColIndex);
+                    }
+                }
+
+            }
+
+            let cont=0;
+            tables[table_id].querySelectorAll('tr').forEach(row => {
+                let tds = row.querySelectorAll('td');
+                let newCell = document.createElement('td'); // Crear una nueva celda
+                if(cont==0){
+                    newCell.textContent = 'Team ID';
+                }else{
+                    let team_data=extractTeamData(tds[3].getElementsByTagName("a"));
+                    let team_id_search=team_data[0]
+                    newCell.textContent = team_id_search;
+                }
+                row.appendChild(newCell);
+                cont++
+            });
+
+            //Country
+            cont=0;
+            tables[table_id].querySelectorAll('tr').forEach(row => {
+                let tds = row.querySelectorAll('td');
+
+                let newCell = document.createElement('td'); // Crear una nueva celda
+                if(cont==0){
+                    newCell.textContent = 'Country';
+                }else{
+                    let team_data=extractTeamData(tds[3].getElementsByTagName("a"));
+                    let team_id_search=team_data[0]
+                    let imgs=tds[3].querySelectorAll('img')
+
+                    let clase = "loader-" + window.sport
+                    var loader="<div id='hp_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase + "' style='height:15px'></div></div></div>";
+
+
+                    newCell.innerHTML = loader;
+
+
+                    new Promise((resolve, reject) => {
+                        GM_xmlhttpRequest({
+                            method: "GET",
+                            url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id="+team_id_search,
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            onload: function (response) {
+                                let parser = new DOMParser();
+                                let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                                let userData = xmlDoc.getElementsByTagName("UserData");
+                                resolve(userData[0].getAttribute("countryShortname"));
+
+                            },
+                            onerror: function () {
+                                reject("none");
+                            }
+                        });
+                    }).then(teamCountry => {
+                        if(imgs.length===0){
+                            let flag='<img title="España" src="img/flags/12/'+teamCountry.toLowerCase()+'.png" width="12" height="12" style="border: none" alt="">'
+                            let spans=tds[3].querySelectorAll('span')
+                            spans[0].innerHTML=flag+" "+spans[0].innerHTML
+                        }
+                        newCell.textContent = teamCountry.toLowerCase(); // Aquí insertas el valor recibido
+                    }).catch(err => {
+                        newCell.textContent = 'Error';
+                        console.error(err);
+                    });
+                }
+
+
+
+
+                row.appendChild(newCell);
+                cont++
+            });
+
+
+
+
+
+
+        });
+
+    }
+//Stats Page
     function statsPage(){
         let elemento = document.getElementById('showGrafStats');
         if (elemento) {
@@ -834,7 +983,7 @@ self.onmessage = function (e) {
 
 
     }
-    //ELO Rankings
+//ELO Rankings
     function eloRanks(){
         let original = document.getElementById("leftmenu_rank_national");
         //let original = document.getElementById("sub_page_nav_rank_national");
@@ -861,7 +1010,7 @@ self.onmessage = function (e) {
             });
         });
     }
-    //Training Report
+//Training Report
     function trainingReport(){
 
         if(!document.getElementById("trainingDaysId")){
@@ -955,7 +1104,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Show ELO diff on clash matches
+//Show ELO diff on clash matches
     function clashEloMatches() {
         let div = document.getElementById("latest-challenges")
         let tables = div.getElementsByTagName("table")
@@ -1024,7 +1173,7 @@ self.onmessage = function (e) {
             });
         }
     }
-    //Users ranking page
+//Users ranking page
     function usersRank(){
         let initialValues = {};
         initialValues["senior"] = GM_getValue("league_default_senior");
@@ -1228,7 +1377,7 @@ self.onmessage = function (e) {
                 }
             }});
     }
-    //Next matches page
+//Next matches page
     function nextMatches(){
 
 
@@ -1503,7 +1652,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Team page
+//Team page
     function teamPage(){
         let divToInserT=document.getElementById("streakAndCupInfo")
         let clase="loader-"+window.sport
@@ -1728,7 +1877,7 @@ self.onmessage = function (e) {
             }
         });
     }
-    //Last matches page
+//Last matches page
     function lastMatchesELO(){
         let selectElements = document.getElementsByName('limit');
         if (selectElements.length > 0) {
@@ -1855,7 +2004,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Federation clash page
+//Federation clash page
     function clash() {
 
         let badges = document.getElementsByClassName("fed_badge");
@@ -2167,7 +2316,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Player stats on Top Scorers table
+//Player stats on Top Scorers table
     function playerStatsOnTopScores(table,link,valor,keyValue,teamId){
         GM_xmlhttpRequest({
             method: "GET",
@@ -2287,7 +2436,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Leagues page
+//Leagues page
     async function leagues() {
         let tablesSearch=document.getElementsByClassName("nice_table")
         let clear = tablesSearch[0].previousElementSibling;
@@ -2954,7 +3103,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Clash leagues page
+//Clash leagues page
     function clashLeagues() {
 
         document.getElementById("division-select").addEventListener('change', function () {
@@ -3091,7 +3240,7 @@ self.onmessage = function (e) {
             });
         });
     }
-    //Cups and FL's page
+//Cups and FL's page
     async function friendlyCupsAndLeagues() {
 
         let urlParams = new URLSearchParams(window.location.search);
@@ -3807,7 +3956,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Match page
+//Match page
     async function match() {
         let team_div = document.getElementsByClassName("flex-grow-0 textCenter team-table block")
         if (team_div.length===0){
@@ -4025,7 +4174,7 @@ self.onmessage = function (e) {
 
 
     }
-    //Players page
+//Players page
     async function playersPage() {
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const workerURL = URL.createObjectURL(blob);
@@ -4348,7 +4497,7 @@ self.onmessage = function (e) {
         }
         container.innerHTML += contenidoNuevo;
     }
-    //Players links to stats
+//Players links to stats
     async function playersPageStats() {
         let element = document.getElementById('thePlayers_0');
         let elementos_ = element.getElementsByClassName('p_sublinks');
@@ -4378,7 +4527,7 @@ self.onmessage = function (e) {
             });
         })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
     }
-    //Country ranking page
+//Country ranking page
     function countryRank() {
         let table_values = ["players", "age", "value", "top11", "salary", "elo", "elo21", "lm", "lmu21"]
         let newContent = "<div style='margin: 0 auto; text-align:center;'>";
@@ -4554,7 +4703,7 @@ self.onmessage = function (e) {
             }
         });
     }
-    //Stats Xente competitions matches
+//Stats Xente competitions matches
     function StatsXenteNextMatchesClubhouse() {
         let h1Elements = document.querySelectorAll('h1.box_dark');
         let team_name = h1Elements[0].innerText
@@ -4722,7 +4871,7 @@ self.onmessage = function (e) {
 
 
 
-    //HANDLERS FUNCTIONS
+//HANDLERS FUNCTIONS
     function handleClick(event) {
 
         if(document.getElementById("eloCompareCol")){
@@ -5048,7 +5197,7 @@ self.onmessage = function (e) {
         });
     }
 
-    //FETCH FUNCTIONS
+//FETCH FUNCTIONS
     function fetchSelects() {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -5249,7 +5398,7 @@ self.onmessage = function (e) {
 
     }
 
-    //UTILS FUNCTIONS
+//UTILS FUNCTIONS
     function deleteCols(tabla,numColumnas) {
         let filas = tabla.rows;
 
