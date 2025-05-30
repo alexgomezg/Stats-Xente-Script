@@ -745,7 +745,6 @@ self.onmessage = function (e) {
                         newCell.textContent = teamCountry.toLowerCase(); // Aquí insertas el valor recibido
                     }).catch(err => {
                         newCell.textContent = 'Error';
-                        console.error(err);
                     });
                 }
 
@@ -2144,7 +2143,7 @@ self.onmessage = function (e) {
 
 
                 let tables = document.querySelectorAll('.hitlist');
-                let table=tables[1]
+                let table=tables[2]
                 if(window.stx_device==="computer"){
                     const thead = table.querySelector("thead");
                     if (thead.children.length === 0) {
@@ -2181,7 +2180,6 @@ self.onmessage = function (e) {
                 let contIds = 0
                 let linkIds = ""
                 let teamNameElement=""
-
                 let index_init=0
                 if(window.stx_device==="computer"){
                     index_init=1
@@ -2193,6 +2191,7 @@ self.onmessage = function (e) {
                     if(window.stx_device==="computer"){
                         let thirdColumnCell = row.cells[eloCol];
                         teamNameElement = thirdColumnCell.querySelector('.team-name');
+
                         let href = teamNameElement.getAttribute('href');
                         let urlParams = new URLSearchParams(href.split('?')[1]);
                         let tid = urlParams.get('tid');
