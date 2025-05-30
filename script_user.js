@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.155
+// @version      0.156
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -803,127 +803,135 @@ self.onmessage = function (e) {
 
         }
 
+        if (!document.getElementById('eloReviewTable')) {
+            let clase="loader-"+window.sport
+            let divLoader =
+                "</br>" +
+                "<div id='hp_loader' style='text-align:center; margin: 0 auto; width:50%;'>" +
+                "<div style='text-align:center;'><b>Loading...</b></div>" +
+                "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
+                "</div>";
 
-        let clase="loader-"+window.sport
-        let divLoader =
-            "</br>" +
-            "<div id='hp_loader' style='text-align:center; margin: 0 auto; width:50%;'>" +
-            "<div style='text-align:center;'><b>Loading...</b></div>" +
-            "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
-            "</div>";
+            document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",divLoader);
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id="+team_id,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    let thStyle="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'"
+                    let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
+                    let table='<br><h3>ELO Review</h3><center>'
+                    let style='max-width: 100%; overflow-x: auto; display: block; width:85%;'
+                    getDeviceFormat()
+                    if(window.stx_device==="computer"){
+                        style="width:65%;"
+                    }
+                    table+='<table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
+                    table+=' border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0;"><thead><tr>'
+                    table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
+                    table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
+                    table+="<th  "+thStyleLeft+">Change Week</th><th  "+thStyleLeft+">Change Month</th>"
+                    table+="<th style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
+                    table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:center;'>ELO Pos</th>"
+                    table+="</tr></thead>"
+                    table+="<tbody><tr>"
 
-        document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",divLoader);
-
-        GM_xmlhttpRequest({
-            method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id="+team_id,
-            headers: {
-                "Content-Type": "application/json"
-            },
-            onload: function (response) {
-                let jsonResponse = JSON.parse(response.responseText);
-                let thStyle="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'"
-                let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
-                let table='<br><h3>ELO Review</h3><center><table class="matchValuesTable" style="max-width: 100%; overflow-x: auto; display: block;background-color: transparent; border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0; width:65%;"><thead><tr>'
-                table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
-                table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
-                table+="<th  "+thStyleLeft+">Change Week</th><th  "+thStyleLeft+">Change Month</th>"
-                table+="<th style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
-                table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:center;'>ELO Pos</th>"
-                table+="</tr></thead>"
-                table+="<tbody><tr>"
-
-                let lista=["senior","U23","U21","U18"];
-                for (let i = 0; i < lista.length; i++) {
-                    var tmp_cat=lista[i]
-                    var bottomStyle=""
-                    if(i==0){
-                        table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Senior</th>"
-                    }else{
-                        if(tmp_cat==="U18"){
-                            table+="<th style='border-bottom-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>U18</th>"
-                            bottomStyle="border-bottom:1px solid "+GM_getValue("bg_native")
+                    let lista=["senior","U23","U21","U18"];
+                    for (let i = 0; i < lista.length; i++) {
+                        var tmp_cat=lista[i]
+                        var bottomStyle=""
+                        if(i==0){
+                            table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Senior</th>"
                         }else{
-                            table+="<th  "+thStyle+">"+tmp_cat+"</th>"
+                            if(tmp_cat==="U18"){
+                                table+="<th style='border-bottom-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>U18</th>"
+                                bottomStyle="border-bottom:1px solid "+GM_getValue("bg_native")
+                            }else{
+                                table+="<th  "+thStyle+">"+tmp_cat+"</th>"
+                            }
+
+                        }
+                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['min']);+"</td>";
+                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['avg']);+"</td>";
+                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['max']);+"</td>";
+
+                        let symbol=""
+                        let status="down"
+                        if(jsonResponse[tmp_cat]['week']>0){
+                            symbol="&nbsp;"
+                            status="up"
+                        }
+                        if(jsonResponse[tmp_cat]['week']===0){
+                            symbol="&nbsp;"
+                            status="cir_amarillo"
                         }
 
+                        table+="<td style='text-align: left;"+bottomStyle+";'>"
+                        table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
+                        table+=symbol
+                        table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['week'])+"</td>";
+
+
+                        symbol=""
+                        status="down"
+                        if(jsonResponse[tmp_cat]['month']>0){
+                            symbol="&nbsp;"
+                            status="up"
+                        }
+                        if(jsonResponse[tmp_cat]['week']===0){
+                            symbol="&nbsp;"
+                            status="cir_amarillo"
+                        }
+
+                        table+="<td style='text-align: left;"+bottomStyle+";'>"
+                        table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
+                        table+=symbol
+                        table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['month'])+"</td>";
+
+                        symbol=""
+                        status="down"
+                        if(jsonResponse[tmp_cat]['year']>0){
+                            symbol="&nbsp;"
+                            status="up"
+                        }
+                        if(jsonResponse[tmp_cat]['week']===0){
+                            symbol="&nbsp;"
+                            status="cir_amarillo"
+                        }
+
+                        //table+="<td style='text-align: left; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
+                        table+="<td style='text-align: left; "+bottomStyle+";'>"
+                        table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
+                        table+=symbol
+                        table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['year'])+"</td>";
+
+
+                        table+="<td style='text-align: center; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
+                        table+=new Intl.NumberFormat(window.userLocal).format(jsonResponse[tmp_cat]['ranking'])+"</td>";
+
+
+                        table+="</tr><tr>"
+
                     }
-                    table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['min']);+"</td>";
-                    table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['avg']);+"</td>";
-                    table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['max']);+"</td>";
-
-                    let symbol=""
-                    let status="down"
-                    if(jsonResponse[tmp_cat]['week']>0){
-                        symbol="&nbsp;"
-                        status="up"
-                    }
-                    if(jsonResponse[tmp_cat]['week']===0){
-                        symbol="&nbsp;"
-                        status="cir_amarillo"
-                    }
-
-                    table+="<td style='text-align: left;"+bottomStyle+";'>"
-                    table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
-                    table+=symbol
-                    table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['week'])+"</td>";
 
 
-                    symbol=""
-                    status="down"
-                    if(jsonResponse[tmp_cat]['month']>0){
-                        symbol="&nbsp;"
-                        status="up"
-                    }
-                    if(jsonResponse[tmp_cat]['week']===0){
-                        symbol="&nbsp;"
-                        status="cir_amarillo"
-                    }
-
-                    table+="<td style='text-align: left;"+bottomStyle+";'>"
-                    table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
-                    table+=symbol
-                    table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['month'])+"</td>";
-
-                    symbol=""
-                    status="down"
-                    if(jsonResponse[tmp_cat]['year']>0){
-                        symbol="&nbsp;"
-                        status="up"
-                    }
-                    if(jsonResponse[tmp_cat]['week']===0){
-                        symbol="&nbsp;"
-                        status="cir_amarillo"
-                    }
-
-                    //table+="<td style='text-align: left; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
-                    table+="<td style='text-align: left; "+bottomStyle+";'>"
-                    table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
-                    table+=symbol
-                    table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['year'])+"</td>";
-
-
-                    table+="<td style='text-align: center; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
-                    table+=new Intl.NumberFormat(window.userLocal).format(jsonResponse[tmp_cat]['ranking'])+"</td>";
-
-
-                    table+="</tr><tr>"
-
+                    table+="</tr></thead></table>"
+                    table+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
+                    table+="</center>"
+                    document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",table);
+                    document.getElementById("hp_loader").remove()
+                    document.getElementById("eloHistoryButton").addEventListener('click', function () {
+                        let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id+"&sport=" + window.sport
+                        openWindow(link, 0.95, 1.25);
+                    });
                 }
 
+            });
 
-                table+="</tr></thead></table>"
-                table+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
-                table+="</center>"
-                document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",table);
-                document.getElementById("hp_loader").remove()
-                document.getElementById("eloHistoryButton").addEventListener('click', function () {
-                    let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id+"&sport=" + window.sport
-                    openWindow(link, 0.95, 1.25);
-                });
-            }
-
-        });
+        }
         let elements = document.querySelectorAll('.leagueStats');
         elements[elements.length-1].insertAdjacentHTML("beforebegin", '<button class="btn-save" style="width: 8em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showGrafStats"><i class="bi bi-bar-chart-fill" style="font-style:normal;"> Show Graph</i></button></br></br>');
         let listItems = elements[elements.length-1].querySelectorAll('li')
@@ -1766,7 +1774,7 @@ self.onmessage = function (e) {
 
                 getDeviceFormat()
                 let teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
-                let style="max-width: 100%; overflow-x: auto; display: block;"
+                let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
                 if(window.stx_device==="computer"){
                     style=""
                 }
