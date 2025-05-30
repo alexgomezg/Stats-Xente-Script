@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.154
+// @version      0.155
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -647,9 +647,7 @@ self.onmessage = function (e) {
     }
 //Shot ids and countries on cups lists
     function showCountriesAndTeamIds(){
-
         let elements = document.querySelectorAll('.ui-tabs-nav.ui-helper-reset.ui-helper-clearfix.ui-widget-header.ui-corner-all');
-        console.log(elements)
         let secondUl = elements[1];
         let newLi = document.createElement('li');
         newLi.innerHTML = '<button class="btn-save" style="margin-top: 3px; width: 6.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") +'; background-color:' + GM_getValue("bg_native")+' ;font-family: Roboto; font-weight:bold; font-size:revert;" id="showData"><i class="bi bi-plus-circle" style="font-style:normal;"> Show More</i></button>';
@@ -668,8 +666,6 @@ self.onmessage = function (e) {
             }
 
             let tables = document.querySelectorAll('.hitlist.hitlist-compact-list-included');
-
-            console.log(tables[table_id].rows[0].cells.length)
             if(tables[table_id].rows[0].cells.length>cols_default){
 
                 let lastColIndex = tables[table_id].rows[0].cells.length - 1;
@@ -807,6 +803,17 @@ self.onmessage = function (e) {
 
         }
 
+
+        let clase="loader-"+window.sport
+        let divLoader =
+            "</br>" +
+            "<div id='hp_loader' style='text-align:center; margin: 0 auto; width:50%;'>" +
+            "<div style='text-align:center;'><b>Loading...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
+            "</div>";
+
+        document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",divLoader);
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id="+team_id,
@@ -817,11 +824,12 @@ self.onmessage = function (e) {
                 let jsonResponse = JSON.parse(response.responseText);
                 let thStyle="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'"
                 let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
-                let table='<br><h3>ELO Review</h3><center><table class="matchValuesTable" style="background-color: transparent; border: 0px; color: "+GM_getValue("color_native")+"; margin: 5px 0; width:65%;"><thead><tr>'
+                let table='<br><h3>ELO Review</h3><center><table class="matchValuesTable" style="max-width: 100%; overflow-x: auto; display: block;background-color: transparent; border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0; width:65%;"><thead><tr>'
                 table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
-                table+="<th style='border-top-left-radius: 5px; background-color: rgb(228, 200, 0); color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
+                table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
                 table+="<th  "+thStyleLeft+">Change Week</th><th  "+thStyleLeft+">Change Month</th>"
-                table+="<th style='border-top-right-radius: 5px; background-color: rgb(228, 200, 0); color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
+                table+="<th style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
+                table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:center;'>ELO Pos</th>"
                 table+="</tr></thead>"
                 table+="<tbody><tr>"
 
@@ -860,6 +868,7 @@ self.onmessage = function (e) {
                     table+=symbol
                     table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['week'])+"</td>";
 
+
                     symbol=""
                     status="down"
                     if(jsonResponse[tmp_cat]['month']>0){
@@ -887,12 +896,15 @@ self.onmessage = function (e) {
                         status="cir_amarillo"
                     }
 
-                    table+="<td style='text-align: left; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
+                    //table+="<td style='text-align: left; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
+                    table+="<td style='text-align: left; "+bottomStyle+";'>"
                     table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
                     table+=symbol
                     table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['year'])+"</td>";
 
 
+                    table+="<td style='text-align: center; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
+                    table+=new Intl.NumberFormat(window.userLocal).format(jsonResponse[tmp_cat]['ranking'])+"</td>";
 
 
                     table+="</tr><tr>"
@@ -900,8 +912,15 @@ self.onmessage = function (e) {
                 }
 
 
-                table+="</tr></thead></table></center>"
+                table+="</tr></thead></table>"
+                table+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
+                table+="</center>"
                 document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",table);
+                document.getElementById("hp_loader").remove()
+                document.getElementById("eloHistoryButton").addEventListener('click', function () {
+                    let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id+"&sport=" + window.sport
+                    openWindow(link, 0.95, 1.25);
+                });
             }
 
         });
@@ -918,6 +937,8 @@ self.onmessage = function (e) {
         document.getElementById("showGrafStats").addEventListener("click", function() {
             openWindow(link, 0.95, 1.25);
         });
+
+
 
         elemento = document.getElementById('showGrafScorers');
         if (elemento) {
@@ -1725,7 +1746,6 @@ self.onmessage = function (e) {
             }
         });
 
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo="+team_id,
@@ -1744,14 +1764,20 @@ self.onmessage = function (e) {
                     top="TOP 21"
                 }
 
+                getDeviceFormat()
                 let teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
-                teamTable+='<table class="matchValuesTable"><thead><tr>'
+                let style="max-width: 100%; overflow-x: auto; display: block;"
+                if(window.stx_device==="computer"){
+                    style=""
+                }
+                teamTable+='<table class="matchValuesTable" style="'+style+'"><thead><tr>'
                 teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                 teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
                 teamTable+='<th >'+top+'</th><th>ELO</th>'
                 teamTable+='<th>Age</th>'
                 teamTable+='<th>Salary</th>'
                 teamTable+='<th>Players</th>'
+                teamTable+='<th>ELO Pos</th>'
                 teamTable+='<th style="border-top-right-radius: 5px;"></th>'
                 teamTable+='</tr></thead><tbody>'
                 let valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
@@ -1763,6 +1789,7 @@ self.onmessage = function (e) {
                 let numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
                 teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
 
@@ -1777,6 +1804,7 @@ self.onmessage = function (e) {
                 numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
                 teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo23_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -1792,6 +1820,7 @@ self.onmessage = function (e) {
                 numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
                 teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo21_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -1811,6 +1840,7 @@ self.onmessage = function (e) {
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor11+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+jsonResponse[aux]['elo18_pos']+'</td>'
                 teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -2481,6 +2511,9 @@ self.onmessage = function (e) {
         let linkIds = ""
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
+        tabla.style.overflowX = 'auto';
+        tabla.style.display='block'
+        tabla.style.maxWidth='100%'
         let thSegundo = tabla.querySelector("thead th:nth-child(2)");
         thSegundo.style.width = "250px";
 
@@ -3313,6 +3346,12 @@ self.onmessage = function (e) {
         let linkIds = ""
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
+        getDeviceFormat()
+        if(window.stx_device!=="computer"){
+            tabla.style.overflowX = 'auto';
+            tabla.style.display='block'
+            tabla.style.maxWidth='100%'
+        }
         let thSegundo = tabla.querySelector("thead th:nth-child(2)");
         thSegundo.style.width = "250px";
 
@@ -4452,7 +4491,7 @@ self.onmessage = function (e) {
         }
 
         const container = document.getElementById("divMenu")
-        let contenidoNuevo = "<table id=showMenu style='width:95%;font-size:13px; margin: 0 auto; text-align:center;'><thead style='background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'><tr>";
+        let contenidoNuevo = "<table id=showMenu style='max-width: 100%; overflow-x: auto; display: block; width:95%;font-size:13px; margin: 0 auto; text-align:center;'><thead style='background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'><tr>";
         contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;">Line</th>'
         for (let q = 0; q < skills_names.length; q++) {
             contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;">' + skills_names[q] + '</th>'
@@ -4547,6 +4586,12 @@ self.onmessage = function (e) {
         newContent += '<label><input class="statsxente" type="checkbox" checked id="lmu21" value="U21 LM">U21 LM</label>';
 
         let contenedor = document.getElementById('countryRankTable');
+        getDeviceFormat()
+        if(window.stx_device!=="computer"){
+            contenedor.style.overflowX = 'auto'
+            contenedor.style.display='block'
+            contenedor.style.maxWidth='100%'
+        }
         contenedor.insertAdjacentHTML('beforebegin', newContent);
 
         GM_xmlhttpRequest({
@@ -4563,6 +4608,7 @@ self.onmessage = function (e) {
                     type = 2
                 }
                 let table = document.getElementById('countryRankTable');
+
                 for (let i = 0; i < table.rows.length; i++) {
                     let row = table.rows[i];
                     let insertIndex = row.cells.length - 1;
