@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.157
+// @version      0.158
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -185,6 +185,12 @@
             teamPage()
         }
 
+
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'profile')) {
+            profilePage()
+        }
+
         if ((urlParams.has('p')) && (urlParams.get('p') === 'rank') && (urlParams.has('sub')) &&
             (urlParams.get('sub') === 'userrank')) {
             usersRank()
@@ -311,6 +317,186 @@
 
                 });
             });
+    }
+
+    function profilePage(){
+        let elems=document.getElementsByClassName("flex-wrap");
+        var html='<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
+        elems[0].insertAdjacentHTML("afterend",html);
+
+        let divToInserT=document.getElementById("streakAndCupInfo")
+        let clase="loader-"+window.sport
+        divToInserT.innerHTML =
+            "</br>" +
+            "<div id='hp_loader'>" +
+            "<div style='text-align:center;'><b>Loading...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
+            "</div>" +
+            divToInserT.innerHTML;
+        let team_id=771617
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo="+team_id,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onload: function (response) {
+
+                let jsonResponse = JSON.parse(response.responseText);
+
+                let aux=team_id
+
+                let top="TOP 11"
+
+                if(window.sport==="hockey"){
+                    top="TOP 21"
+                }
+
+                getDeviceFormat()
+                let teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+                let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
+                if(window.stx_device==="computer"){
+                    style=""
+                }
+                teamTable+='<table class="matchValuesTable" style="'+style+'"><thead><tr>'
+                teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
+                teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
+                teamTable+='<th >'+top+'</th><th>ELO</th>'
+                teamTable+='<th>Age</th>'
+                teamTable+='<th>Salary</th>'
+                teamTable+='<th>Players</th>'
+                teamTable+='<th>ELO Pos</th>'
+                teamTable+='<th style="border-top-right-radius: 5px;"></th>'
+                teamTable+='</tr></thead><tbody>'
+                let valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
+                let valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSenior']))
+                let valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
+                let elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo']))
+                let edad= Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
+                let salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
+                let numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
+                teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo_pos']+'</td>'
+                teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+
+                teamTable+='</td></tr>'
+
+                valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor23']))
+                valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB23']))
+                valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_23']))
+                elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo23']))
+                edad=Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
+                salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
+                numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
+                teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo23_pos']+'</td>'
+                teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable+='</td></tr>'
+
+
+
+                valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor21']))
+                valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB21']))
+                valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_21']))
+                elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo21']))
+                edad=Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
+                salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
+                numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
+                teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<td>'+numJugs+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo21_pos']+'</td>'
+                teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable+='</td></tr>'
+
+
+
+
+                valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor18']))
+                valorLM=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB18']))
+                valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_18']))
+                elo=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo18']))
+                edad=Number.parseFloat(jsonResponse[aux]['age18']).toFixed(2)
+                salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary18']))
+                numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players18']))
+                teamTable+='<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valorLM+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor11+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+jsonResponse[aux]['elo18_pos']+'</td>'
+                teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
+                teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable+='</td></tr>'
+                teamTable+='</tbody></table>'
+                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
+
+                let divToInserT=document.getElementById("streakAndCupInfo")
+                divToInserT.innerHTML=teamTable+divToInserT.innerHTML
+
+                document.getElementById("hp_loader").remove()
+
+                let color=GM_getValue("bg_native")
+                let darkerColor = darkenColor(color, 25);
+
+                document.styleSheets[0].insertRule(
+                    '.btn-save:hover { background-color: '+darkerColor+' !important; }',
+                    document.styleSheets[0].cssRules.length
+                );
+
+
+                document.getElementById("eloHistoryButton").addEventListener('click', function () {
+                    let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id+"&sport=" + window.sport
+                    openWindow(link, 0.95, 1.25);
+                });
+
+
+
+                document.getElementById("seniorButton").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category=senior&elo_category=SENIOR&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        +team_name+"&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+                document.getElementById("sub23Button").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category="+u23_type+"&elo_category=U23&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        +team_name+"&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+
+                document.getElementById("sub21Button").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category="+u21_type+"&elo_category=U21&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        +team_name+"&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+
+
+                document.getElementById("sub18Button").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category="+u18_type+"&elo_category=U18&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        +team_name+"&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+
+
+
+                const thElements = document.querySelectorAll('table.matchValuesTable th');
+                thElements.forEach(th => {
+                    th.style.backgroundColor = GM_getValue("bg_native");
+                    th.style.color = GM_getValue("color_native");
+                });
+                document.getElementById("thTransparent0").style.backgroundColor="transparent";
+            }
+        });
+
+
+
     }
 
     function statsPageEventListeners(){
@@ -745,6 +931,7 @@ self.onmessage = function (e) {
                         newCell.textContent = teamCountry.toLowerCase(); // Aquí insertas el valor recibido
                     }).catch(err => {
                         newCell.textContent = 'Error';
+                        console.error(err);
                     });
                 }
 
@@ -832,9 +1019,12 @@ self.onmessage = function (e) {
                     table+=' border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0;"><thead><tr>'
                     table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                     table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
+                    table+="<th  style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO</th>"
+                    table+="<th  style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO Pos</th>"
                     table+="<th  "+thStyleLeft+">Change Week</th><th  "+thStyleLeft+">Change Month</th>"
-                    table+="<th style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
-                    table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:center;'>ELO Pos</th>"
+                    table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
+                    // table+="<th style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO</th>"
+                    // table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:center;'>ELO Pos</th>"
                     table+="</tr></thead>"
                     table+="<tbody><tr>"
 
@@ -856,6 +1046,13 @@ self.onmessage = function (e) {
                         table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['min']);+"</td>";
                         table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['avg']);+"</td>";
                         table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['max']);+"</td>";
+
+                        table+="<td style='text-align: left; "+bottomStyle+"; font-weight: bold;'>"
+                        table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['actual_elo'])+"</td>";
+
+                        table+="<td style='text-align: center; "+bottomStyle+";'>"
+                        table+=new Intl.NumberFormat(window.userLocal).format(jsonResponse[tmp_cat]['ranking'])+"</td>";
+
 
                         let symbol=""
                         let status="down"
@@ -880,7 +1077,7 @@ self.onmessage = function (e) {
                             symbol="&nbsp;"
                             status="up"
                         }
-                        if(jsonResponse[tmp_cat]['week']===0){
+                        if(jsonResponse[tmp_cat]['month']===0){
                             symbol="&nbsp;"
                             status="cir_amarillo"
                         }
@@ -896,20 +1093,18 @@ self.onmessage = function (e) {
                             symbol="&nbsp;"
                             status="up"
                         }
-                        if(jsonResponse[tmp_cat]['week']===0){
+                        if(jsonResponse[tmp_cat]['year']===0){
                             symbol="&nbsp;"
                             status="cir_amarillo"
                         }
 
                         //table+="<td style='text-align: left; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
-                        table+="<td style='text-align: left; "+bottomStyle+";'>"
+                        table+="<td style='text-align: left; "+bottomStyle+";  border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
                         table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
                         table+=symbol
                         table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['year'])+"</td>";
 
 
-                        table+="<td style='text-align: center; border-right:1px solid "+GM_getValue("bg_native")+";"+bottomStyle+";'>"
-                        table+=new Intl.NumberFormat(window.userLocal).format(jsonResponse[tmp_cat]['ranking'])+"</td>";
 
 
                         table+="</tr><tr>"
@@ -1682,6 +1877,7 @@ self.onmessage = function (e) {
     }
 //Team page
     function teamPage(){
+
         let divToInserT=document.getElementById("streakAndCupInfo")
         let clase="loader-"+window.sport
         divToInserT.innerHTML =
@@ -1772,7 +1968,7 @@ self.onmessage = function (e) {
                 }
 
                 getDeviceFormat()
-                let teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+                let teamTable='<div style="display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
                 let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
                 if(window.stx_device==="computer"){
                     style=""
@@ -1781,10 +1977,10 @@ self.onmessage = function (e) {
                 teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                 teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
                 teamTable+='<th >'+top+'</th><th>ELO</th>'
+                teamTable+='<th>ELO Pos</th>'
                 teamTable+='<th>Age</th>'
                 teamTable+='<th>Salary</th>'
                 teamTable+='<th>Players</th>'
-                teamTable+='<th>ELO Pos</th>'
                 teamTable+='<th style="border-top-right-radius: 5px;"></th>'
                 teamTable+='</tr></thead><tbody>'
                 let valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
@@ -1794,9 +1990,9 @@ self.onmessage = function (e) {
                 let edad= Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
                 let salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
                 let numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
-                teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo_pos']+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
-                teamTable+='<td>'+jsonResponse[aux]['elo_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
 
@@ -1809,9 +2005,9 @@ self.onmessage = function (e) {
                 edad=Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
                 salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
                 numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
-                teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo23_pos']+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
-                teamTable+='<td>'+jsonResponse[aux]['elo23_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -1825,9 +2021,9 @@ self.onmessage = function (e) {
                 edad=Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
                 salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
                 numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
-                teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo21_pos']+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
-                teamTable+='<td>'+jsonResponse[aux]['elo21_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -1845,9 +2041,10 @@ self.onmessage = function (e) {
                 teamTable+='<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valorLM+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor11+'</td>'
-                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
-                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+jsonResponse[aux]['elo18_pos']+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
                 teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -2180,6 +2377,7 @@ self.onmessage = function (e) {
                 let contIds = 0
                 let linkIds = ""
                 let teamNameElement=""
+
                 let index_init=0
                 if(window.stx_device==="computer"){
                     index_init=1
