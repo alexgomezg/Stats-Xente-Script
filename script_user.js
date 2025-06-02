@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.163
+// @version      0.164
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -355,21 +355,21 @@
                 }
 
                 getDeviceFormat()
-                let teamTable='<div style="display: block;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+                let teamTable='<div style="width:100%; display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
                 let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
+                let style2=""
                 if(window.stx_device==="computer"){
                     style=""
-                    teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
-
+                    style2="<center>"
                 }
-                teamTable+='<table class="matchValuesTable" style="'+style+'"><thead><tr>'
+                teamTable+=  style2+'<table class="matchValuesTable" style="'+style+'"><thead><tr>'
                 teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                 teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
                 teamTable+='<th >'+top+'</th><th>ELO</th>'
+                teamTable+='<th>ELO Pos</th>'
                 teamTable+='<th>Age</th>'
                 teamTable+='<th>Salary</th>'
                 teamTable+='<th>Players</th>'
-                teamTable+='<th>ELO Pos</th>'
                 teamTable+='<th style="border-top-right-radius: 5px;"></th>'
                 teamTable+='</tr></thead><tbody>'
                 let valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
@@ -379,9 +379,9 @@
                 let edad= Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
                 let salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
                 let numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
-                teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<tr><th style="border-top-left-radius: 5px;">Senior</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo_pos']+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
-                teamTable+='<td>'+jsonResponse[aux]['elo_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
 
@@ -394,9 +394,9 @@
                 edad=Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
                 salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
                 numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
-                teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<tr><th>U23</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo23_pos']+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
-                teamTable+='<td>'+jsonResponse[aux]['elo23_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -410,9 +410,9 @@
                 edad=Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
                 salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
                 numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
-                teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td><td>'+edad+'</td><td>'+salario+'</td>'
+                teamTable+='<tr><th>U21</th><td>'+valor+'</td><td>'+valorLM+'</td><td>'+valor11+'</td><td>'+elo+'</td>'
+                teamTable+='<td>'+jsonResponse[aux]['elo21_pos']+'</td><td>'+edad+'</td><td>'+salario+'</td>'
                 teamTable+='<td>'+numJugs+'</td>'
-                teamTable+='<td>'+jsonResponse[aux]['elo21_pos']+'</td>'
                 teamTable+='<td style="border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
@@ -430,15 +430,20 @@
                 teamTable+='<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valorLM+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+valor11+'</td>'
-                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
-                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+elo+'</td>'
                 teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+jsonResponse[aux]['elo18_pos']+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+edad+'</td><td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+salario+'</td>'
+                teamTable+='<td style="border-bottom:1px solid '+GM_getValue("bg_native")+';">'+numJugs+'</td>'
                 teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
-                teamTable+='<tr><td colspan="10">'
-                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></td>'
-                teamTable+='</tr></tbody></table></div>'
+                teamTable+='<tr><td colspan=10>'
+                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
+                teamTable+='; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history"'
+                teamTable+=' style="font-style:normal;"> ELO History</i></button></tr>'
+                teamTable+='</tbody></table></div>'
+
+
                 let divToInserT=document.getElementById("streakAndCupInfo")
                 divToInserT.innerHTML=teamTable+divToInserT.innerHTML
 
