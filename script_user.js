@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.158
+// @version      0.159
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -997,7 +997,6 @@ self.onmessage = function (e) {
                 "<div style='text-align:center;'><b>Loading...</b></div>" +
                 "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
                 "</div>";
-
             document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",divLoader);
             GM_xmlhttpRequest({
                 method: "GET",
@@ -1010,12 +1009,14 @@ self.onmessage = function (e) {
                     let thStyle="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'"
                     let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
                     let table='<br><h3>ELO Review</h3><center>'
-                    let style='max-width: 100%; overflow-x: auto; display: block; width:85%;'
+                    let style='max-width: 100%; overflow-x: auto; display: block; width:100%;'
                     getDeviceFormat()
                     if(window.stx_device==="computer"){
                         style="width:65%;"
                     }
-                    table+='<table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
+                    table+='<div style="display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
+
+                    table+='<center><table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
                     table+=' border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0;"><thead><tr>'
                     table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                     table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
@@ -1111,10 +1112,11 @@ self.onmessage = function (e) {
 
                     }
 
+                    table+="<tr><td colspan=9>"
 
-                    table+="</tr></thead></table>"
-                    table+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
-                    table+="</center>"
+                    table+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;'
+                    table+=' font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></td>'
+                    table+="</tr></thead></table></center></div>"
                     document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",table);
                     document.getElementById("hp_loader").remove()
                     document.getElementById("eloHistoryButton").addEventListener('click', function () {
@@ -1968,8 +1970,8 @@ self.onmessage = function (e) {
                 }
 
                 getDeviceFormat()
-                let teamTable='<div style="display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
-                let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
+                let teamTable='<div style="width:100%; display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
+                let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
                 if(window.stx_device==="computer"){
                     style=""
                 }
@@ -2048,8 +2050,12 @@ self.onmessage = function (e) {
                 teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
-                teamTable+='</tbody></table>'
-                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
+                teamTable+='<tr><td colspan=10>'
+                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
+                teamTable+='; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history"'
+                teamTable+=' style="font-style:normal;"> ELO History</i></button></tr>'
+                teamTable+='</tbody></table></div>'
+
 
                 let divToInserT=document.getElementById("streakAndCupInfo")
                 divToInserT.innerHTML=teamTable+divToInserT.innerHTML
@@ -2377,7 +2383,6 @@ self.onmessage = function (e) {
                 let contIds = 0
                 let linkIds = ""
                 let teamNameElement=""
-
                 let index_init=0
                 if(window.stx_device==="computer"){
                     index_init=1
