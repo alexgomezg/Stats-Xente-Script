@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.161
+// @version      0.162
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -354,7 +354,7 @@
 
                 getDeviceFormat()
                 let teamTable='<div style="display: block;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
-                let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
+                let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
                 if(window.stx_device==="computer"){
                     style=""
                     teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
@@ -434,9 +434,9 @@
                 teamTable+='<td style="border-radius: 0 0 10px 0; border-bottom:1px solid '+GM_getValue("bg_native")+'; border-right:1px solid '+GM_getValue("bg_native")+';">'
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
-                teamTable+='</tbody></table>'
-                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></div>'
-
+                teamTable+='<tr><td colspan="10">'
+                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history" style="font-style:normal;"> ELO History</i></button></td>'
+                teamTable+='</tr></tbody></table></div>'
                 let divToInserT=document.getElementById("streakAndCupInfo")
                 divToInserT.innerHTML=teamTable+divToInserT.innerHTML
 
