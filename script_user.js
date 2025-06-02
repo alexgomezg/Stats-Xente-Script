@@ -347,6 +347,8 @@
                 let jsonResponse = JSON.parse(response.responseText);
                 let aux=jsonResponse["username"]
                 let top="TOP 11"
+                let team_id=jsonResponse["username"]
+                let team_name=jsonResponse["team_name"]
 
                 if(window.sport==="hockey"){
                     top="TOP 21"
