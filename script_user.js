@@ -468,14 +468,14 @@
                 });
                 document.getElementById("sub23Button").addEventListener('click', function () {
                     let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category="+u23_type+"&elo_category=U23&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        "&category=SUB23&elo_category=U23&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
                         +team_name+"&divisa=" + GM_getValue("currency")
                     openWindow(link, 0.95, 1.25);
                 });
 
                 document.getElementById("sub21Button").addEventListener('click', function () {
                     let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category="+u21_type+"&elo_category=U21&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        "&category=SUB21&elo_category=U21&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
                         +team_name+"&divisa=" + GM_getValue("currency")
                     openWindow(link, 0.95, 1.25);
                 });
@@ -483,7 +483,7 @@
 
                 document.getElementById("sub18Button").addEventListener('click', function () {
                     let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category="+u18_type+"&elo_category=U18&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
+                        "&category=SUB18&elo_category=U18&sport=" + window.sport+ "&idioma=" + window.lang+"&team_name="
                         +team_name+"&divisa=" + GM_getValue("currency")
                     openWindow(link, 0.95, 1.25);
                 });
