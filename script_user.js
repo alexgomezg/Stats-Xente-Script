@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.160
+// @version      0.161
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -188,7 +188,7 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'profile')) {
-            profilePage()
+            waitToDOM(profilePage, ".flex-wrap", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'rank') && (urlParams.has('sub')) &&
@@ -321,7 +321,9 @@
 
     function profilePage(){
         let elems=document.getElementsByClassName("flex-wrap");
-        console.log(elems[0])
+        let tables=elems[0].getElementsByTagName("table");
+        let segundoTr = tables[1].rows[0]
+        let username = segundoTr.cells[1].innerText
         var html='<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
         elems[0].insertAdjacentHTML("afterend",html);
 
@@ -329,24 +331,21 @@
         let clase="loader-"+window.sport
         divToInserT.innerHTML =
             "</br>" +
-            "<div id='hp_loader'>" +
+            "<center><div id='hp_loader'>" +
             "<div style='text-align:center;'><b>Loading...</b></div>" +
-            "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
-            "</div>" +
+            "<div id='loader' class='" + clase + "' style='height:25px; width:50%;'></div>" +
+            "</div></center>" +
             divToInserT.innerHTML;
-        let team_id=771617
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo="+team_id,
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&username="+username,
             headers: {
                 "Content-Type": "application/json"
             },
             onload: function (response) {
 
                 let jsonResponse = JSON.parse(response.responseText);
-
-                let aux=team_id
-
+                let aux=jsonResponse["username"]
                 let top="TOP 11"
 
                 if(window.sport==="hockey"){
@@ -355,7 +354,7 @@
 
                 getDeviceFormat()
                 let teamTable='<div style="display: block;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
-                let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
+                let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
                 if(window.stx_device==="computer"){
                     style=""
                     teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
@@ -1000,8 +999,6 @@ self.onmessage = function (e) {
                 "<div style='text-align:center;'><b>Loading...</b></div>" +
                 "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
                 "</div>";
-
-            console.log("https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id="+team_id)
             document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",divLoader);
             GM_xmlhttpRequest({
                 method: "GET",
@@ -2386,13 +2383,10 @@ self.onmessage = function (e) {
 
 
                 table.id="clash_table";
-
-
                 let contIds = 0
                 let linkIds = ""
                 let teamNameElement=""
 
-                console.log(window.stx_device)
                 let index_init=0
                 if(window.stx_device==="computer"){
                     index_init=1
@@ -2403,7 +2397,6 @@ self.onmessage = function (e) {
                     let row = table.rows[i];
                     if(window.stx_device==="computer"){
                         let thirdColumnCell = row.cells[eloCol];
-                        console.log(thirdColumnCell)
                         teamNameElement = thirdColumnCell.querySelector('.team-name');
 
                         let href = teamNameElement.getAttribute('href');
