@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.159
+// @version      0.160
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -321,6 +321,7 @@
 
     function profilePage(){
         let elems=document.getElementsByClassName("flex-wrap");
+        console.log(elems[0])
         var html='<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
         elems[0].insertAdjacentHTML("afterend",html);
 
@@ -353,10 +354,12 @@
                 }
 
                 getDeviceFormat()
-                let teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
-                let style="max-width: 100%; overflow-x: auto; display: block; width:80%;"
+                let teamTable='<div style="display: block;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+                let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
                 if(window.stx_device==="computer"){
                     style=""
+                    teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
+
                 }
                 teamTable+='<table class="matchValuesTable" style="'+style+'"><thead><tr>'
                 teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
@@ -997,6 +1000,8 @@ self.onmessage = function (e) {
                 "<div style='text-align:center;'><b>Loading...</b></div>" +
                 "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
                 "</div>";
+
+            console.log("https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id="+team_id)
             document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin",divLoader);
             GM_xmlhttpRequest({
                 method: "GET",
@@ -1008,15 +1013,18 @@ self.onmessage = function (e) {
                     let jsonResponse = JSON.parse(response.responseText);
                     let thStyle="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'"
                     let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
-                    let table='<br><h3>ELO Review</h3><center>'
+                    let table='<br><h3>ELO Review</h3>'
                     let style='max-width: 100%; overflow-x: auto; display: block; width:100%;'
+                    let style2=""
                     getDeviceFormat()
                     if(window.stx_device==="computer"){
                         style="width:65%;"
+
+                        style2="<center>"
                     }
                     table+='<div style="display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
 
-                    table+='<center><table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
+                    table+=style2+'<table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
                     table+=' border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0;"><thead><tr>'
                     table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                     table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
@@ -2383,6 +2391,8 @@ self.onmessage = function (e) {
                 let contIds = 0
                 let linkIds = ""
                 let teamNameElement=""
+
+                console.log(window.stx_device)
                 let index_init=0
                 if(window.stx_device==="computer"){
                     index_init=1
@@ -2393,6 +2403,7 @@ self.onmessage = function (e) {
                     let row = table.rows[i];
                     if(window.stx_device==="computer"){
                         let thirdColumnCell = row.cells[eloCol];
+                        console.log(thirdColumnCell)
                         teamNameElement = thirdColumnCell.querySelector('.team-name');
 
                         let href = teamNameElement.getAttribute('href');
