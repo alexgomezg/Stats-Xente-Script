@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.165
+// @version      0.166
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -229,7 +229,7 @@
             statsPageEventListeners()
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams')) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams')&& (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage,"nt-tabs",5000)
         }
 
@@ -6290,6 +6290,10 @@ self.onmessage = function (e) {
             GM_setValue("cupFlag", true)
         }
 
+        if (GM_getValue("nationalTeamFlag") === undefined) {
+            GM_setValue("nationalTeamFlag", true)
+        }
+
 
 
 
@@ -6298,7 +6302,7 @@ self.onmessage = function (e) {
 
 
         let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",
-            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag=""
+            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -6312,6 +6316,9 @@ self.onmessage = function (e) {
         if (GM_getValue("eloHiddenPlayedMatchesFlag")) eloHiddenPlayedMatchesFlag = "checked"
         if (GM_getValue("flFlag")) flFlag = "checked"
         if (GM_getValue("cupFlag")) cupFlag = "checked"
+        if (GM_getValue("nationalTeamFlag")) nationalTeamFlag = "checked"
+
+
 
 
 
@@ -6330,11 +6337,13 @@ self.onmessage = function (e) {
         newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">Team<input type="checkbox" id="teamSelect" ' + teamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Teams Scores<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Cups<input type="checkbox" id="cupFlagSelect" ' + cupFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
         newContent += '</tr><tr>'
         newContent += '<td><label class="containerPeqAmarillo">ELO Hidden Played Matches<input type="checkbox" id="eloHiddenPlayedMatchesSelect" ' + eloHiddenPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += '<td><label class="containerPeqAmarillo">Friendly Leagues<input type="checkbox" id="flFlagSelect" ' + flFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Cups<input type="checkbox" id="cupFlagSelect" ' + cupFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+
+        newContent += '<td><label class="containerPeqAmarillo">National Team<input type="checkbox" id="nationalTeamFlagSelect" ' + nationalTeamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += "</tr></tbody></table>"
 
@@ -6588,6 +6597,10 @@ self.onmessage = function (e) {
 
         document.getElementById('cupFlagSelect').addEventListener('click', function () {
             GM_setValue("cupFlag", !GM_getValue("cupFlag"))
+        });
+
+        document.getElementById('nationalTeamFlagSelect').addEventListener('click', function () {
+            GM_setValue("nationalTeamFlag", !GM_getValue("nationalTeamFlag"))
         });
 
 
