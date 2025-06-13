@@ -4431,7 +4431,7 @@ self.onmessage = function (e) {
                     var elo_data= JSON.parse(response.responseText);
                     var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
                     newT+=elo_data['elo_variation'].toFixed(2)+'</i></div></br></br>'
-                    newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
+                    newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 5px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
                     newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
                     for (let i = 0; i < cats_temp.length; i++) {
                         let tmp=""
@@ -4479,7 +4479,7 @@ self.onmessage = function (e) {
 
             var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; display:none;" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
             newT+='0</i></div>'
-            newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
+            newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 5px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
             newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
             for (let i = 0; i < cats_temp.length; i++) {
                 let tmp=""
