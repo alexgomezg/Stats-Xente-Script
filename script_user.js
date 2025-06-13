@@ -285,7 +285,7 @@
 
                 getDeviceFormat()
                 let teamTable='<div style="overflow-x: auto; width:98%; display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
-                let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
+                let style="max-width: 100%; overflow-x: auto; display: block; width:50%;"
                 if(window.stx_device==="computer"){
                     style="width:90%;"
                 }
