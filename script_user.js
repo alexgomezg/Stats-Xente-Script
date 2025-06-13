@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.166
+// @version      0.167
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -4413,62 +4413,123 @@ self.onmessage = function (e) {
         cats_elo["national_team"] = "SENIOR";
         cats_elo["national_team_U21"] = "U21";
 
+        let statsTable = Array.from(document.getElementsByClassName("hitlist statsLite marker")).filter(element => {
+            const classes = Array.from(element.classList);
+            return classes.length === 3 && classes.includes("hitlist") && classes.includes("statsLite") && classes.includes("marker");
+        });
+        let tfoot=statsTable[0].getElementsByTagName("tfoot")
+        if(tfoot.length==0){
 
 
-
-
-        GM_xmlhttpRequest({
-            method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_elo_change_match.php?sport=" + window.sport + "&match_id="+match_id,
-            headers: {
-                "Content-Type": "application/json"
-            },
-            onload: function (response) {
-                var elo_data= JSON.parse(response.responseText);
-                var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
-                newT+=elo_data['elo_variation'].toFixed(2)+'</i></div></br></br>'
-                newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
-                newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
-                for (let i = 0; i < cats_temp.length; i++) {
-                    let tmp=""
-                    if(cats_elo[elo_data['elo_category']]===cats_temp[i]){
-                        tmp="selected"
-                    }
-                    newT+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
-                }
-                newT +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;'
-                newT+='font-size:revert; width:9em; padding: 5px 3px;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button>'
-                document.getElementById("match-tactic-facts-wrapper").insertAdjacentHTML('afterbegin', newT);
-
-
-
-                document.getElementById("eloCompareButton").addEventListener('click', function () {
-                    let keyRedirect="elo_compare"
-                    if(elo_data['elo_category'].includes("national_team")){
-                        keyRedirect="elo_compare_nt"
-                    }
-
-                    let url="https://statsxente.com/MZ1/Functions/graphLoader.php?graph="+keyRedirect+"&lang="+window.lang
-                        +"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
-                    let contenedor = document.getElementById('match-info-wrapper');
-                    let links = contenedor.querySelectorAll('a');
-                    let cont=0;
-                    links.forEach(link => {
-                        if ((link.href.includes('tid='))&&(cont<2)) {
-                            let urlParams = new URLSearchParams(link.href);
-                            let team_id=urlParams.get("tid")
-                            url+="&team_name"+cont+"="+encodeURIComponent(link.innerText)+"&team_id"+cont+"="+team_id
-                            cont++
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_elo_change_match.php?sport=" + window.sport + "&match_id="+match_id,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    var elo_data= JSON.parse(response.responseText);
+                    var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+                    newT+=elo_data['elo_variation'].toFixed(2)+'</i></div></br></br>'
+                    newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
+                    newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+                    for (let i = 0; i < cats_temp.length; i++) {
+                        let tmp=""
+                        if(cats_elo[elo_data['elo_category']]===cats_temp[i]){
+                            tmp="selected"
                         }
+                        newT+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
+                    }
+                    newT +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;'
+                    newT+='font-size:revert; width:9em; padding: 5px 3px;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button>'
+                    document.getElementById("match-tactic-facts-wrapper").insertAdjacentHTML('afterbegin', newT);
+
+
+
+                    document.getElementById("eloCompareButton").addEventListener('click', function () {
+                        let keyRedirect="elo_compare"
+                        if(elo_data['elo_category'].includes("national_team")){
+                            keyRedirect="elo_compare_nt"
+                        }
+
+                        let url="https://statsxente.com/MZ1/Functions/graphLoader.php?graph="+keyRedirect+"&lang="+window.lang
+                            +"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
+                        let contenedor = document.getElementById('match-info-wrapper');
+                        let links = contenedor.querySelectorAll('a');
+                        let cont=0;
+                        links.forEach(link => {
+                            if ((link.href.includes('tid='))&&(cont<2)) {
+                                let urlParams = new URLSearchParams(link.href);
+                                let team_id=urlParams.get("tid")
+                                url+="&team_name"+cont+"="+encodeURIComponent(link.innerText)+"&team_id"+cont+"="+team_id
+                                cont++
+                            }
+                        });
+
+                        openWindow(url, 0.95, 1.25);
+
                     });
 
-                    openWindow(url, 0.95, 1.25);
 
+
+                }});
+
+        }else{
+
+
+            var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; display:none;" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+            newT+='0</i></div>'
+            newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
+            newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+            for (let i = 0; i < cats_temp.length; i++) {
+                let tmp=""
+                newT+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
+            }
+            newT +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;'
+            newT+='font-size:revert; width:9em; padding: 5px 3px;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button>'
+            document.getElementById("match-tactic-facts-wrapper").insertAdjacentHTML('afterbegin', newT);
+
+
+
+            document.getElementById("eloCompareButton").addEventListener('click', function () {
+                let contenedor = document.getElementById('match-info-wrapper');
+                let imgs = contenedor.querySelectorAll('img');
+                let flag=false
+                for (const img of imgs) {
+                    if(img.outerHTML.includes("nocache-936/img/flags/64/mz.png")){
+                        flag=true;
+                        break;
+                    }
+
+                }
+
+                let keyRedirect="elo_compare"
+                if(flag){
+                    keyRedirect="elo_compare_nt"
+                }
+                let url="https://statsxente.com/MZ1/Functions/graphLoader.php?graph="+keyRedirect+"&lang="+window.lang
+                    +"&category="+document.getElementById("catSelect").value+"&sport="+window.sport
+
+                let links = contenedor.querySelectorAll('a');
+                let cont=0;
+                links.forEach(link => {
+                    if ((link.href.includes('tid='))&&(cont<2)) {
+                        let urlParams = new URLSearchParams(link.href);
+                        let team_id=urlParams.get("tid")
+                        url+="&team_name"+cont+"="+encodeURIComponent(link.innerText)+"&team_id"+cont+"="+team_id
+                        cont++
+                    }
                 });
 
+                openWindow(url, 0.95, 1.25);
+
+            });
 
 
-            }});
+
+
+
+        }
 
 
         let linkIds=""
