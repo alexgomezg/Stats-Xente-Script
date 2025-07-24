@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.167
+// @version      0.168
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -38,7 +38,7 @@
                     GM_deleteValue(key);
                 });
     }*/
-
+    let tacticsMap = new Map();
     let cats=[]
     let cats_stats = {}
     let statsKeys = {}
@@ -152,6 +152,9 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
 
             if(!urlParams.has('hidescore')){
+                if (!urlParams.has('tid')){
+                    waitToDOM(tactisResumeData, ".group", 0,7000)
+                }
                 if(GM_getValue("eloPlayedMatchesFlag")){
                     waitToDOM(lastMatchesELO, ".group", 0,7000)
                 }
@@ -246,6 +249,199 @@
             });
         }
     }, 1000);
+
+
+    function tactisResumeData(){
+        tacticsMap.clear();
+        let elements0 = document.querySelectorAll('.odd');
+
+        elements0.forEach(element0 => {
+
+            let score=element0.querySelectorAll(".bold.score-cell-wrapper.textCenter.flex-grow-0")
+            if(score.length>0){
+                let isHome=false;
+                let isAway=false;
+
+                let tactics=element0.querySelectorAll(".gradientSunriseIcon");
+
+                let tactic_name=tactics[0].innerHTML
+
+                if (!tacticsMap.has(tactic_name)) {
+                    tacticsMap.set(tactic_name, { pj: 0, g: 0,e:0,p: 0,gf:0,gc:0,diff:0});
+                }
+
+
+                let home=element0.querySelectorAll(".home-team-column.flex-grow-1");
+                let asHm= home[0].getElementsByTagName("a")
+                if (asHm[0].innerHTML.includes("<strong>")) {
+                    isHome=true;
+                }
+
+                let away=element0.querySelectorAll(".away-team-column.flex-grow-1");
+                let asAw= away[0].getElementsByTagName("a")
+                if (asAw[0].innerHTML.includes("<strong>")) {
+                    isAway=true;
+                }
+
+
+                let as= score[0].getElementsByTagName("a");
+                let [homeGoals, awayGoals] = (as[1].innerText.split(" - ").map(Number))
+                if(isHome){
+                    if(homeGoals>awayGoals){
+                        let actualTactic = tacticsMap.get(tactic_name);
+                        actualTactic.pj += 1;
+                        actualTactic.g += 1;
+                        actualTactic.gf += homeGoals;
+                        actualTactic.gc += awayGoals;
+                        tacticsMap.delete(tactic_name);
+                        tacticsMap.set(tactic_name,actualTactic)
+                    }
+
+                    if(homeGoals<awayGoals){
+                        let actualTactic = tacticsMap.get(tactic_name);
+                        actualTactic.pj += 1;
+                        actualTactic.p += 1;
+                        actualTactic.gf += homeGoals;
+                        actualTactic.gc += awayGoals;
+                        tacticsMap.delete(tactic_name);
+                        tacticsMap.set(tactic_name,actualTactic)
+                    }
+
+                    if(homeGoals==awayGoals){
+                        let actualTactic = tacticsMap.get(tactic_name);
+                        actualTactic.pj += 1;
+                        actualTactic.e += 1;
+                        actualTactic.gf += homeGoals;
+                        actualTactic.gc += awayGoals;
+                        tacticsMap.delete(tactic_name);
+                        tacticsMap.set(tactic_name,actualTactic)
+                    }
+                }else{
+
+
+                    if(homeGoals>awayGoals){
+                        let actualTactic = tacticsMap.get(tactic_name);
+                        actualTactic.pj += 1;
+                        actualTactic.p += 1;
+                        actualTactic.gf += awayGoals;
+                        actualTactic.gc += homeGoals;
+                        tacticsMap.delete(tactic_name);
+                        tacticsMap.set(tactic_name,actualTactic)
+                    }
+
+                    if(homeGoals<awayGoals){
+                        let actualTactic = tacticsMap.get(tactic_name);
+                        actualTactic.pj += 1;
+                        actualTactic.g += 1;
+                        actualTactic.gf += awayGoals;
+                        actualTactic.gc += homeGoals;
+                        tacticsMap.delete(tactic_name);
+                        tacticsMap.set(tactic_name,actualTactic)
+                    }
+
+                    if(homeGoals==awayGoals){
+                        let actualTactic = tacticsMap.get(tactic_name);
+                        actualTactic.pj += 1;
+                        actualTactic.e += 1;
+                        actualTactic.gf += awayGoals;
+                        actualTactic.gc += homeGoals;
+                        tacticsMap.delete(tactic_name);
+                        tacticsMap.set(tactic_name,actualTactic)
+                    }
+
+
+                }
+
+
+
+
+            }
+        });
+
+        let firstTactic = tacticsMap.keys().next().value;
+        if(document.getElementById("showMenu")){
+            document.getElementById("showMenu").remove()
+        }
+        tactisResultsResume(firstTactic)
+    }
+
+    function tactisResultsResume(actual_tactic){
+        let tables=document.getElementById("matches_sub_nav");
+        let flag=false
+
+        if(document.getElementById("selectDivTactic")){
+            let select = document.getElementById('changeTactic');
+            let options = select.options.length;
+            if(tacticsMap.size!==options){
+                document.getElementById("selectDivTactic").remove()
+            }else{
+
+                if(tacticsMap.size==1){
+                    let firstKey = tacticsMap.keys().next().value;
+                    let valueSelect = select.options[0].value;
+                    if(firstKey!==valueSelect){
+                        document.getElementById("selectDivTactic").remove()
+                    }
+                }
+
+            }
+        }
+
+
+        var txt=`
+  <center>`
+        if(!document.getElementById("selectDivTactic")){
+            txt+="<div id='selectDivTactic'>Tactics: <select id='changeTactic'>"
+            for (let [clave, valor] of tacticsMap) {
+                txt+="<option value='"+clave+"'>"+clave+"</option>"
+            }
+            txt+="</select></div>"
+        }else{
+            flag=true}
+
+        txt+=`<table id=showMenu style="min-width:200px; border-collapse: collapse; margin-top: 10px;">
+  <thead style="background-color:${GM_getValue("bg_native")}; color:${GM_getValue("color_native")};"><tr>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">M</th>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">W</th>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">D</th>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">L</th>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">+</th>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">-</th>
+  <th style="padding:5px; margin: 0 auto; text-align:center;">=</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).pj}</td>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).g}</td>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).e}</td>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).p}</td>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).gf}</td>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).gc}</td>
+      <td style="padding: 5px; text-align:center;">${tacticsMap.get(actual_tactic).gf-tacticsMap.get(actual_tactic).gc}</td>
+    </tr>
+    </tbody>
+  </table></center>
+`
+        if(flag){
+            document.getElementById("changeTactic").insertAdjacentHTML('afterend',txt);
+        }else{
+            tables.insertAdjacentHTML('afterend',txt);
+        }
+
+
+
+
+        document.getElementById("changeTactic").addEventListener("change", function(event) {
+            let valorSeleccionado = event.target.value;
+            if(document.getElementById("showMenu")){
+                document.getElementById("showMenu").remove()
+            }
+            tactisResultsResume(valorSeleccionado)
+        });
+
+
+    }
 
 
 
@@ -957,66 +1153,67 @@ self.onmessage = function (e) {
         let elementos = document.querySelectorAll('.match-predictor-wrapper');
         if(elementos.length>0) {
             let tables = elementos[0].querySelectorAll('.hitlist.match-list');
-            let filas = tables[0].querySelectorAll('table tr');
-            let linkIds = ""
-            let contIds = 0
+            if(tables.length>0) {
+                let filas = tables[0].querySelectorAll('table tr');
+                let linkIds = ""
+                let contIds = 0
 
-            filas.forEach(fila => {
-                let primerTd = fila.querySelector('td');
-                if (primerTd) {
-                    let enlace = primerTd.querySelector('a');
-                    if (enlace) {
-                        let urlObj = new URL(enlace.href);
-                        let params = new URLSearchParams(urlObj.search);
-                        let midValue = params.get('mid');
-                        linkIds += "&idPartido" + contIds + "=" + midValue
-                        contIds++
-                        let clase="loader-"+window.sport
-                        primerTd.innerHTML+="</br><div id='hp_loader"+midValue+"'><div id='loader' class='"+clase+"' style='width:8em; height:1.5em;'></div>"
+                filas.forEach(fila => {
+                    let primerTd = fila.querySelector('td');
+                    if (primerTd) {
+                        let enlace = primerTd.querySelector('a');
+                        if (enlace) {
+                            let urlObj = new URL(enlace.href);
+                            let params = new URLSearchParams(urlObj.search);
+                            let midValue = params.get('mid');
+                            linkIds += "&idPartido" + contIds + "=" + midValue
+                            contIds++
+                            let clase = "loader-" + window.sport
+                            primerTd.innerHTML += "</br><div id='hp_loader" + midValue + "'><div id='loader' class='" + clase + "' style='width:8em; height:1.5em;'></div>"
+
+
+                        }
+                    }
+                });
+
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    onload: function (response) {
+                        let jsonResponse = JSON.parse(response.responseText);
+                        filas.forEach(fila => {
+                            let primerTd = fila.querySelector('td');
+                            if (primerTd) {
+                                let enlace = primerTd.querySelector('a');
+                                if (enlace) {
+                                    let urlObj = new URL(enlace.href);
+                                    let params = new URLSearchParams(urlObj.search);
+                                    let midValue = params.get('mid');
+                                    let elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
+                                    let elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
+                                    let lm_home
+                                    let lm_away
+                                    if (window.stx_device === "computer") {
+                                        lm_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_home']))
+                                        lm_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_away']))
+                                    } else {
+                                        lm_home = Math.round(jsonResponse[midValue]['lm_home'] / 1_000_000) + "M";
+                                        lm_away = Math.round(jsonResponse[midValue]['lm_away'] / 1_000_000) + "M";
+                                    }
+                                    primerTd.innerHTML += "<b>ELO:</b> " + elo_home + " - " + elo_away + "</br><b>LMV:</b> " + lm_home + " - " + lm_away
+                                    document.getElementById("hp_loader" + midValue).remove();
+
+                                }
+                            }
+                        });
 
 
                     }
-                }
-            });
-
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?currency="+GM_getValue("currency")+"&sport=" + window.sport + linkIds,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                onload: function (response) {
-                    let jsonResponse = JSON.parse(response.responseText);
-                    filas.forEach(fila => {
-                        let primerTd = fila.querySelector('td');
-                        if (primerTd) {
-                            let enlace = primerTd.querySelector('a');
-                            if (enlace) {
-                                let urlObj = new URL(enlace.href);
-                                let params = new URLSearchParams(urlObj.search);
-                                let midValue = params.get('mid');
-                                let elo_home = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_home']))
-                                let elo_away = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['elo_away']))
-                                let lm_home
-                                let lm_away
-                                if(window.stx_device==="computer"){
-                                    lm_home=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_home']))
-                                    lm_away=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[midValue]['lm_away']))
-                                }else{
-                                    lm_home= Math.round(jsonResponse[midValue]['lm_home'] / 1_000_000) + "M";
-                                    lm_away= Math.round(jsonResponse[midValue]['lm_away'] / 1_000_000) + "M";
-                                }
-                                primerTd.innerHTML += "<b>ELO:</b> " + elo_home + " - " + elo_away+"</br><b>LMV:</b> "+ lm_home + " - " + lm_away
-                                document.getElementById("hp_loader"+midValue).remove();
-
-                            }
-                        }
-                    });
-
-
-
-                }
-            });
+                });
+            }
         }
     }
 //Shot ids and countries on cups lists
@@ -1826,25 +2023,28 @@ self.onmessage = function (e) {
             }
         });
 
+        let my_team_id=""
+        if(window.sport==="soccer"){
+            if ((GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")){
+                GM_setValue("soccer_team_id", document.getElementById("tid1").value)
+            }
+            my_team_id=GM_getValue("soccer_team_id")
+        }else{
+            if ((GM_getValue("hockey_team_id") === undefined) || (GM_getValue("hockey_team_id") === "")){
+                GM_setValue("hockey_team_id", document.getElementById("tid1").value)
+            }
+            my_team_id=GM_getValue("hockey_team_id")
+        }
 
 
         let team_id=""
+        let flagMyTeam=true
         let urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('tid')){
             team_id=urlParams.get("tid")
+            flagMyTeam=false
         }else{
-
-            if(window.sport==="soccer"){
-                if ((GM_getValue("soccer_team_id") === undefined) || (GM_getValue("soccer_team_id") === "")){
-                    GM_setValue("soccer_team_id", document.getElementById("tid1").value)
-                }
-                team_id=GM_getValue("soccer_team_id")
-            }else{
-                if ((GM_getValue("hockey_team_id") === undefined) || (GM_getValue("hockey_team_id") === "")){
-                    GM_setValue("hockey_team_id", document.getElementById("tid1").value)
-                }
-                team_id=GM_getValue("hockey_team_id")
-            }
+            team_id=my_team_id
         }
 
 
@@ -1952,6 +2152,11 @@ self.onmessage = function (e) {
 
         if (!team_ids.includes(team_id)) {
             linkIds += "&idEquipo" + contIds + "=" + team_id
+            contIds++;
+        }
+
+        if (!team_ids.includes(my_team_id)) {
+            linkIds += "&idEquipo" + contIds + "=" + my_team_id
         }
 
         GM_xmlhttpRequest({
@@ -1986,7 +2191,12 @@ self.onmessage = function (e) {
                                 }
                                 element1.innerHTML+="</br>"+valor;
                             }else{
-                                tidValue=parseInt(team_id)
+
+                                if(!flagMyTeam){
+                                    tidValue=parseInt(my_team_id)
+                                }else{
+                                    tidValue=parseInt(team_id)
+                                }
                                 let valor=0;
                                 if (jsonResponse[tidValue]?.SENIOR) {
                                     valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[tidValue]["SENIOR"]).toFixed(0))
@@ -2053,7 +2263,11 @@ self.onmessage = function (e) {
                                 }
                                 element1.innerHTML+="</br>"+valor;
                             }else{
-                                tidValue=parseInt(team_id)
+                                if(!flagMyTeam){
+                                    tidValue=parseInt(my_team_id)
+                                }else{
+                                    tidValue=parseInt(team_id)
+                                }
                                 let valor=0;
                                 if(jsonResponse[tidValue] && jsonResponse[tidValue][elo_type] !== undefined){
                                     valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(jsonResponse[tidValue][elo_type]).toFixed(0))
@@ -2310,10 +2524,15 @@ self.onmessage = function (e) {
     }
 //Last matches page
     function lastMatchesELO(){
+        let urlParamsAux = new URLSearchParams(window.location.search);
         let selectElements = document.getElementsByName('limit');
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
+                if (!urlParams.has('tid')){
+                    waitToDOM(tactisResumeData, ".group", 0,7000)
+                }
+
                 if(GM_getValue("eloNextMatchesFlag")){
                     //waitToDOM(nextMatches, ".group", 0,7000)
                 }
@@ -2326,6 +2545,9 @@ self.onmessage = function (e) {
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
+                if (!urlParams.has('tid')){
+                    waitToDOM(tactisResumeData, ".group", 0,7000)
+                }
                 if(GM_getValue("eloNextMatchesFlag")){
                     //waitToDOM(nextMatches, ".group", 0,7000)
                 }
@@ -2908,6 +3130,16 @@ self.onmessage = function (e) {
         initialValues["u21_world"] = GM_getValue("league_default_u21");
         initialValues["u18_world"] = GM_getValue("league_default_u18");
 
+        let eloKeys = {};
+        eloKeys["senior"] = "elo"
+        eloKeys["world"] = "elo"
+        eloKeys["u23"] = "elo23"
+        eloKeys["u21"] ="elo21"
+        eloKeys["u18"] = "elo18"
+        eloKeys["u23_world"] = "elo23"
+        eloKeys["u21_world"] = "elo21"
+        eloKeys["u18_world"] = "elo18"
+
         let linkIds = ""
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
@@ -3417,6 +3649,7 @@ self.onmessage = function (e) {
                 let cat = window.cats[urlParams.get('type')]
                 let jsonResponse = JSON.parse(response.responseText);
                 teams_data = jsonResponse;
+                let divELO=0;
                 let filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
                 for (let i = 0; i < filasDatos.length; i++) {
                     if (checkClassNameExists(filasDatos[i], searchClassName)) {
@@ -3424,6 +3657,8 @@ self.onmessage = function (e) {
                         let team_data=extractTeamData(celda.getElementsByTagName("a"));
                         let id=team_data[0]
                         let equipo=team_data[1]
+
+                        divELO +=  parseFloat(jsonResponse[id][eloKeys[urlParams.get('type')]])
 
                         let nuevaColumna = document.createElement("td");
                         let valor = 0;
@@ -3514,7 +3749,8 @@ self.onmessage = function (e) {
                     }
 
                 }
-
+                let headers = document.querySelectorAll('div.baz.bazCenter div.win_bg h1.win_title');
+                headers[0].innerHTML+="<b> | ELO: "+Intl.NumberFormat(window.userLocal).format(Math.round(divELO))+" |</b>"
                 let thead = document.getElementsByClassName("seriesHeader")[0]
                 let ths = thead.querySelectorAll("th");
                 ths.forEach(function (th, index) {
@@ -4431,7 +4667,7 @@ self.onmessage = function (e) {
                     var elo_data= JSON.parse(response.responseText);
                     var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
                     newT+=elo_data['elo_variation'].toFixed(2)+'</i></div></br></br>'
-                    newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 5px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
+                    newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
                     newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
                     for (let i = 0; i < cats_temp.length; i++) {
                         let tmp=""
@@ -4479,7 +4715,7 @@ self.onmessage = function (e) {
 
             var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; display:none;" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
             newT+='0</i></div>'
-            newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 5px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
+            newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
             newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
             for (let i = 0; i < cats_temp.length; i++) {
                 let tmp=""
