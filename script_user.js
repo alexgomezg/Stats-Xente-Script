@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.168
+// @version      0.170
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -38,6 +38,8 @@
                     GM_deleteValue(key);
                 });
     }*/
+    let filter_initial_date=getDate(true)
+    let filter_final_date=getDate(false)
     let tacticsMap = new Map();
     let cats=[]
     let cats_stats = {}
@@ -62,6 +64,22 @@
 
     //GM_deleteValue("date_checked_selects");
     getSelects()
+
+
+
+    function getDate(first_of_month){
+        let hoy = new Date();
+        let day="01"
+        let year = hoy.getFullYear();
+        let month = String(hoy.getMonth() + 1).padStart(2, '0');
+        if(!first_of_month){
+            day = String(hoy.getDate()).padStart(2, '0');
+        }
+        let formated_date = `${year}-${month}-${day}`;
+
+        return formated_date
+
+    }
 
 
     /// FUNCTIONS MENU
@@ -152,7 +170,10 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
 
             if(!urlParams.has('hidescore')){
-                if (!urlParams.has('tid')){
+
+
+
+                if ((!urlParams.has('tid'))&&(GM_getValue("tacticsResultsFlag"))){
                     waitToDOM(tactisResumeData, ".group", 0,7000)
                 }
                 if(GM_getValue("eloPlayedMatchesFlag")){
@@ -255,106 +276,146 @@
         tacticsMap.clear();
         let elements0 = document.querySelectorAll('.odd');
 
+        let flagCount=true;
+
+
+
         elements0.forEach(element0 => {
 
-            let score=element0.querySelectorAll(".bold.score-cell-wrapper.textCenter.flex-grow-0")
-            if(score.length>0){
-                let isHome=false;
-                let isAway=false;
-
-                let tactics=element0.querySelectorAll(".gradientSunriseIcon");
-
-                let tactic_name=tactics[0].innerHTML
-
-                if (!tacticsMap.has(tactic_name)) {
-                    tacticsMap.set(tactic_name, { pj: 0, g: 0,e:0,p: 0,gf:0,gc:0,diff:0});
-                }
 
 
-                let home=element0.querySelectorAll(".home-team-column.flex-grow-1");
-                let asHm= home[0].getElementsByTagName("a")
-                if (asHm[0].innerHTML.includes("<strong>")) {
-                    isHome=true;
-                }
-
-                let away=element0.querySelectorAll(".away-team-column.flex-grow-1");
-                let asAw= away[0].getElementsByTagName("a")
-                if (asAw[0].innerHTML.includes("<strong>")) {
-                    isAway=true;
-                }
-
-
-                let as= score[0].getElementsByTagName("a");
-                let [homeGoals, awayGoals] = (as[1].innerText.split(" - ").map(Number))
-                if(isHome){
-                    if(homeGoals>awayGoals){
-                        let actualTactic = tacticsMap.get(tactic_name);
-                        actualTactic.pj += 1;
-                        actualTactic.g += 1;
-                        actualTactic.gf += homeGoals;
-                        actualTactic.gc += awayGoals;
-                        tacticsMap.delete(tactic_name);
-                        tacticsMap.set(tactic_name,actualTactic)
+            let ddDate=element0.previousElementSibling
+            if((ddDate) && (ddDate.classList.contains('group'))){
+                if((document.getElementById("final_date_stx"))&&((document.getElementById("final_date_stx").value!==""))){
+                    function parseDDMMYYYY(fechaStr) {
+                        const [dd, mm, yyyy] = fechaStr.split('-');
+                        return new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
                     }
 
-                    if(homeGoals<awayGoals){
-                        let actualTactic = tacticsMap.get(tactic_name);
-                        actualTactic.pj += 1;
-                        actualTactic.p += 1;
-                        actualTactic.gf += homeGoals;
-                        actualTactic.gc += awayGoals;
-                        tacticsMap.delete(tactic_name);
-                        tacticsMap.set(tactic_name,actualTactic)
+                    function parseYYYYMMDD(fechaStr) {
+                        return new Date(`${fechaStr}T00:00:00`);
                     }
 
-                    if(homeGoals==awayGoals){
-                        let actualTactic = tacticsMap.get(tactic_name);
-                        actualTactic.pj += 1;
-                        actualTactic.e += 1;
-                        actualTactic.gf += homeGoals;
-                        actualTactic.gc += awayGoals;
-                        tacticsMap.delete(tactic_name);
-                        tacticsMap.set(tactic_name,actualTactic)
-                    }
-                }else{
+                    const fechaCompararStr =ddDate.innerText;
+                    const fechaInicioStr = document.getElementById("initial_date_stx").value;
+                    const fechaFinStr = document.getElementById("final_date_stx").value
 
+                    const fechaComparar = parseDDMMYYYY(fechaCompararStr);
+                    const fechaInicio = parseYYYYMMDD(fechaInicioStr);
+                    const fechaFin = parseYYYYMMDD(fechaFinStr);
 
-                    if(homeGoals>awayGoals){
-                        let actualTactic = tacticsMap.get(tactic_name);
-                        actualTactic.pj += 1;
-                        actualTactic.p += 1;
-                        actualTactic.gf += awayGoals;
-                        actualTactic.gc += homeGoals;
-                        tacticsMap.delete(tactic_name);
-                        tacticsMap.set(tactic_name,actualTactic)
+                    if (fechaComparar >= fechaInicio && fechaComparar <= fechaFin) {
+                        flagCount=true;
+                    } else {
+                        flagCount=false;
                     }
 
-                    if(homeGoals<awayGoals){
-                        let actualTactic = tacticsMap.get(tactic_name);
-                        actualTactic.pj += 1;
-                        actualTactic.g += 1;
-                        actualTactic.gf += awayGoals;
-                        actualTactic.gc += homeGoals;
-                        tacticsMap.delete(tactic_name);
-                        tacticsMap.set(tactic_name,actualTactic)
-                    }
-
-                    if(homeGoals==awayGoals){
-                        let actualTactic = tacticsMap.get(tactic_name);
-                        actualTactic.pj += 1;
-                        actualTactic.e += 1;
-                        actualTactic.gf += awayGoals;
-                        actualTactic.gc += homeGoals;
-                        tacticsMap.delete(tactic_name);
-                        tacticsMap.set(tactic_name,actualTactic)
-                    }
 
 
                 }
 
 
+            }
+            if(flagCount){
+                let score=element0.querySelectorAll(".bold.score-cell-wrapper.textCenter.flex-grow-0")
+                if(score.length>0){
+                    let isHome=false;
+                    let isAway=false;
+
+                    let tactics=element0.querySelectorAll(".gradientSunriseIcon");
+
+                    let tactic_name=tactics[0].innerHTML
+
+                    if (!tacticsMap.has(tactic_name)) {
+                        tacticsMap.set(tactic_name, { pj: 0, g: 0,e:0,p: 0,gf:0,gc:0,diff:0});
+                    }
 
 
+                    let home=element0.querySelectorAll(".home-team-column.flex-grow-1");
+                    let asHm= home[0].getElementsByTagName("a")
+                    if (asHm[0].innerHTML.includes("<strong>")) {
+                        isHome=true;
+                    }
+
+                    let away=element0.querySelectorAll(".away-team-column.flex-grow-1");
+                    let asAw= away[0].getElementsByTagName("a")
+                    if (asAw[0].innerHTML.includes("<strong>")) {
+                        isAway=true;
+                    }
+
+
+                    let as= score[0].getElementsByTagName("a");
+                    let [homeGoals, awayGoals] = (as[1].innerText.split(" - ").map(Number))
+                    if(isHome){
+                        if(homeGoals>awayGoals){
+                            let actualTactic = tacticsMap.get(tactic_name);
+                            actualTactic.pj += 1;
+                            actualTactic.g += 1;
+                            actualTactic.gf += homeGoals;
+                            actualTactic.gc += awayGoals;
+                            tacticsMap.delete(tactic_name);
+                            tacticsMap.set(tactic_name,actualTactic)
+                        }
+
+                        if(homeGoals<awayGoals){
+                            let actualTactic = tacticsMap.get(tactic_name);
+                            actualTactic.pj += 1;
+                            actualTactic.p += 1;
+                            actualTactic.gf += homeGoals;
+                            actualTactic.gc += awayGoals;
+                            tacticsMap.delete(tactic_name);
+                            tacticsMap.set(tactic_name,actualTactic)
+                        }
+
+                        if(homeGoals==awayGoals){
+                            let actualTactic = tacticsMap.get(tactic_name);
+                            actualTactic.pj += 1;
+                            actualTactic.e += 1;
+                            actualTactic.gf += homeGoals;
+                            actualTactic.gc += awayGoals;
+                            tacticsMap.delete(tactic_name);
+                            tacticsMap.set(tactic_name,actualTactic)
+                        }
+                    }else{
+
+
+                        if(homeGoals>awayGoals){
+                            let actualTactic = tacticsMap.get(tactic_name);
+                            actualTactic.pj += 1;
+                            actualTactic.p += 1;
+                            actualTactic.gf += awayGoals;
+                            actualTactic.gc += homeGoals;
+                            tacticsMap.delete(tactic_name);
+                            tacticsMap.set(tactic_name,actualTactic)
+                        }
+
+                        if(homeGoals<awayGoals){
+                            let actualTactic = tacticsMap.get(tactic_name);
+                            actualTactic.pj += 1;
+                            actualTactic.g += 1;
+                            actualTactic.gf += awayGoals;
+                            actualTactic.gc += homeGoals;
+                            tacticsMap.delete(tactic_name);
+                            tacticsMap.set(tactic_name,actualTactic)
+                        }
+
+                        if(homeGoals==awayGoals){
+                            let actualTactic = tacticsMap.get(tactic_name);
+                            actualTactic.pj += 1;
+                            actualTactic.e += 1;
+                            actualTactic.gf += awayGoals;
+                            actualTactic.gc += homeGoals;
+                            tacticsMap.delete(tactic_name);
+                            tacticsMap.set(tactic_name,actualTactic)
+                        }
+
+
+                    }
+
+
+
+
+                }
             }
         });
 
@@ -395,7 +456,9 @@
             for (let [clave, valor] of tacticsMap) {
                 txt+="<option value='"+clave+"'>"+clave+"</option>"
             }
-            txt+="</select></div>"
+            txt+=`</select> Initial date: <input id='initial_date_stx' type='date' value='${filter_initial_date}'> Final Date: <input id='final_date_stx' type='date' value='${filter_final_date}'>
+ <button class="btn-save" style="width: 6.6em; height:1.5em; padding: 0 0; color:white; background-color:rgb(228, 200, 0); font-family: 'Roboto'; font-weight:bold; font-size:revert;"
+ id="filterStx"><i class="bi bi-funnel-fill" style="font-style:normal;"> Filter</i></button></div>`
         }else{
             flag=true}
 
@@ -424,11 +487,15 @@
   </table></center>
 `
         if(flag){
-            document.getElementById("changeTactic").insertAdjacentHTML('afterend',txt);
+            document.getElementById("selectDivTactic").insertAdjacentHTML('afterend',txt);
         }else{
             tables.insertAdjacentHTML('afterend',txt);
         }
 
+        document.getElementById("filterStx").addEventListener("click", function(event) {
+
+            tactisResumeData()
+        });
 
 
 
@@ -439,6 +506,17 @@
             }
             tactisResultsResume(valorSeleccionado)
         });
+
+        document.getElementById("initial_date_stx").addEventListener("change", function(event) {
+            filter_initial_date=document.getElementById("initial_date_stx").value
+        });
+
+        document.getElementById("final_date_stx").addEventListener("change", function(event) {
+            filter_final_date=document.getElementById("final_date_stx").value
+        });
+
+
+
 
 
     }
@@ -2018,6 +2096,11 @@ self.onmessage = function (e) {
         let showScoreSpan=div_show_scores[0].getElementsByTagName("span")
 
         showScoreSpan[1].addEventListener('click', function() {
+            let urlParamsAux = new URLSearchParams(window.location.search);
+            if ((!urlParamsAux.has('tid'))&&(GM_getValue("tacticsResultsFlag"))){
+                waitToDOM(tactisResumeData, ".group", 0,7000)
+            }
+
             if(GM_getValue("eloPlayedMatchesFlag")){
                 waitToDOM(lastMatchesELO, ".group", 0,7000)
             }
@@ -2529,7 +2612,7 @@ self.onmessage = function (e) {
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
-                if (!urlParams.has('tid')){
+                if ((!urlParamsAux.has('tid'))&&(GM_getValue("tacticsResultsFlag"))){
                     waitToDOM(tactisResumeData, ".group", 0,7000)
                 }
 
@@ -2545,7 +2628,7 @@ self.onmessage = function (e) {
         if (selectElements.length > 0) {
             let selectElement = selectElements[0];
             selectElement.addEventListener('change', function() {
-                if (!urlParams.has('tid')){
+                if ((!urlParamsAux.has('tid'))&&(GM_getValue("tacticsResultsFlag"))){
                     waitToDOM(tactisResumeData, ".group", 0,7000)
                 }
                 if(GM_getValue("eloNextMatchesFlag")){
@@ -6591,6 +6674,10 @@ self.onmessage = function (e) {
             GM_setValue("nationalTeamFlag", true)
         }
 
+        if (GM_getValue("tacticsResultsFlag") === undefined) {
+            GM_setValue("tacticsResultsFlag", true)
+        }
+
 
 
 
@@ -6599,7 +6686,7 @@ self.onmessage = function (e) {
 
 
         let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",
-            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag=""
+            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag="",tacticsResultsFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -6614,6 +6701,9 @@ self.onmessage = function (e) {
         if (GM_getValue("flFlag")) flFlag = "checked"
         if (GM_getValue("cupFlag")) cupFlag = "checked"
         if (GM_getValue("nationalTeamFlag")) nationalTeamFlag = "checked"
+        if (GM_getValue("tacticsResultsFlag")) tacticsResultsFlag = "checked"
+
+
 
 
 
@@ -6641,6 +6731,9 @@ self.onmessage = function (e) {
         newContent += '<td><label class="containerPeqAmarillo">Friendly Leagues<input type="checkbox" id="flFlagSelect" ' + flFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += '<td><label class="containerPeqAmarillo">National Team<input type="checkbox" id="nationalTeamFlagSelect" ' + nationalTeamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+
+        newContent += '<td><label class="containerPeqAmarillo">Tactics Results<input type="checkbox" id="tacticsResultsFlagSelect" ' + tacticsResultsFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+
 
         newContent += "</tr></tbody></table>"
 
@@ -6899,6 +6992,13 @@ self.onmessage = function (e) {
         document.getElementById('nationalTeamFlagSelect').addEventListener('click', function () {
             GM_setValue("nationalTeamFlag", !GM_getValue("nationalTeamFlag"))
         });
+
+        document.getElementById('tacticsResultsFlagSelect').addEventListener('click', function () {
+            GM_setValue("tacticsResultsFlag", !GM_getValue("tacticsResultsFlag"))
+        });
+
+
+
 
 
         document.getElementById('show_league_checkbox').addEventListener('click', function () {
