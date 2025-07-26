@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.171
+// @version      0.172
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -4782,11 +4782,62 @@ self.onmessage = function (e) {
                         }
                         newT+="<option value='"+cats_temp[i]+"' "+tmp+">"+cats_temp[i]+"</option>"
                     }
+                    let tid="";let tid1="";
+                    getDeviceFormat()
+                    if(window.stx_device!=="computer"){
+                        let ps = document.querySelectorAll('p.responsive-show');
+                        let as_ = ps[0].querySelectorAll('a');
+
+                        let urlObj = new URL("https://www.managerzone.com/" + as_[0].getAttribute("href"));
+                        let params = new URLSearchParams(urlObj.search);
+                        tid = params.get('tid');
+
+                        urlObj = new URL("https://www.managerzone.com/" + as_[0].getAttribute("href"));
+                        params = new URLSearchParams(urlObj.search);
+                        tid1 = params.get('tid');
+
+                    }
+
                     newT +='</select>  <button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;'
                     newT+='font-size:revert; width:9em; padding: 5px 3px;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button>'
+
+                    if(window.stx_device!=="computer"){
+                        newT+="</br> </br>"
+                        newT+='<button id="spy_'+tid+'" class="btn-save" style="color:white; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                        newT+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-incognito" viewBox="0 0 16 16">'
+                        newT+='<path fill-rule="evenodd" d="m4.736 1.968-.892 3.269-.014.058C2.113 5.568 1 6.006 1 6.5 1 7.328 4.134 8 8 8s7-.672 7-1.5c0-.494-1.113-.932-2.83-1.205l-.014-.058-.892-3.27c-.146-.533-.698-.849-1.239-.734C9.411 1.363 8.62 1.5 8 1.5s-1.411-.136-2.025-.267c-.541-.115-1.093.2-1.239.735m.015 3.867a.25.25 0 0 1 .274-.224c.9.092 1.91.143 2.975.143a30 30 0 0 0 2.975-.143.25.25 0 0 1 .05.498c-.918.093-1.944.145-3.025.145s-2.107-.052-3.025-.145a.25.25 0 0 1-.224-.274M3.5 10h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5m-1.5.5q.001-.264.085-.5H2a.5.5 0 0 1 0-1h3.5a1.5 1.5 0 0 1 1.488 1.312 3.5 3.5 0 0 1 2.024 0A1.5 1.5 0 0 1 10.5 9H14a.5.5 0 0 1 0 1h-.085q.084.236.085.5v1a2.5 2.5 0 0 1-5 0v-.14l-.21-.07a2.5 2.5 0 0 0-1.58 0l-.21.07v.14a2.5 2.5 0 0 1-5 0zm8.5-.5h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5"/></svg>'
+                        newT+=' Spy Home</button>'
+
+
+
+                        newT+=' <button id="spy_'+tid1+'" class="btn-save" style="color:white; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                        newT+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-incognito" viewBox="0 0 16 16">'
+                        newT+='<path fill-rule="evenodd" d="m4.736 1.968-.892 3.269-.014.058C2.113 5.568 1 6.006 1 6.5 1 7.328 4.134 8 8 8s7-.672 7-1.5c0-.494-1.113-.932-2.83-1.205l-.014-.058-.892-3.27c-.146-.533-.698-.849-1.239-.734C9.411 1.363 8.62 1.5 8 1.5s-1.411-.136-2.025-.267c-.541-.115-1.093.2-1.239.735m.015 3.867a.25.25 0 0 1 .274-.224c.9.092 1.91.143 2.975.143a30 30 0 0 0 2.975-.143.25.25 0 0 1 .05.498c-.918.093-1.944.145-3.025.145s-2.107-.052-3.025-.145a.25.25 0 0 1-.224-.274M3.5 10h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5m-1.5.5q.001-.264.085-.5H2a.5.5 0 0 1 0-1h3.5a1.5 1.5 0 0 1 1.488 1.312 3.5 3.5 0 0 1 2.024 0A1.5 1.5 0 0 1 10.5 9H14a.5.5 0 0 1 0 1h-.085q.084.236.085.5v1a2.5 2.5 0 0 1-5 0v-.14l-.21-.07a2.5 2.5 0 0 0-1.58 0l-.21.07v.14a2.5 2.5 0 0 1-5 0zm8.5-.5h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5"/></svg>'
+                        newT+=' Spy Away</button>'
+                    }
+
+
+
                     document.getElementById("match-tactic-facts-wrapper").insertAdjacentHTML('afterbegin', newT);
 
+                    if(window.stx_device!=="computer"){
+                        (function (currentId,lang) {
+                            document.getElementById("spy_" + currentId).addEventListener('click', function () {
+                                let urlParamsAux = new URLSearchParams(window.location.search);
+                                let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?tamper=yes&graph=spyTactic&tolerance=25&limit=100&match_id="+urlParamsAux.get('mid')+"&team_id=" + currentId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency");
+                                openWindow(link, 0.95, 1.25);
+                            });
+                        })(tid,window.lang);
 
+                        (function (currentId,lang) {
+                            document.getElementById("spy_" + currentId).addEventListener('click', function () {
+                                let urlParamsAux = new URLSearchParams(window.location.search);
+                                let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?tamper=yes&graph=spyTactic&tolerance=25&limit=100&match_id="+urlParamsAux.get('mid')+"&team_id=" + currentId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency");
+                                openWindow(link, 0.95, 1.25);
+                            });
+                        })(tid1,window.lang);
+
+                    }
 
                     document.getElementById("eloCompareButton").addEventListener('click', function () {
                         let keyRedirect="elo_compare"
