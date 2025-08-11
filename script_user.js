@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.175
+// @version      0.176
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -4786,50 +4786,69 @@ self.onmessage = function (e) {
     }
 
 
+
     function heatMap(){
         let links = document.querySelectorAll("a.matchIcon.large.shadow");
         links.forEach(function(link) {
             let icon = link.querySelector("i");
             if (icon && icon.textContent.trim() === "2D") {
                 link.addEventListener("click", function(event) {
-                    setTimeout(function() {
-                        let div = document.getElementById("gameContent");
-                        let button='</br><button id="showHeatMap" class="btn-save" style="border: 2px solid white; color:black; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
-                        button+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-radar" viewBox="0 0 16 16">'
-                        button+='<path d="M6.634 1.135A7 7 0 0 1 15 8a.5.5 0 0 1-1 0 6 6 0 1 0-6.5 5.98v-1.005A5 5 0 1 1 13 8a.5.5 0 0 1-1 0 4 4 0 1 0-4.5 3.969v-1.011A2.999 2.999 0 1 1 11 8a.5.5 0 0 1-1 0 2 2 0 1 0-2.5 1.936v-1.07a1 1 0 1 1 1 0V15.5a.5.5 0 0 1-1 0v-.518a7 7 0 0 1-.866-13.847"/></svg>'
-                        button+=' Heat Map</button>'
+                    console.log("click in 2D")
 
-                        div.insertAdjacentHTML('beforeend', button);
-                        let elemento = document.getElementById('showHeatMap');
-                        elemento.addEventListener('click', function(event) {
-                            let porAncho=0.95;let porAlto=0.9;
-                            let ventanaAncho = (window.innerWidth) * porAncho
-                            let ventanaAlto = (window.innerHeight) * porAlto
-                            let ventanaIzquierda = (window.innerWidth - ventanaAncho) / 2;
-                            let ventanaArriba = (window.innerHeight - ventanaAlto) / 2;
-                            let opcionesVentana = "width=" + ventanaAncho +
-                                ",height=" + ventanaAlto +
-                                ",left=" + ventanaIzquierda +
-                                ",top=" + ventanaArriba;
-                            var link="https://statsxente.com/MZ1/View/heatMapHockey.php"
-                            if(window.sport==="soccer"){
-                                link="https://statsxente.com/MZ1/View/heatMapSoccer.php"
-                            }
-                            var newWin = window.open(link, '_blank',opcionesVentana);
-                            let mapa = {};
-                            for (let team of MyGame.prototype.mzlive.m_match.m_teams) {
-                                for (let player of team.m_players) {
-                                    mapa[player.m_id]={"name":player.m_name,"id":player.m_id,"team_name":team.m_name,"team_id":team.teamId}
+                    let overlay = document.getElementById('game-overlay-close');
+
+                    let intervalId = setInterval(() => {
+                        let style = window.getComputedStyle(overlay);
+                        if (style.display === 'none') {
+
+
+                            let div = document.getElementById("gameContent");
+                            let button='</br><button id="showHeatMap" class="btn-save" style="border: 2px solid white; color:black; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                            button+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-radar" viewBox="0 0 16 16">'
+                            button+='<path d="M6.634 1.135A7 7 0 0 1 15 8a.5.5 0 0 1-1 0 6 6 0 1 0-6.5 5.98v-1.005A5 5 0 1 1 13 8a.5.5 0 0 1-1 0 4 4 0 1 0-4.5 3.969v-1.011A2.999 2.999 0 1 1 11 8a.5.5 0 0 1-1 0 2 2 0 1 0-2.5 1.936v-1.07a1 1 0 1 1 1 0V15.5a.5.5 0 0 1-1 0v-.518a7 7 0 0 1-.866-13.847"/></svg>'
+                            button+=' Heat Map</button>'
+
+                            div.insertAdjacentHTML('beforeend', button);
+                            let elemento = document.getElementById('showHeatMap');
+                            elemento.addEventListener('click', function(event) {
+                                let porAncho=0.95;let porAlto=0.9;
+                                let ventanaAncho = (window.innerWidth) * porAncho
+                                let ventanaAlto = (window.innerHeight) * porAlto
+                                let ventanaIzquierda = (window.innerWidth - ventanaAncho) / 2;
+                                let ventanaArriba = (window.innerHeight - ventanaAlto) / 2;
+                                let opcionesVentana = "width=" + ventanaAncho +
+                                    ",height=" + ventanaAlto +
+                                    ",left=" + ventanaIzquierda +
+                                    ",top=" + ventanaArriba;
+                                var link="https://statsxente.com/MZ1/View/heatMapHockey.php"
+                                if(window.sport==="soccer"){
+                                    link="https://statsxente.com/MZ1/View/heatMapSoccer.php"
                                 }
-                            }
-                            window.addEventListener('message', (event) => {
-                                if (event.data === 'readyToReceive') {
-                                    newWin.postMessage({ miData: MyGame.prototype.mzlive.m_match.matchBuffer, teams:mapa }, '*');
+                                var newWin = window.open(link, '_blank',opcionesVentana);
+                                let mapa = {};
+                                for (let team of MyGame.prototype.mzlive.m_match.m_teams) {
+                                    for (let player of team.m_players) {
+                                        mapa[player.m_id]={"name":player.m_name,"id":player.m_id,"team_name":team.m_name,"team_id":team.teamId}
+                                    }
                                 }
+                                window.addEventListener('message', (event) => {
+                                    if (event.data === 'readyToReceive') {
+                                        newWin.postMessage({ miData: MyGame.prototype.mzlive.m_match.matchBuffer, teams:mapa }, '*');
+                                    }
+                                });
+
                             });
 
-                        });
-                    }, 8000);
+                            clearInterval(intervalId); // Parar el bucle
+                            // Aquí puedes ejecutar código adicional si quieres
+                        } else {
+                            console.log('El overlay sigue visible');
+                        }
+                    }, 500); //
+
+
+
+
                 });
             }
         });
