@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.174
+// @version      0.175
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -4829,7 +4829,7 @@ self.onmessage = function (e) {
                             });
 
                         });
-                    }, 5000);
+                    }, 8000);
                 });
             }
         });
