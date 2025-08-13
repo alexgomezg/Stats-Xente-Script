@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.176
+// @version      0.177
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -108,7 +108,7 @@
             && (urlParams.get('sub') === 'result') && (GM_getValue("matchFlag"))) {
 
 
-            waitToDOM(heatMap,".hitlist.statsLite.marker", 0,7000)
+            waitToDOM(heatMap,".scoreboard_container", 0,7000)
 
 
             setTimeout(function () {
@@ -4793,7 +4793,7 @@ self.onmessage = function (e) {
             let icon = link.querySelector("i");
             if (icon && icon.textContent.trim() === "2D") {
                 link.addEventListener("click", function(event) {
-                    console.log("click in 2D")
+
 
                     let overlay = document.getElementById('game-overlay-close');
 
@@ -4811,6 +4811,113 @@ self.onmessage = function (e) {
                             div.insertAdjacentHTML('beforeend', button);
                             let elemento = document.getElementById('showHeatMap');
                             elemento.addEventListener('click', function(event) {
+                                let mapaGoles = {};
+                                let mapaPenalties = {};
+                                let mapaCards = {};
+                                let mapaSaves = {};
+                                let mapaMisses={}
+
+                                let urlParamsAux = new URLSearchParams(window.location.search);
+
+                                let match_id=urlParamsAux.get("mid")
+                                GM_xmlhttpRequest({
+                                    method: "GET",
+                                    url: "https://www.managerzone.com/matchviewer/getMatchFiles.php?type=stats&mid="+match_id+"&sport="+window.sport,
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    onload: function (response) {
+                                        let parser = new DOMParser();
+                                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                                        let players = xmlDoc.getElementsByTagName("Player");
+
+
+                                        for (let i = 0; i < players.length; i++) {
+                                            let player = players[i];
+                                            let nombre = player.getAttribute("name");
+                                            let goles = player.getElementsByTagName("Goal");
+
+                                            if (goles.length > 0) {
+                                                mapaGoles[nombre] = [];
+                                                for (let j = 0; j < goles.length; j++) {
+                                                    let gol = goles[j];
+                                                    let toDecrement=0;
+                                                    if(window.sport=="soccer"){toDecrement=6}
+                                                    mapaGoles[nombre].push({
+                                                        frame: gol.getAttribute("frame")-toDecrement,
+                                                        time: gol.getAttribute("time")
+                                                    });
+                                                }
+                                            }
+
+
+                                            let penalties = player.getElementsByTagName("Penalty");
+                                            if (penalties.length > 0) {
+                                                mapaPenalties[nombre] = [];
+                                                for (let j = 0; j < penalties.length; j++) {
+                                                    let penalty = penalties[j];
+                                                    let toDecrement=0;
+                                                    if(window.sport=="soccer"){toDecrement=4}
+                                                    mapaPenalties[nombre].push({
+                                                        frame: penalty.getAttribute("frame")-toDecrement,
+                                                        time: penalty.getAttribute("time")
+                                                    });
+                                                }
+                                            }
+
+                                            let cards = player.getElementsByTagName("Card");
+                                            if (cards.length > 0) {
+                                                mapaCards[nombre] = [];
+                                                for (let j = 0; j < cards.length; j++) {
+                                                    let card = cards[j];
+                                                    let toDecrement=0;
+                                                    if(window.sport=="soccer"){toDecrement=6}
+                                                    mapaCards[nombre].push({
+                                                        frame: card.getAttribute("frame")-toDecrement,
+                                                        time: card.getAttribute("time"),type:card.getAttribute("type")
+                                                    });
+                                                }
+                                            }
+
+                                            let saves = player.getElementsByTagName("Save");
+                                            if (saves.length > 0) {
+                                                mapaSaves[nombre] = [];
+                                                for (let j = 0; j < saves.length; j++) {
+                                                    let save = saves[j];
+                                                    let toDecrement=0;
+                                                    if(window.sport=="soccer"){toDecrement=5}
+                                                    mapaSaves[nombre].push({
+                                                        frame: save.getAttribute("frame")-toDecrement,
+                                                        time: save.getAttribute("time"),team_id:save.getAttribute("team")
+                                                    });
+                                                }
+                                            }
+
+                                            let misses = player.getElementsByTagName("Miss");
+                                            if (misses.length > 0) {
+                                                mapaMisses[nombre] = [];
+                                                for (let j = 0; j < misses.length; j++) {
+                                                    let miss = misses[j];
+                                                    let toDecrement=0;
+                                                    if(window.sport=="soccer"){toDecrement=6}
+                                                    mapaMisses[nombre].push({
+                                                        frame: miss.getAttribute("frame")-toDecrement,
+                                                        time: miss.getAttribute("time")
+                                                    });
+                                                }
+                                            }
+
+
+
+
+
+                                        }
+
+                                    }
+                                });
+
+
+
                                 let porAncho=0.95;let porAlto=0.9;
                                 let ventanaAncho = (window.innerWidth) * porAncho
                                 let ventanaAlto = (window.innerHeight) * porAlto
@@ -4828,21 +4935,20 @@ self.onmessage = function (e) {
                                 let mapa = {};
                                 for (let team of MyGame.prototype.mzlive.m_match.m_teams) {
                                     for (let player of team.m_players) {
-                                        mapa[player.m_id]={"name":player.m_name,"id":player.m_id,"team_name":team.m_name,"team_id":team.teamId}
+                                        mapa[player.m_id]={"name":player.m_name,"id":player.m_id,"team_name":team.m_name,"team_id":team.m_teamId}
                                     }
                                 }
                                 window.addEventListener('message', (event) => {
                                     if (event.data === 'readyToReceive') {
-                                        newWin.postMessage({ miData: MyGame.prototype.mzlive.m_match.matchBuffer, teams:mapa }, '*');
+                                        newWin.postMessage({ miData: MyGame.prototype.mzlive.m_match.matchBuffer, teams:mapa,
+                                            map_goals:mapaGoles,map_penalties:mapaPenalties,map_cards:mapaCards,
+                                            map_saves:mapaSaves,map_misses:mapaMisses}, '*');
                                     }
                                 });
 
                             });
 
-                            clearInterval(intervalId); // Parar el bucle
-                            // Aquí puedes ejecutar código adicional si quieres
-                        } else {
-                            console.log('El overlay sigue visible');
+                            clearInterval(intervalId);
                         }
                     }, 500); //
 
