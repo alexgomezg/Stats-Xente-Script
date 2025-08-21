@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.177
+// @version      0.178
 // @description  Stats Xente script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -14,8 +14,8 @@
 // @grant        GM_deleteValue
 // @grant        GM_listValues
 // @require      https://code.jquery.com/jquery-3.7.1.js
-// @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
-// @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
+// @downloadURL  https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
+// @updateURL    https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
 // ==/UserScript==
 
 
@@ -4803,7 +4803,7 @@ self.onmessage = function (e) {
 
 
                             let div = document.getElementById("gameContent");
-                            let button='</br><button id="showHeatMap" class="btn-save" style="border: 2px solid white; color:black; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                            let button='</br><button id="showHeatMap" class="btn-save" style="border: 2px solid white; color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
                             button+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-radar" viewBox="0 0 16 16">'
                             button+='<path d="M6.634 1.135A7 7 0 0 1 15 8a.5.5 0 0 1-1 0 6 6 0 1 0-6.5 5.98v-1.005A5 5 0 1 1 13 8a.5.5 0 0 1-1 0 4 4 0 1 0-4.5 3.969v-1.011A2.999 2.999 0 1 1 11 8a.5.5 0 0 1-1 0 2 2 0 1 0-2.5 1.936v-1.07a1 1 0 1 1 1 0V15.5a.5.5 0 0 1-1 0v-.518a7 7 0 0 1-.866-13.847"/></svg>'
                             button+=' Heat Map</button>'
@@ -4841,8 +4841,8 @@ self.onmessage = function (e) {
                                                 mapaGoles[nombre] = [];
                                                 for (let j = 0; j < goles.length; j++) {
                                                     let gol = goles[j];
-                                                    let toDecrement=0;
-                                                    if(window.sport=="soccer"){toDecrement=6}
+                                                    let toDecrement=-3;
+                                                    if(window.sport=="soccer"){toDecrement=0}
                                                     mapaGoles[nombre].push({
                                                         frame: gol.getAttribute("frame")-toDecrement,
                                                         time: gol.getAttribute("time")
@@ -4871,7 +4871,7 @@ self.onmessage = function (e) {
                                                 for (let j = 0; j < cards.length; j++) {
                                                     let card = cards[j];
                                                     let toDecrement=0;
-                                                    if(window.sport=="soccer"){toDecrement=6}
+                                                    if(window.sport=="soccer"){toDecrement=10}
                                                     mapaCards[nombre].push({
                                                         frame: card.getAttribute("frame")-toDecrement,
                                                         time: card.getAttribute("time"),type:card.getAttribute("type")
@@ -4884,12 +4884,22 @@ self.onmessage = function (e) {
                                                 mapaSaves[nombre] = [];
                                                 for (let j = 0; j < saves.length; j++) {
                                                     let save = saves[j];
-                                                    let toDecrement=0;
-                                                    if(window.sport=="soccer"){toDecrement=5}
-                                                    mapaSaves[nombre].push({
-                                                        frame: save.getAttribute("frame")-toDecrement,
-                                                        time: save.getAttribute("time"),team_id:save.getAttribute("team")
-                                                    });
+                                                    let toDecrement=-2;
+                                                    if(window.sport=="soccer"){
+                                                        toDecrement=-2
+                                                        mapaSaves[nombre].push({
+                                                            frame: save.getAttribute("frame")-toDecrement,
+                                                            time: save.getAttribute("time"),team_id:save.getAttribute("team")
+                                                        });
+                                                    }else{
+                                                        toDecrement=5
+                                                        mapaSaves[nombre].push({
+                                                            frame: save.getAttribute("frame")-toDecrement,
+                                                            time: save.getAttribute("time"),team_id:save.parentNode.getAttribute("teamId")
+                                                        });
+                                                    }
+
+
                                                 }
                                             }
 
@@ -4915,8 +4925,6 @@ self.onmessage = function (e) {
 
                                     }
                                 });
-
-
 
                                 let porAncho=0.95;let porAlto=0.9;
                                 let ventanaAncho = (window.innerWidth) * porAncho
@@ -5031,14 +5039,14 @@ self.onmessage = function (e) {
                     newT+='font-size:revert; width:9em; padding: 5px 3px;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button>'
                     newT+="</br> </br>"
                     if(window.stx_device!=="computer"){
-                        newT+='<button id="spy_'+tid+'" class="btn-save" style="color:white; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                        newT+='<button id="spy_'+tid+'" class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
                         newT+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-incognito" viewBox="0 0 16 16">'
                         newT+='<path fill-rule="evenodd" d="m4.736 1.968-.892 3.269-.014.058C2.113 5.568 1 6.006 1 6.5 1 7.328 4.134 8 8 8s7-.672 7-1.5c0-.494-1.113-.932-2.83-1.205l-.014-.058-.892-3.27c-.146-.533-.698-.849-1.239-.734C9.411 1.363 8.62 1.5 8 1.5s-1.411-.136-2.025-.267c-.541-.115-1.093.2-1.239.735m.015 3.867a.25.25 0 0 1 .274-.224c.9.092 1.91.143 2.975.143a30 30 0 0 0 2.975-.143.25.25 0 0 1 .05.498c-.918.093-1.944.145-3.025.145s-2.107-.052-3.025-.145a.25.25 0 0 1-.224-.274M3.5 10h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5m-1.5.5q.001-.264.085-.5H2a.5.5 0 0 1 0-1h3.5a1.5 1.5 0 0 1 1.488 1.312 3.5 3.5 0 0 1 2.024 0A1.5 1.5 0 0 1 10.5 9H14a.5.5 0 0 1 0 1h-.085q.084.236.085.5v1a2.5 2.5 0 0 1-5 0v-.14l-.21-.07a2.5 2.5 0 0 0-1.58 0l-.21.07v.14a2.5 2.5 0 0 1-5 0zm8.5-.5h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5"/></svg>'
                         newT+=' Home</button>'
 
 
 
-                        newT+=' <button id="spy_'+tid1+'" class="btn-save" style="color:white; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                        newT+=' <button id="spy_'+tid1+'" class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
                         newT+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-incognito" viewBox="0 0 16 16">'
                         newT+='<path fill-rule="evenodd" d="m4.736 1.968-.892 3.269-.014.058C2.113 5.568 1 6.006 1 6.5 1 7.328 4.134 8 8 8s7-.672 7-1.5c0-.494-1.113-.932-2.83-1.205l-.014-.058-.892-3.27c-.146-.533-.698-.849-1.239-.734C9.411 1.363 8.62 1.5 8 1.5s-1.411-.136-2.025-.267c-.541-.115-1.093.2-1.239.735m.015 3.867a.25.25 0 0 1 .274-.224c.9.092 1.91.143 2.975.143a30 30 0 0 0 2.975-.143.25.25 0 0 1 .05.498c-.918.093-1.944.145-3.025.145s-2.107-.052-3.025-.145a.25.25 0 0 1-.224-.274M3.5 10h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5m-1.5.5q.001-.264.085-.5H2a.5.5 0 0 1 0-1h3.5a1.5 1.5 0 0 1 1.488 1.312 3.5 3.5 0 0 1 2.024 0A1.5 1.5 0 0 1 10.5 9H14a.5.5 0 0 1 0 1h-.085q.084.236.085.5v1a2.5 2.5 0 0 1-5 0v-.14l-.21-.07a2.5 2.5 0 0 0-1.58 0l-.21.07v.14a2.5 2.5 0 0 1-5 0zm8.5-.5h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5"/></svg>'
                         newT+=' Away</button>'
@@ -5195,7 +5203,7 @@ self.onmessage = function (e) {
                     let teamTable='<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;flex-wrap: wrap;max-height: 100%;">'
 
                     if(window.sport==="soccer"){
-                        teamTable+='<button id="spy_'+aux+'" class="btn-save" style="color:white; background-color:rgb(228, 200, 0); font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
+                        teamTable+='<button id="spy_'+aux+'" class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")+'; font-family: \'Roboto\'; font-weight:bold;font-size:revert; width:7em; padding: 2px 2px;">'
                         teamTable+='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-incognito" viewBox="0 0 16 16">'
                         teamTable+='<path fill-rule="evenodd" d="m4.736 1.968-.892 3.269-.014.058C2.113 5.568 1 6.006 1 6.5 1 7.328 4.134 8 8 8s7-.672 7-1.5c0-.494-1.113-.932-2.83-1.205l-.014-.058-.892-3.27c-.146-.533-.698-.849-1.239-.734C9.411 1.363 8.62 1.5 8 1.5s-1.411-.136-2.025-.267c-.541-.115-1.093.2-1.239.735m.015 3.867a.25.25 0 0 1 .274-.224c.9.092 1.91.143 2.975.143a30 30 0 0 0 2.975-.143.25.25 0 0 1 .05.498c-.918.093-1.944.145-3.025.145s-2.107-.052-3.025-.145a.25.25 0 0 1-.224-.274M3.5 10h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5m-1.5.5q.001-.264.085-.5H2a.5.5 0 0 1 0-1h3.5a1.5 1.5 0 0 1 1.488 1.312 3.5 3.5 0 0 1 2.024 0A1.5 1.5 0 0 1 10.5 9H14a.5.5 0 0 1 0 1h-.085q.084.236.085.5v1a2.5 2.5 0 0 1-5 0v-.14l-.21-.07a2.5 2.5 0 0 0-1.58 0l-.21.07v.14a2.5 2.5 0 0 1-5 0zm8.5-.5h2a.5.5 0 0 1 .5.5v1a1.5 1.5 0 0 1-3 0v-1a.5.5 0 0 1 .5-.5"/></svg> Spy Tactic</button>'
 
