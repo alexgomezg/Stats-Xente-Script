@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.178
-// @description  Stats Xente script for inject own data on Managerzone site
+// @version      0.180
+// @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
 // @icon         https://statsxente.com/MZ1/View/Images/main_icon.png
