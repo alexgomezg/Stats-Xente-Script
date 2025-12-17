@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.180
+// @version      0.181
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
 // @icon         https://statsxente.com/MZ1/View/Images/main_icon.png
 // @license      GNU
+// @connect      statsxente.com
+// @connect      managerzone.com
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @grant        GM_getValue
@@ -62,11 +64,7 @@
     setLangSportCats()
     getUsernameData()
     checkScriptVersion()
-
-    //GM_deleteValue("date_checked_selects");
     getSelects()
-
-
 
     function getDate(first_of_month){
         let hoy = new Date();
@@ -77,15 +75,12 @@
             day = String(hoy.getDate()).padStart(2, '0');
         }
         let formated_date = `${year}-${month}-${day}`;
-
         return formated_date
-
     }
 
 
     /// FUNCTIONS MENU
     setTimeout(function () {
-
         const urlParams = new URLSearchParams(window.location.search);
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
             waitToDOM(leagues, ".nice_table", 0,7000)
@@ -615,6 +610,9 @@
             headers: {
                 "Content-Type": "application/json"
             },
+            onerror: function(err) {
+                notifySnackBarError("Detailed Teams");
+            },
             onload: function (response) {
 
                 let jsonResponse = JSON.parse(response.responseText);
@@ -865,6 +863,9 @@
             headers: {
                 "Content-Type": "application/json"
             },
+            onerror: function(err) {
+                notifySnackBarError("Detailed Teams");
+            },
             onload: function (response) {
 
                 let jsonResponse = JSON.parse(response.responseText);
@@ -1080,7 +1081,9 @@
                 setTimeout(function () {
                     if (document.getElementById("showMenu") === null) {
                         if(GM_getValue("cupFlag")){
-                            waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                            if(!document.getElementById("showMenu")){
+                                waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0,7000)
+                            }
                         }
                     }
                 }, 1000);
@@ -1330,6 +1333,9 @@ self.onmessage = function (e) {
                     headers: {
                         "Content-Type": "application/json"
                     },
+                    onerror: function(err) {
+                        notifySnackBarError("Predictor Event");
+                    },
                     onload: function (response) {
                         let jsonResponse = JSON.parse(response.responseText);
                         filas.forEach(fila => {
@@ -1444,6 +1450,9 @@ self.onmessage = function (e) {
                             headers: {
                                 "Content-Type": "application/json"
                             },
+                            onerror: function(err) {
+                                notifySnackBarError("Manager Data");
+                            },
                             onload: function (response) {
                                 let parser = new DOMParser();
                                 let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
@@ -1535,6 +1544,9 @@ self.onmessage = function (e) {
                 url: "https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id="+team_id,
                 headers: {
                     "Content-Type": "application/json"
+                },
+                onerror: function(err) {
+                    notifySnackBarError("ELO Review");
                 },
                 onload: function (response) {
                     let jsonResponse = JSON.parse(response.responseText);
@@ -1886,12 +1898,14 @@ self.onmessage = function (e) {
                 contIds++
             });
 
+
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://statsxente.com/MZ1/Functions/tamper_clash_matches_elo.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
                 headers: {
                     "Content-Type": "application/json"
                 },
+                onerror: function (err) {notifySnackBarError("Clash ELO Matches")},
                 onload: function (response) {
 
                     let jsonResponse = JSON.parse(response.responseText);
@@ -2123,6 +2137,7 @@ self.onmessage = function (e) {
             headers: {
                 "Content-Type": "application/json"
             },
+            onerror: function (err) { notifySnackBarError("Teams")},
             onload: function (response) {
                 teams_data = JSON.parse(response.responseText);
                 const filas = document.querySelectorAll("#userRankTable tr");
@@ -2308,12 +2323,14 @@ self.onmessage = function (e) {
         if (!team_ids.includes(my_team_id)) {
             linkIds += "&idEquipo" + contIds + "=" + my_team_id
         }
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_elo_values.php?sport=" + window.sport + linkIds+cIds,
             headers: {
                 "Content-Type": "application/json"
+            },
+            onerror: function(err) {
+                notifySnackBarError("ELO Values");
             },
             onload: function (response) {
                 let rawJSON = JSON.parse(response.responseText);
@@ -2511,6 +2528,9 @@ self.onmessage = function (e) {
             url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo="+team_id,
             headers: {
                 "Content-Type": "application/json"
+            },
+            onerror: function(err) {
+                notifySnackBarError("Detailed Teams");
             },
             onload: function (response) {
 
@@ -2754,18 +2774,16 @@ self.onmessage = function (e) {
 
         });
 
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?sport=" + window.sport + "&team_id="+team_id+"&initial_date="+initialDate+"&final_date="+finalDate,
             headers: {
                 "Content-Type": "application/json"
             },
+            onerror: function (err) {notifySnackBarError("ELO Played Matches")},
             onload: function (response) {
                 let jsonResponse = JSON.parse(response.responseText);
-
-
-
-
                 let elems = document.getElementsByClassName("bold score-cell-wrapper textCenter flex-grow-0");
 
                 Array.from(elems).forEach(function(elem) {
@@ -2828,6 +2846,9 @@ self.onmessage = function (e) {
             url: "https://statsxente.com/MZ1/Functions/tamper_federations_clash_data.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport +"&home="+local_id[1]+"&away="+away_id[1],
             headers: {
                 "Content-Type": "application/json"
+            },
+            onerror: function(err) {
+                notifySnackBarError("Federations Data");
             },
             onload: function (response) {
                 let jsonResponse = JSON.parse(response.responseText);
@@ -2987,6 +3008,9 @@ self.onmessage = function (e) {
                     headers: {
                         "Content-Type": "application/json"
                     },
+                    onerror: function(err) {
+                        notifySnackBarError("Tamper Teams");
+                    },
                     onload: function (response) {
                         let jsonResponse = JSON.parse(response.responseText);
 
@@ -3127,6 +3151,9 @@ self.onmessage = function (e) {
             headers: {
                 "Content-Type": "application/json"
             },
+            onerror: function(err) {
+                notifySnackBarError("Players stats");
+            },
             onload: function (response) {
                 let jsonResponse = JSON.parse(response.responseText);
                 let cont=0;
@@ -3262,6 +3289,9 @@ self.onmessage = function (e) {
             url: "http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idLiga+"&categoria="+cats_stats[typeKey],
             headers: {
                 "Content-Type": "application/json"
+            },
+            onerror: function(err) {
+                notifySnackBarError("Teams");
             },
             onload: function (response) {
                 teams_stats=JSON.parse(response.responseText);
@@ -3816,6 +3846,7 @@ self.onmessage = function (e) {
 
         }, 200);
 
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
@@ -3835,7 +3866,7 @@ self.onmessage = function (e) {
                         let id=team_data[0]
                         let equipo=team_data[1]
 
-                        divELO +=  parseFloat(jsonResponse[id][eloKeys[urlParams.get('type')]])
+                        divELO += parseFloat(jsonResponse[id][eloKeys[urlParams.get('type')]])
 
                         let nuevaColumna = document.createElement("td");
                         let valor = 0;
@@ -6756,11 +6787,28 @@ self.onmessage = function (e) {
         if(putSortIconFlag){putSortIcon(col, table)}
         let rows = Array.from(table.tBodies[0].rows);
         let isAsc = document.getElementById("ord_table").value === "ascendente";
+
+        let parseNumberToOrder = (str) => {
+            let s = str.trim().replace(/\s+/g, '');
+            s = s.replace(/,/g, '');
+            let num = parseFloat(s);
+            return isNaN(num) ? 0 : num;
+        };
+
+        let lang = window.userLocal.slice(0,2);
         rows.sort(function (a, b) {
-            /*let aNum = parseFloat(a.cells[col].textContent.trim().replace(/\./g, '').replace(/,/g, '')) || 0;
-            let bNum = parseFloat(b.cells[col].textContent.trim().replace(/\./g, '').replace(/,/g, '')) || 0;*/
-            let aNum=parseNumber(a.cells[col].textContent.trim())
-            let bNum=parseNumber(b.cells[col].textContent.trim())
+            var aNum,bNum;
+
+            if((lang==="fr")||(lang==="ru")){
+                aNum = parseNumberToOrder(a.cells[col].textContent);
+                bNum = parseNumberToOrder(b.cells[col].textContent);
+
+            }else{
+
+                aNum = parseFloat(a.cells[col].textContent.trim().replace(/\./g, '').replace(/\,/g, '')) || 0;
+                bNum = parseFloat(b.cells[col].textContent.trim().replace(/\./g, '').replace(/\,/g, '')) || 0;
+
+            }
             return isAsc ? aNum - bNum : bNum - aNum;
         });
 
@@ -6896,12 +6944,7 @@ self.onmessage = function (e) {
         defaults.set('u21', 'valor21');
         defaults.set('u18', 'valor18');
 
-
-
         defaults.forEach((valor, clave) => {
-
-
-
             document.getElementById("league_default_select_" + clave).addEventListener('change', function () {
 
                 let selectElement = document.getElementById("league_default_select_" + clave);
@@ -6910,43 +6953,28 @@ self.onmessage = function (e) {
 
         });
         document.getElementById("league_graph_check").addEventListener('click', function () {
-
             if (document.getElementById("league_graph_check").checked) {
                 GM_setValue("league_graph_button", "checked")
             } else {
                 GM_setValue("league_graph_button", "")
             }
-
-
         });
-
-
         document.getElementById("league_report_check").addEventListener('click', function () {
-
             if (document.getElementById("league_report_check").checked) {
                 GM_setValue("league_report_button", "checked")
             } else {
                 GM_setValue("league_report_button", "")
             }
-
-
         });
 
         document.getElementById("league_calendar_check").addEventListener('click', function () {
-
             if (document.getElementById("league_calendar_check").checked) {
                 GM_setValue("league_calendar_button", "checked")
             } else {
                 GM_setValue("league_calendar_button", "")
             }
 
-
         });
-
-
-
-
-
 
     }
     function createModalMenu() {
@@ -7667,6 +7695,23 @@ self.onmessage = function (e) {
 
 
     }
+
+    function notifySnackBarError(id){
+
+        let x = document.getElementById("snackbar_stx");
+        let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='25px' height='25px'> <span style='color:#f44336; font-size: 17px;'>[Stats Xente Script] </span>"
+        txt+="Error getting data: "+id
+        x.innerHTML = txt;
+        x.className = "showSnackBar_stx";
+        setTimeout(function () { x.className = x.className.replace("showSnackBar_stx", ""); }, 4000);
+        let clase="loader-"+window.sport
+        let elementos = document.querySelectorAll('.'+clase);
+        elementos.forEach(elemento => elemento.remove());
+
+
+    }
+
+
     function notifySnackBarNewVersion(){
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
@@ -8237,7 +8282,8 @@ background-color: #f2f2f2;
         border-collapse: collapse;
         width: 80%;
         margin: 5px 0;
-        z-index:15;
+        z-index:20;
+        position: relative;
 
     }
     table.matchValuesTable th, table.matchValuesTable td {
