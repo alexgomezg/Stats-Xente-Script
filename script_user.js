@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.183
+// @version      0.184
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -16,8 +16,8 @@
 // @grant        GM_deleteValue
 // @grant        GM_listValues
 // @require      https://code.jquery.com/jquery-3.7.1.js
-// @downloadURL  https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
-// @updateURL    https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js
+// @updateURL https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.meta.js
 // ==/UserScript==
 
 
@@ -270,7 +270,7 @@
             });
         }
     }, 1000);
-    
+
     function tactisResumeData(){
         tacticsMap.clear();
         let elements0 = document.querySelectorAll('.odd');
@@ -810,10 +810,6 @@
                             let link="https://statsxente.com/MZ1/View/scoutReportAnalyzer.php?tamper=yes&sport="+window.sport+"&maxStar="+countsMap.get(0)+"&minStar="+countsMap.get(1)+"&sp="+countsMap.get(2);
                             openWindow(link, 0.95, 1.25);
                         });
-
-
-
-
 
                     }, 1000);
 
@@ -3256,8 +3252,239 @@ self.onmessage = function (e) {
 
 
     }
+
+
+
+    async function leaguesHistory(){
+        let urlParams2 = new URLSearchParams(window.location.search);
+        let type = urlParams2.get("type")
+        let id_busq=""
+        if(type=="senior"){
+            id_busq="league_tab_pre_qual"
+        }else{
+            id_busq="league_tab_message_board"
+        }
+
+        let enlace1 = document.getElementById('league_tab_schedule');
+        let href1 = enlace1.href;
+        let url1 = new URL(href1);
+        let league_id_search = url1.searchParams.get('sid');
+
+
+
+
+        if(!document.getElementById("league_history")){
+            let a=document.getElementById(id_busq).parentElement
+            let copia = a.cloneNode(true);
+            if(type=="senior"){
+                let texto=document.getElementById(id_busq).innerHTML;
+                let season = texto.match(/S../g)
+                document.getElementById(id_busq).innerHTML=season+" Play-Off"
+            }
+
+
+            let elementoEnCopia = copia.querySelector("#"+id_busq);
+            elementoEnCopia.innerHTML = "History";
+            elementoEnCopia.id="league_history"
+            elementoEnCopia.removeAttribute("href");
+            a.insertAdjacentElement("afterend",copia)
+
+            document.getElementById("league_navigation").addEventListener("click", function(e) {
+                if((e.target.id!=="league_history")&&(e.target.parentNode.tagName==="LI")&&(document.getElementById("ui-tabs-stats"))){
+                    document.getElementById("ui-tabs-stats").remove()
+                }
+            });
+
+            document.getElementById("league_history").addEventListener("click", function(e) {
+                e.preventDefault();
+                let divs = document.querySelectorAll('div[id^="ui-tabs-"]');
+                divs.forEach(div => {
+                    div.style.display = "none";
+                    div.setAttribute("aria-expanded", "false");
+                    div.setAttribute("aria-hidden", "true");
+                });
+
+
+                let leagueNav = document.getElementById("league_navigation");
+
+                if (leagueNav) {
+                    let primerUl = leagueNav.querySelector("ul");
+                    if (primerUl) {
+                        let lis = primerUl.querySelectorAll("li");
+                        let tercerLi = lis[2];
+                        tercerLi.click()
+                        lis.forEach(li => {
+                            li.classList.remove("ui-state-active", "ui-tabs-active"); // quitar clases
+                            li.setAttribute("aria-selected", "false");               // poner aria-selected a false
+                        });
+                    }
+                }
+                let clase="loader-"+window.sport
+                let loader=
+                    "</br>" +
+                    "<div id='hp_loader'>" +
+                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                    "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
+                    "</div>";
+
+                let txt=`<div id="loader-history" class="ui-tabs-panel ui-widget-content ui-corner-bottom" aria-live="polite" aria-labelledby="league_tab_unavailable"
+        role="tabpanel" aria-expanded="true" aria-hidden="false" style="display: block;"><div style="padding: 10px" id="squad_unavailable">
+        <h3>League Positions History</h3>
+				${loader}
+</div></div>`
+
+                document.getElementById("ui-tabs-4").insertAdjacentHTML("afterend",txt)
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: "http://statsxente.com/MZ1/Functions/tamper_league_history.php?league_id="+league_id_search+"&type="+type+"&sport="+window.sport,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    onerror: function() {
+                        notifySnackBarError("Teams");
+                    },
+                    onload: function (response) {
+                        document.getElementById("loader-history").remove()
+                        document.getElementById("ui-tabs-4").insertAdjacentHTML("afterend",response.responseText)
+
+                        document.getElementById("show_teams_history").style.color=GM_getValue("color_native")
+                        document.getElementById("show_teams_history").style.backgroundColor=GM_getValue("bg_native")
+                        document.getElementById("show_users_history").style.color=GM_getValue("color_native")
+                        document.getElementById("show_users_history").style.backgroundColor=GM_getValue("bg_native")
+
+                        document.querySelectorAll('[id^="season_"]').forEach(el => {
+                            document.getElementById(el.id).addEventListener("click", function(e) {
+                                let season = el.id.replace('season_', '');
+                                let link="https://statsxente.com/MZ1/Functions/showLeagueHistory.php?idLiga="+league_id_search+"&l="+window.lang+"&season="+season+"&type="+type+"&sport="+window.sport
+                                openWindow(link, 0.95, 0.8);
+                            });
+
+                        });
+
+
+
+                        document.getElementById("show_teams_history").addEventListener("click", function(e) {
+
+                            let elementos1 = document.querySelectorAll('[id^="stx_user_id_"]');
+                            elementos1.forEach(el1 => {
+                                el1.style.display = "none";
+                            });
+
+                            elementos1 = document.querySelectorAll('[id^="stx_team_id_"]');
+                            elementos1.forEach(el1 => {
+                                el1.style.display = "table-cell";
+
+                            });
+                        });
+
+
+
+
+
+
+                        document.getElementById("show_users_history").addEventListener("click", function(e) {
+
+
+
+                            let elementos = document.querySelectorAll('[id^="stx_team_id_"]');
+
+
+                            if(document.getElementById("show_users").value==="none"){
+                                document.getElementById("show_users").value="done"
+                                let teamCache = {};
+                                elementos.forEach(el => {
+                                    let team_td_id=el.id
+                                    let user_td_id=team_td_id.replace("team", "user");
+                                    let team_id_search = el.id.split("-")[1];
+
+                                    document.getElementById(user_td_id).style.display="table-cell"
+                                    el.style.display="none"
+
+                                    let clase= document.getElementById(user_td_id).innerHTML
+                                    let clase_loader = "loader-" + window.sport
+                                    var loader="<div id='"+user_td_id+"_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase_loader + "' style='height:15px'></div></div></div>";
+                                    document.getElementById(user_td_id).innerHTML = loader;
+
+                                    if (!teamCache[team_id_search]) {
+                                        teamCache[team_id_search] = new Promise((resolve, reject) => {
+                                            GM_xmlhttpRequest({
+                                                method: "GET",
+                                                url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search,
+                                                headers: { "Content-Type": "application/json" },
+                                                onload: function (response) {
+                                                    let parser = new DOMParser();
+                                                    let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                                                    let userData = xmlDoc.getElementsByTagName("UserData");
+                                                    let resultado = "mz_dummy_user"
+                                                    if (userData.length>0){
+                                                        resultado=userData[0].getAttribute("username");
+                                                    }
+                                                    resolve(resultado);
+                                                },
+                                                onerror: function () {
+                                                    notifySnackBarError("Manager Data");
+                                                    resolve("none");
+                                                }
+                                            });
+                                        });
+                                    }
+
+                                    // Siempre usamos la promesa cacheada (nueva o existente)
+                                    teamCache[team_id_search]
+                                        .then((resultado) => {
+                                            let flag = clase + " " + resultado;
+                                            document.getElementById(user_td_id).innerHTML += flag;
+                                            document.getElementById(user_td_id + "_loader").remove();
+                                        })
+                                        .catch(() => {
+                                            document.getElementById(user_td_id + "_loader").remove();
+                                        });
+                                });
+
+
+
+                            }else{
+
+                                let elementos1 = document.querySelectorAll('[id^="stx_user_id_"]');
+                                elementos1.forEach(el1 => {
+                                    el1.style.display = "table-cell";
+                                });
+
+                                elementos1 = document.querySelectorAll('[id^="stx_team_id_"]');
+                                elementos1.forEach(el1 => {
+                                    el1.style.display = "none";
+                                });
+
+
+                            }
+
+
+
+
+                        });
+
+
+
+
+                    },
+                });
+
+
+            });
+
+        }
+    }
+
 //Leagues page
     async function leagues() {
+        leaguesHistory()
+
+
+
+
+
+
+
         let tablesSearch=document.getElementsByClassName("nice_table")
         let clear = tablesSearch[0].previousElementSibling;
         let selectsDiv=clear.querySelectorAll('select');
@@ -6016,14 +6243,16 @@ self.onmessage = function (e) {
 
 
                             for (let i = 0; i < matches.length; i++) {
-                                let dateOnly = matches[i].getAttribute("date").split(" ")[0];
-                                last_date = dateOnly
-                                let teams = matches[i].getElementsByTagName("Team");
+                                if(matches[i].getAttribute("type")==="friendly"){
+                                    let dateOnly = matches[i].getAttribute("date").split(" ")[0];
+                                    last_date = dateOnly
+                                    let teams = matches[i].getElementsByTagName("Team");
 
-                                for (let j = 0; j < teams.length; j++) {
-                                    if (teams[j].getAttribute("teamId") !== team_id) {
-                                        matchesDate.push(teams[j].getAttribute("teamId") + "-" + dateOnly)
+                                    for (let j = 0; j < teams.length; j++) {
+                                        if (teams[j].getAttribute("teamId") !== team_id) {
+                                            matchesDate.push(teams[j].getAttribute("teamId") + "-" + dateOnly)
 
+                                        }
                                     }
                                 }
 
@@ -7113,7 +7342,7 @@ self.onmessage = function (e) {
 
 
 
-        let newContent = '<div style="margin: 0 auto; text-align:center;"><img alt="" id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></div></br></br>'
+        let newContent = '<div style="margin: 0 auto; text-align:center;"><img alt="" id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></div>'
         newContent += '<div style="margin: 0 auto; text-align:center;" id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"  style="display: flex; flex-direction: column; overflow: auto; max-width: 100%;">'
         newContent +='</br><table style="width:75%; margin: 0 auto; text-align:left;"><tbody><tr>';
         newContent += '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
@@ -7176,24 +7405,19 @@ self.onmessage = function (e) {
         newContent += '<td style=\'margin: 0 auto; text-align:center;\' colspan="4"><label class="textMiddle"><input ' + checkedLeagueSelects + ' type="checkbox" class="textMiddle" value="graph" id="show_league_checkbox">Show selects</label></center></td>'
         newContent += "</tr></table>"
         newContent += "<hr>"
-        newContent += "<h3 style='text-align: left; padding-left:7px;'>Played Matches Config</h3>"
-        newContent += "<table style='display:flex;'><tr><td>"
 
+        newContent += "<table border='0' style='display:flex;'><tr><td>"
+        newContent += "<h3 style='text-align: left; padding-left:7px;'>Played Matches Config</h3></td><td>"
+        newContent += "<h3 style='text-align: left; padding-left:7px;'>Tabs Config</h3></td></tr><tr><td>"
         let filterTacticCheck = ""
         if (GM_getValue("show_tactic_filter")) {
             filterTacticCheck = "checked"
         }
 
 
-
         newContent += "<label><input type='checkbox' id='show_tactic_checkbox' " + filterTacticCheck + ">Show Tactic Filter</label>";
-        newContent += "</td></tr></table>"
-
-
-
-        newContent += "<hr>"
-        newContent += "<h3 style='text-align: left; padding-left:7px;'>Tabs Config</h3>"
-        newContent += "<table style='display:flex;'><tr><td>"
+        newContent += "</td>"
+        newContent += "<td>"
 
         let checkedTab = ""
         if (GM_getValue("tabsConfig")) {
@@ -7240,6 +7464,8 @@ self.onmessage = function (e) {
         document.getElementById("contenido_modal_cargando-stx").style.width = "75%";
         document.getElementById("myModal_cargando-stx").style.display = "none"
         getNativeTableStyles()
+
+        document.getElementById("myModal_cargando-stx").style.paddingTop="0px"
 
         document.getElementById("alert_tittle").style.backgroundColor = GM_getValue("bg_native")
 
