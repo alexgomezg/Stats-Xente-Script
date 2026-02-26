@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.184
+// @version      0.185
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3256,6 +3256,7 @@ self.onmessage = function (e) {
 
 
     async function leaguesHistory(){
+        getDeviceFormat()
         let urlParams2 = new URLSearchParams(window.location.search);
         let type = urlParams2.get("type")
         let id_busq=""
@@ -3351,6 +3352,12 @@ self.onmessage = function (e) {
                         document.getElementById("show_teams_history").style.backgroundColor=GM_getValue("bg_native")
                         document.getElementById("show_users_history").style.color=GM_getValue("color_native")
                         document.getElementById("show_users_history").style.backgroundColor=GM_getValue("bg_native")
+
+                        if(window.stx_device!=="computer"){
+                            document.getElementById("league_history_table").classList.remove("hitlist-compact-list-included");
+
+                        }
+
 
                         document.querySelectorAll('[id^="season_"]').forEach(el => {
                             document.getElementById(el.id).addEventListener("click", function(e) {
