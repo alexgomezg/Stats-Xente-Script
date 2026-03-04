@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.185
+// @version      0.186
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3355,7 +3355,13 @@ self.onmessage = function (e) {
 
                         if(window.stx_device!=="computer"){
                             document.getElementById("league_history_table").classList.remove("hitlist-compact-list-included");
+                            document.getElementById("league_history_table").style.maxWidth = "100%";
+                            document.getElementById("league_history_table").style.overflowX = "auto";
+                            document.getElementById("league_history_table").style.display = "block";
+                            document.getElementById("league_history_table").style.width = "100%";
 
+                        }else{
+                            document.getElementById("league_history_table").style.width = "100%";
                         }
 
 
@@ -3637,6 +3643,16 @@ self.onmessage = function (e) {
         values.set('tmvalueSUB23', 'U23 LM Transfers Cost');
         values.set('tmvalueSUB21', 'U21 LM Transfers Cost');
 
+        if (window.sport === "soccer") {
+            values.set('salario11', 'TOP 11 Salary');
+            values.set('salario11_23', 'U23 TOP 11 Salary');
+            values.set('salario11_21', 'U21 TOP 11 Salary');
+        }else{
+            values.set('salario11', 'TOP 21 Salary');
+            values.set('salario11_23', 'U23 TOP 21 Salary');
+            values.set('salario11_21', 'U21 TOP 21 Salary');
+        }
+
         let contenidoNuevo = '<div id=testClick style="margin: 0 auto;">';
 
 
@@ -3729,6 +3745,10 @@ self.onmessage = function (e) {
             }
             if (clave === "tmvalueSenior") {
                 contenidoNuevo += "</tr><tr>";
+            }
+
+            if (clave === "salario11") {
+                contenidoNuevo += "<td></td><td></td></tr><tr>";
             }
 
 
