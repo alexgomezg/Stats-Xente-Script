@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.187
+// @version      0.188
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -252,8 +252,8 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams')&& (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage,"nt-tabs",5000)
         }
-GM_setValue("transfersFilter",true)
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersFilter"))) {
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersFilterFlag"))) {
             waitToDOMById(insertScoutFilter,"players_container",5000)
         }
 
@@ -3631,6 +3631,11 @@ self.onmessage = function (e) {
         values.set('transfer_value21', 'U21 Transfers Cost');
 
         values.set('elo_promedio', 'Average ELO');
+        if (window.sport === "soccer") {
+            values.set('edadTop11', 'TOP 11 Age');
+        }else{
+            values.set('edadTop11', 'TOP 21 Age');
+        }
 
         values.set('tmvalueSenior', 'LM Transfers Cost');
         values.set('tmvalueSUB23', 'U23 LM Transfers Cost');
@@ -6411,7 +6416,7 @@ self.onmessage = function (e) {
         txt +="<td>"
 //HP
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>High Potential</span></td>";
-        txt += "<td id='hp_stars' data-selected='0'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<td id='hp_stars' data-selected='0' style='white-space: nowrap;'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
@@ -6442,7 +6447,7 @@ self.onmessage = function (e) {
 //LP
         txt +="<td>"
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>Low Potential</span></td>";
-        txt += "<td id='lp_stars' data-selected='0'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<td id='lp_stars' data-selected='0' style='white-space: nowrap;'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
@@ -6470,7 +6475,7 @@ self.onmessage = function (e) {
         txt +="<tr><td>"
 //HP
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>Speed</span></td>";
-        txt += "<td id='sp_stars' data-selected='0'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<td id='sp_stars' data-selected='0' style='white-space: nowrap;'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
@@ -6519,7 +6524,7 @@ self.onmessage = function (e) {
         searchResults=[]
         let original = document.getElementById("players_container");
         original.style.display = "none";
-
+        if(!document.getElementById("loading_bar")){
         if(!document.getElementById("players_container_stx")){
             let clone = original.cloneNode(true);
             clone.id = "players_container_stx";
@@ -6528,6 +6533,7 @@ self.onmessage = function (e) {
             original.parentNode.insertBefore(clone, original);
         }else{
             document.getElementById("players_container_stx").style.display = "";
+            document.getElementById("players_container_stx").style.width = "";
         }
 
         let commonParams={
@@ -6592,7 +6598,7 @@ self.onmessage = function (e) {
 
         let progress= `
     <div id="loading_bar"></br><br><br><div style="background:#f0f0f0;padding:10px;border-radius:5px;z-index:99999;color:black;min-width:200px">
-        <div style="margin-bottom:5px">Loading... <span id="mz_progress_text">0%</span></div>
+        <div style="margin-bottom:5px; font-size: small; font-weight: bolder;">Loading... <span id="mz_progress_text">0%</span></div>
         <div style="background:#555;border-radius:3px;height:10px">
             <div id="mz_progress_bar" style="background:${color};height:10px;border-radius:3px;width:0%;transition:width 0.3s"></div>
         </div>
@@ -6771,7 +6777,7 @@ self.onmessage = function (e) {
     <center><div id="search_menu_bottom_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
         <button id="mz_first_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
         <button id="mz_prev_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
-        <span id="mz_page_info_bottom" style="min-width:80px;text-align:center">Página 1 / ?</span>
+        <span id="mz_page_info_bottom" style="min-width:80px;text-align:center">Page 1 / ?</span>
         <button id="mz_next_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">▶</button>
         <button id="mz_last_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏭</button>
     </div></center>
@@ -6807,9 +6813,9 @@ self.onmessage = function (e) {
 
 
 
+        }
 
-
-    }
+    } // acaba aqui
 
 
 //HANDLERS FUNCTIONS
@@ -6882,6 +6888,9 @@ self.onmessage = function (e) {
                     let cat
 
                     switch (event.target.id) {
+                        case 'edadTop11':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
                         case 'edad':
                             valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
                             break;
@@ -7744,6 +7753,11 @@ self.onmessage = function (e) {
             GM_setValue("tacticsResultsFlag", true)
         }
 
+        if (GM_getValue("transfersFilterFlag") === undefined) {
+            GM_setValue("transfersFilterFlag", true)
+        }
+
+
 
 
 
@@ -7752,7 +7766,7 @@ self.onmessage = function (e) {
 
 
         let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",
-            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag="",tacticsResultsFlag=""
+            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag="",tacticsResultsFlag="",transfersFilterFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -7768,6 +7782,9 @@ self.onmessage = function (e) {
         if (GM_getValue("cupFlag")) cupFlag = "checked"
         if (GM_getValue("nationalTeamFlag")) nationalTeamFlag = "checked"
         if (GM_getValue("tacticsResultsFlag")) tacticsResultsFlag = "checked"
+
+        if (GM_getValue("transfersFilterFlag")) transfersFilterFlag = "checked"
+
 
 
 
@@ -7800,6 +7817,7 @@ self.onmessage = function (e) {
 
         newContent += '<td><label class="containerPeqAmarillo">Tactics Results<input type="checkbox" id="tacticsResultsFlagSelect" ' + tacticsResultsFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
+        newContent += '<td><label class="containerPeqAmarillo">Transfers Filter<input type="checkbox" id="transfersFilterFlagSelect" ' + transfersFilterFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
         newContent += "</tr></tbody></table>"
 
@@ -8077,7 +8095,9 @@ self.onmessage = function (e) {
             GM_setValue("tacticsResultsFlag", !GM_getValue("tacticsResultsFlag"))
         });
 
-
+        document.getElementById('transfersFilterFlagSelect').addEventListener('click', function () {
+            GM_setValue("transfersFilterFlag", !GM_getValue("transfersFilterFlag"))
+        });
 
 
 
@@ -8498,8 +8518,8 @@ self.onmessage = function (e) {
         resetStarsTM(el);
     }
     function updatePageInfoTM(){
-        document.getElementById("mz_page_info_top").textContent = `Página ${currentPage} / ${totalPages}`;
-        document.getElementById("mz_page_info_bottom").textContent = `Página ${currentPage} / ${totalPages}`;
+        document.getElementById("mz_page_info_top").textContent = `Page ${currentPage} / ${totalPages}`;
+        document.getElementById("mz_page_info_bottom").textContent = `Page ${currentPage} / ${totalPages}`;
     }
     function goToPageTM(page){
         currentPage = Math.max(1, Math.min(page, totalPages));
