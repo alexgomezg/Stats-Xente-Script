@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.186
+// @version      0.187
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -57,6 +57,11 @@
     let su_line = "unsetted";
     let fl_data=[]
     let langs = new Map();
+    let searchResults=[]
+    let percent=0;
+    let currentPage = 1;
+    let totalPages=20
+
 
     setCSSStyles()
     createModalMenu()
@@ -66,16 +71,7 @@
     checkScriptVersion()
     getSelects()
 
-    function getDate(first_of_month){
-        let hoy = new Date();
-        let day="01"
-        let year = hoy.getFullYear();
-        let month = String(hoy.getMonth() + 1).padStart(2, '0');
-        if(!first_of_month){
-            day = String(hoy.getDate()).padStart(2, '0');
-        }
-        return `${year}-${month}-${day}`
-    }
+
 
 
     /// FUNCTIONS MENU
@@ -256,6 +252,12 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams')&& (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage,"nt-tabs",5000)
         }
+GM_setValue("transfersFilter",true)
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersFilter"))) {
+            waitToDOMById(insertScoutFilter,"players_container",5000)
+        }
+
+
 
 
 
@@ -571,10 +573,6 @@
 
     }
 
-
-
-
-
     function nationalTeamPage(){
         let tables=document.getElementById("ui-tabs-1").getElementsByTagName("table");
         let primerTd = tables[0].querySelector('tr:first-child td:first-child');
@@ -747,7 +745,6 @@
 
     }
 
-
 //BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
     if ((urlParams.get('p') === 'friendlyseries')||(urlParams.get('p') === 'federations')){
@@ -758,7 +755,6 @@
         waitToDOMById(tableCupsEventListener,"ui-id-4",5000)
     }
     waitToDOMById(tableLeaguesEventListener,"league_tab_table",5000)
-
 
     function scoutReportEventListeners(){
         document.querySelectorAll('.player_icon_placeholder.scout_report')
@@ -3252,9 +3248,7 @@ self.onmessage = function (e) {
 
 
     }
-
-
-
+//Show league positions history on league page
     async function leaguesHistory(){
         getDeviceFormat()
         let urlParams2 = new URLSearchParams(window.location.search);
@@ -3487,7 +3481,6 @@ self.onmessage = function (e) {
 
         }
     }
-
 //Leagues page
     async function leagues() {
         leaguesHistory()
@@ -5110,9 +5103,7 @@ self.onmessage = function (e) {
 
 
     }
-
-
-
+//Show match heat map
     function heatMap(){
         let links = document.querySelectorAll("a.matchIcon.large.shadow");
         links.forEach(function(link) {
@@ -5294,8 +5285,6 @@ self.onmessage = function (e) {
         });
 
     }
-
-
 //Match page
     async function match() {
 
@@ -6403,7 +6392,424 @@ self.onmessage = function (e) {
         });
 
     }
+//Insert scout filter in transfers page
+    function insertScoutFilter(){
+        let options="<option value='any'>Any</option>";
+        document
+            .getElementById("attributes_search")
+            .querySelectorAll(".floatLeft")
+            .forEach(el => {
+                if (el.children.length === 0 && el.textContent.trim() !== "") {
+                    options+="<option value='"+el.textContent+"'>"+el.textContent+"</option>";
+                }
+            });
 
+        let fontSize="small"
+        let txt='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#scout_report_filter\').slideToggle();">Scout Report Filter</div>';
+
+        txt +="<div id='scout_report_filter'><table border='0'><tr>"
+        txt +="<td>"
+//HP
+        txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>High Potential</span></td>";
+        txt += "<td id='hp_stars' data-selected='0'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
+        txt +="</td>"
+
+
+
+
+        txt +="<td>"
+        txt+='<span style="margin-left: 0.5em; margin-top: 0.25em; font-size: '+fontSize+'; font-weight: bolder;">HP1:</span></td>'
+        txt+='<td><select id="hp1_select" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        txt+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        txt+=options
+        txt+="</select>"
+        txt +="</td>"
+
+        txt +="<td>"
+        txt+='<span style="margin-left: 0.5em; margin-top: 0.25em; font-size: '+fontSize+'; font-weight: bolder;">HP2:</span></td>'
+        txt+='<td><select id="hp2_select" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        txt+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        txt+=options
+        txt+="</select>"
+        txt += "</div>";
+        txt +="</td></tr>"
+
+
+
+//LP
+        txt +="<td>"
+        txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>Low Potential</span></td>";
+        txt += "<td id='lp_stars' data-selected='0'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
+        txt +="</td>"
+
+
+        txt +="<td>"
+        txt+='<span style="margin-left: 0.5em; margin-top: 0.25em; font-size: '+fontSize+'; font-weight: bolder;">LP1:</span></td>'
+        txt+='<td><select id="lp1_select" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        txt+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        txt+=options
+        txt+="</select>"
+        txt +="</td>"
+
+        txt +="<td>"
+        txt+='<span style="margin-left: 0.5em; margin-top: 0.25em; font-size: '+fontSize+'; font-weight: bolder;">LP2:</span></td>'
+        txt+='<td><select id="lp2_select" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: '+GM_getValue("color_native")
+        txt+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        txt+=options
+        txt+="</select>"
+        txt += "</div>";
+        txt +="</td></tr>"
+
+
+        txt +="<tr><td>"
+//HP
+        txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>Speed</span></td>";
+        txt += "<td id='sp_stars' data-selected='0'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
+        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
+        txt +="</td></tr></table></div>"
+
+        let txt1='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
+        txt1+='; font-family: \'Roboto\'; font-weight:bold; font-size:small; padding: 3px 0px;" id="searchScoutReport">'
+        txt1+='<img src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15px" height="15px"/> Search</button>'
+
+        let tdr = document.getElementById("tdr");
+        let copia = tdr.cloneNode(true);
+        copia.id="td_scout_report_button"
+        copia.innerHTML=txt1;
+        tdr.before(copia);
+
+        document.getElementById("searchScoutReport").addEventListener("click", function() {
+            event.preventDefault();
+            insertPlayersFiltered()
+        });
+
+
+        document.getElementById("filters_search").insertAdjacentHTML("afterend",txt)
+
+
+        document.querySelectorAll("#hp_stars img[data-index]").forEach(img => {
+            img.addEventListener("mouseover", () => hoverStarsTM(img));
+            img.addEventListener("mouseout", () => resetStarsTM(img));
+            img.addEventListener("click", () => selectStarsTM(img));
+        });
+
+        document.querySelectorAll("#lp_stars img[data-index]").forEach(img => {
+            img.addEventListener("mouseover", () => hoverStarsTM(img));
+            img.addEventListener("mouseout", () => resetStarsTM(img));
+            img.addEventListener("click", () => selectStarsTM(img));
+        });
+
+        document.querySelectorAll("#sp_stars img[data-index]").forEach(img => {
+            img.addEventListener("mouseover", () => hoverStarsTM(img));
+            img.addEventListener("mouseout", () => resetStarsTM(img));
+            img.addEventListener("click", () => selectStarsTM(img));
+        });
+
+    }
+
+    async function insertPlayersFiltered(){
+        searchResults=[]
+        let original = document.getElementById("players_container");
+        original.style.display = "none";
+
+        if(!document.getElementById("players_container_stx")){
+            let clone = original.cloneNode(true);
+            clone.id = "players_container_stx";
+            clone.style.display = "";
+            clone.innerHTML="<div></div>"
+            original.parentNode.insertBefore(clone, original);
+        }else{
+            document.getElementById("players_container_stx").style.display = "";
+        }
+
+        let commonParams={
+            u: document.querySelector('[name="u"]').value,
+            nationality: document.querySelector('[name="nationality"]').value,
+            deadline: document.querySelector('[name="deadline"]').value,
+            category: document.querySelector('[name="category"]').value,
+            valuea: document.querySelector('[name="valuea"]').value,
+            valueb: document.querySelector('[name="valueb"]').value,
+            bida: document.querySelector('[name="bida"]').value,
+            bidb: document.querySelector('[name="bidb"]').value,
+            agea: document.querySelector('[name="agea"]').value,
+            ageb: document.querySelector('[name="ageb"]').value,
+            birth_season_low: document.querySelector('[name="birth_season_low"]').value,
+            birth_season_high: document.querySelector('[name="birth_season_high"]').value,
+            tot_low: document.querySelector('[name="tot_low"]').value,
+            tot_high: document.querySelector('[name="tot_high"]').value,
+            s0a: document.querySelector('[name="s0a"]').value,
+            s0b: document.querySelector('[name="s0b"]').value,
+            s1a: document.querySelector('[name="s1a"]').value,
+            s1b: document.querySelector('[name="s1b"]').value,
+            s2a: document.querySelector('[name="s2a"]').value,
+            s2b: document.querySelector('[name="s2b"]').value,
+            s3a: document.querySelector('[name="s3a"]').value,
+            s3b: document.querySelector('[name="s3b"]').value,
+            s4a: document.querySelector('[name="s4a"]').value,
+            s4b: document.querySelector('[name="s4b"]').value,
+            s5a: document.querySelector('[name="s5a"]').value,
+            s5b: document.querySelector('[name="s5b"]').value,
+            s6a: document.querySelector('[name="s6a"]').value,
+            s6b: document.querySelector('[name="s6b"]').value,
+            s7a: document.querySelector('[name="s7a"]').value,
+            s7b: document.querySelector('[name="s7b"]').value,
+            s8a: document.querySelector('[name="s8a"]').value,
+            s8b: document.querySelector('[name="s8b"]').value,
+            s9a: document.querySelector('[name="s9a"]').value,
+            s9b: document.querySelector('[name="s9b"]').value,
+            s10a: document.querySelector('[name="s10a"]').value,
+            s10b: document.querySelector('[name="s10b"]').value,
+        }
+        if(window.sport=="soccer"){
+            commonParams["s11a"]=document.querySelector('[name="s11a"]').value
+            commonParams["s11b"]=document.querySelector('[name="s11b"]').value
+            commonParams["s12a"]=document.querySelector('[name="s12a"]').value
+            commonParams["s12b"]= document.querySelector('[name="s12b"]').value
+        }
+        let params = new URLSearchParams(commonParams);
+        let query = params.toString();
+        let base=`https://www.managerzone.com/ajax.php?p=transfer&sub=transfer-search&sport=${window.sport}&issearch=true&${query}&o=`
+        let i=0;
+        let doc=""
+        let container=""
+        let jsonResponse=""
+
+
+        container = document.createElement("div");
+        container.innerHTML = "";
+
+        let color="#2C81DB"
+
+        if(window.sport==="soccer"){color="#4CAF50"}
+
+        let progress= `
+    <div id="loading_bar"></br><br><br><div style="background:#f0f0f0;padding:10px;border-radius:5px;z-index:99999;color:black;min-width:200px">
+        <div style="margin-bottom:5px">Loading... <span id="mz_progress_text">0%</span></div>
+        <div style="background:#555;border-radius:3px;height:10px">
+            <div id="mz_progress_bar" style="background:${color};height:10px;border-radius:3px;width:0%;transition:width 0.3s"></div>
+        </div>
+    </div></div>
+`;
+
+        document.getElementById("tdsave").insertAdjacentHTML("afterend",progress)
+
+
+
+
+
+
+
+        document.getElementById("players_container").style.display="none"
+
+
+
+        setTimeout(async function(){
+            let results = [];
+            let firstData = await fetchRequestTM(base + 0)
+            let pages = Math.floor(firstData.totalHits / 20) * 20;
+            if(pages>500){pages=500}
+            results.push(firstData)
+
+            let urls = [];
+            for(let i = 1; i < pages; i += 20){
+                urls.push(base + i);
+            }
+
+
+            let completed = 0;
+            let total = urls.length;
+
+            percent = Math.round((1 / total) * 100);
+            document.getElementById("mz_progress_bar").style.width = percent + "%";
+            document.getElementById("mz_progress_text").textContent = percent + "%";
+            let chunk_size=20
+            for(let i = 0; i < urls.length; i += chunk_size){
+                let chunk = urls.slice(i, i + chunk_size);
+                let chunkResults = await Promise.all(chunk.map(url => fetchRequestTM(url,total)));
+                results.push(...chunkResults);
+                completed += chunk.length;
+                percent = Math.round((completed / total) * 100);
+                document.getElementById("mz_progress_bar").style.width = percent + "%";
+                document.getElementById("mz_progress_text").textContent = percent + "%";
+            }
+            percent=90;
+            document.getElementById("mz_progress_bar").style.width = percent + "%";
+            document.getElementById("mz_progress_text").textContent = percent + "%";
+
+
+            let min_hp_stars=document.getElementById("hp_stars").dataset.selected;
+            let min_lp_stars=document.getElementById("lp_stars").dataset.selected;
+            let min_sp_stars=document.getElementById("sp_stars").dataset.selected;
+            let hp_skills=[]
+            let lp_skills=[]
+
+            if(document.getElementById("hp1_select").value!=="any"){hp_skills.push(document.getElementById("hp1_select").value)}
+            if(document.getElementById("hp2_select").value!=="any"){hp_skills.push(document.getElementById("hp2_select").value)}
+
+            if(document.getElementById("lp1_select").value!=="any"){lp_skills.push(document.getElementById("lp1_select").value)}
+            if(document.getElementById("lp2_select").value!=="any"){lp_skills.push(document.getElementById("lp2_select").value)}
+
+
+
+
+            // Procesa todos los resultados
+            let contShowed=0;
+            results.forEach(data => {
+                let parser = new DOMParser();
+                let doc1 = parser.parseFromString(data.players, "text/html");
+                let players = doc1.querySelectorAll(".playerContainer");
+                players.forEach(p => {
+                    let scout = p.querySelectorAll(".scout_report_row.box_dark");
+                    if(scout.length>0){
+
+                        let scout_divs = p.querySelectorAll(".scout_report_stars");
+
+                        let hp_stars = scout_divs[0].querySelectorAll("i").length;
+                        let lp_stars = scout_divs[1].querySelectorAll("i").length;
+                        let sp_stars = scout_divs[2].querySelectorAll("i").length;
+
+
+                        if((hp_stars>=min_hp_stars)&&(lp_stars>=min_lp_stars)&&(sp_stars>=min_sp_stars)){
+
+                            if((hp_skills.length>0)||(lp_skills.length>0)){
+
+                                let skill_names = p.querySelectorAll(".skill_name");
+                                let hp_matches=0;
+                                let lp_matches=0;
+                                skill_names.forEach(skill => {
+                                    let spans = skill.querySelectorAll("span");
+                                    if(spans.length>1){
+
+                                        //HP
+                                        if(spans[1].textContent=="1"){
+                                            if(hp_skills.includes(spans[0].textContent)){
+                                                hp_matches++;
+                                            }
+                                        }
+
+                                        //LP
+                                        if(spans[1].textContent=="2"){
+                                            if(lp_skills.includes(spans[0].textContent)){
+                                                lp_matches++;
+                                            }
+                                        }
+                                    }
+
+
+                                }); //Aqui acaba skills
+
+
+                                if((hp_skills.length==hp_matches)&&(lp_skills.length==lp_matches)){
+                                    if(contShowed<20){
+                                        container.appendChild(p.cloneNode(true));
+                                    }
+                                    searchResults.push(p.cloneNode(true))
+                                    //document.getElementById("players_container_stx").innerHTML+=p.innerHTML
+                                    contShowed++;
+                                }
+                            }else{
+                                if(contShowed<20){
+                                    container.appendChild(p.cloneNode(true));
+                                }
+                                searchResults.push(p.cloneNode(true))
+                                contShowed++;
+                            }
+
+
+
+
+
+                        }
+
+
+
+
+                    }
+
+                });
+
+            });
+
+
+
+            document.getElementById("players_container_stx").innerHTML = container.innerHTML;
+            if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
+            percent=100;
+            document.getElementById("mz_progress_bar").style.width = percent + "%";
+            document.getElementById("mz_progress_text").textContent = percent + "%";
+            document.getElementById("loading_bar").remove()
+
+
+            if(!document.getElementById("mz_first_top")){
+                let search_divs = document.querySelectorAll(".transferSearchPages ");
+                search_divs[0].id="search_div_top"
+                search_divs[0].style.display="none"
+                search_divs[1].id="search_div_bottom"
+                search_divs[1].style.display="none"
+
+
+                let search_menu_top= `
+    <center><div id="search_menu_top_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
+        <button id="mz_first_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
+        <button id="mz_prev_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
+        <span id="mz_page_info_top" style="min-width:80px;text-align:center">Página 1 / ?</span>
+        <button id="mz_next_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">▶</button>
+        <button id="mz_last_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏭</button>
+    </div></center>
+`;
+
+
+                let search_menu_bottom= `
+    <center><div id="search_menu_bottom_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
+        <button id="mz_first_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
+        <button id="mz_prev_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
+        <span id="mz_page_info_bottom" style="min-width:80px;text-align:center">Página 1 / ?</span>
+        <button id="mz_next_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">▶</button>
+        <button id="mz_last_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏭</button>
+    </div></center>
+`;
+
+                document.getElementById("search_div_top").insertAdjacentHTML("beforebegin",search_menu_top)
+                document.getElementById("search_div_bottom").insertAdjacentHTML("afterend",search_menu_bottom)
+
+            }
+
+            currentPage = 1;
+            totalPages =Math.ceil(searchResults.length / 20);
+
+
+
+            document.getElementById("mz_first_top").addEventListener("click", () => goToPageTM(1));
+            document.getElementById("mz_prev_top").addEventListener("click", () => goToPageTM(currentPage - 1));
+            document.getElementById("mz_next_top").addEventListener("click", () => goToPageTM(currentPage + 1));
+            document.getElementById("mz_last_top").addEventListener("click", () => goToPageTM(totalPages));
+
+
+            document.getElementById("mz_first_bottom").addEventListener("click", () => goToPageTM(1));
+            document.getElementById("mz_prev_bottom").addEventListener("click", () => goToPageTM(currentPage - 1));
+            document.getElementById("mz_next_bottom").addEventListener("click", () => goToPageTM(currentPage + 1));
+            document.getElementById("mz_last_bottom").addEventListener("click", () => goToPageTM(totalPages));
+
+
+            updatePageInfoTM();
+
+
+
+        }, 10);
+
+
+
+
+
+    }
 
 
 //HANDLERS FUNCTIONS
@@ -6758,8 +7164,6 @@ self.onmessage = function (e) {
             });
         });
     }
-
-
     function fetchExistsFL(id) {
         return new Promise((resolve, reject) => {
 
@@ -6932,6 +7336,22 @@ self.onmessage = function (e) {
         );
 
     }
+    function fetchRequestTM(url,totalUrls){
+        return new Promise((resolve,reject)=>{
+            GM_xmlhttpRequest({
+                method:"GET",
+                url:url,
+                onload: r => {
+                    percent+=Math.floor(100 / totalUrls);
+                    document.getElementById("mz_progress_bar").style.width = percent + "%";
+                    document.getElementById("mz_progress_text").textContent = percent + "%";
+                    let data = JSON.parse(r.responseText);
+                    resolve(data);
+                },
+                onerror:e=>reject(e)
+            });
+        });
+    }
 
 //UTILS FUNCTIONS
     function deleteCols(tabla,numColumnas) {
@@ -6944,7 +7364,6 @@ self.onmessage = function (e) {
             }
         }
     }
-
     function waitToDOMArgs(function_to_execute, classToSearch, elementIndex,miliseconds,...args) {
         let interval = setInterval(function () {
             let elements = document.querySelectorAll(classToSearch);
@@ -6960,8 +7379,6 @@ self.onmessage = function (e) {
             clearInterval(interval);
         }, miliseconds);
     }
-
-
     function waitToDOM(function_to_execute, classToSearch, elementIndex,miliseconds) {
         let interval = setInterval(function () {
             let elements = document.querySelectorAll(classToSearch);
@@ -6977,7 +7394,6 @@ self.onmessage = function (e) {
             clearInterval(interval);
         }, miliseconds);
     }
-
     function waitToDOMByIdArgs(function_to_execute, idToSearch,miliseconds,...args) {
         let interval = setInterval(function () {
             let element = document.getElementById(idToSearch);
@@ -6993,9 +7409,6 @@ self.onmessage = function (e) {
             clearInterval(interval);
         }, miliseconds);
     }
-
-
-
     function waitToDOMById(function_to_execute, idToSearch,miliseconds) {
         let interval = setInterval(function () {
             let element = document.getElementById(idToSearch);
@@ -7082,8 +7495,6 @@ self.onmessage = function (e) {
 
 
     }
-
-
     async function getSelects(){
         const actual_date=getActualDate()
         if(actual_date!==GM_getValue("date_checked_selects")){
@@ -7091,9 +7502,6 @@ self.onmessage = function (e) {
             await fetchSelects()
         }
     }
-
-
-
     function ordenarTablaText(col, byClassName, param,putSortIconFlag) {
         let table = document.getElementById(param)
         let rows = Array.from(table.tBodies[0].rows);
@@ -7571,8 +7979,6 @@ self.onmessage = function (e) {
 
 
     }
-
-
     function evaluarExpresion(expresion, datos) {
         // Reemplazamos las claves en la expresión con sus valores reales
         Object.keys(datos).forEach(clave => {
@@ -7582,10 +7988,6 @@ self.onmessage = function (e) {
         // Evaluamos la expresión de manera segura usando Function
         return new Function(`return ${expresion};`)();
     }
-
-
-
-
     function getDeviceFormat(){
         if(!document.getElementById("deviceFormatStx")){
             var script = document.createElement('script');
@@ -7950,7 +8352,6 @@ self.onmessage = function (e) {
 
 
     }
-
     function notifySnackBarError(id){
 
         let x = document.getElementById("snackbar_stx");
@@ -7965,8 +8366,16 @@ self.onmessage = function (e) {
 
 
     }
-
-
+    function getDate(first_of_month){
+        let hoy = new Date();
+        let day="01"
+        let year = hoy.getFullYear();
+        let month = String(hoy.getMonth() + 1).padStart(2, '0');
+        if(!first_of_month){
+            day = String(hoy.getDate()).padStart(2, '0');
+        }
+        return `${year}-${month}-${day}`
+    }
     function notifySnackBarNewVersion(){
         if(GM_getValue("stx_notified_version")!==GM_getValue("stx_latest_version")){
             GM_setValue("stx_notified_version",GM_getValue("stx_latest_version"))
@@ -8065,6 +8474,50 @@ self.onmessage = function (e) {
             return hex.length === 1 ? "0" + hex : hex;
         }).join("");
     }
+    function hoverStarsTM(el){
+        let stars = el.parentNode.querySelectorAll("img");
+        let idx = parseInt(el.dataset.index);
+        stars.forEach((s, i) => {
+            s.src = i < idx ?
+                'https://statsxente.com/MZ1/View/Images/star_rayo.png' :
+                'https://statsxente.com/MZ1/View/Images/star_rayo_l.png';
+        });
+    }
+    function resetStarsTM(el){
+        let stars = el.parentNode.querySelectorAll("img");
+        let selected = parseInt(el.parentNode.dataset.selected || 0);
+        stars.forEach((s, i) => {
+            s.src = i < selected ?
+                'https://statsxente.com/MZ1/View/Images/star_rayo.png' :
+                'https://statsxente.com/MZ1/View/Images/star_rayo_l.png';
+        });
+    }
+    function selectStarsTM(el){
+        let idx = parseInt(el.dataset.index);
+        el.parentNode.dataset.selected = idx;
+        resetStarsTM(el);
+    }
+    function updatePageInfoTM(){
+        document.getElementById("mz_page_info_top").textContent = `Página ${currentPage} / ${totalPages}`;
+        document.getElementById("mz_page_info_bottom").textContent = `Página ${currentPage} / ${totalPages}`;
+    }
+    function goToPageTM(page){
+        currentPage = Math.max(1, Math.min(page, totalPages));
+        updatePageInfoTM();
+        let offset = (currentPage - 1) * 20;
+        loadPageTM(offset)
+
+    }
+    function loadPageTM(start){
+        document.getElementById("players_container_stx").innerHTML=""
+        for (let i = start; i < start+20 && i < searchResults.length; i++) {
+            document.getElementById("players_container_stx").appendChild(searchResults[i]);
+        }
+        if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
+    }
+
+
+
     function setCSSStyles(){
         let link = document.createElement('link');
         link.href = 'https://fonts.googleapis.com/css?family=Roboto&display=swap';
