@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.188
+// @version      0.189
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -59,7 +59,7 @@
     let langs = new Map();
     let searchResults=[]
     let percent=0;
-    let currentPage = 1;
+    let currentPage = 0;
     let totalPages=20
 
 
@@ -6497,6 +6497,9 @@ self.onmessage = function (e) {
         });
 
 
+
+
+
         document.getElementById("filters_search").insertAdjacentHTML("afterend",txt)
 
 
@@ -6521,82 +6524,111 @@ self.onmessage = function (e) {
     }
 
     async function insertPlayersFiltered(){
+        document.getElementById("searchb").addEventListener('click', function () {
+            if(document.getElementById("search_menu_top_stx")){ document.getElementById("search_menu_top_stx").remove()}
+            if(document.getElementById("search_menu_bottom_stx")){ document.getElementById("search_menu_bottom_stx").remove()}
+            if(document.getElementById("search_div_top")){ document.getElementById("search_div_top").style.display=""}
+            if(document.getElementById("search_div_bottom")){ document.getElementById("search_div_bottom").style.display=""}
+            if(document.getElementById("players_container_stx")){document.getElementById("players_container_stx").style.display="none"}
+            document.getElementById("players_container").style.display=""
+            document.getElementById("players_container").style.width=""
+        });
+
         searchResults=[]
+
+        let min_hp_stars=document.getElementById("hp_stars").dataset.selected;
+        let min_lp_stars=document.getElementById("lp_stars").dataset.selected;
+        let min_sp_stars=document.getElementById("sp_stars").dataset.selected;
+        let hp_skills=[]
+        let lp_skills=[]
+
+        if(document.getElementById("hp1_select").value!=="any"){hp_skills.push(document.getElementById("hp1_select").value)}
+        if(document.getElementById("hp2_select").value!=="any"){hp_skills.push(document.getElementById("hp2_select").value)}
+
+        if(document.getElementById("lp1_select").value!=="any"){lp_skills.push(document.getElementById("lp1_select").value)}
+        if(document.getElementById("lp2_select").value!=="any"){lp_skills.push(document.getElementById("lp2_select").value)}
+
+        if((min_hp_stars==0)&&(min_lp_stars==0)&&(min_sp_stars==0)&&(hp_skills.length==0)&&(lp_skills.length==0)){
+            document.getElementById("searchb").click()
+            return;
+        }
+
+
         let original = document.getElementById("players_container");
         original.style.display = "none";
         if(!document.getElementById("loading_bar")){
-        if(!document.getElementById("players_container_stx")){
-            let clone = original.cloneNode(true);
-            clone.id = "players_container_stx";
-            clone.style.display = "";
-            clone.innerHTML="<div></div>"
-            original.parentNode.insertBefore(clone, original);
-        }else{
-            document.getElementById("players_container_stx").style.display = "";
-            document.getElementById("players_container_stx").style.width = "";
-        }
+            if(!document.getElementById("players_container_stx")){
+                let clone = original.cloneNode(true);
+                clone.id = "players_container_stx";
+                clone.style.display = "";
+                clone.innerHTML="<div></div>"
+                original.parentNode.insertBefore(clone, original);
+            }else{
+                document.getElementById("players_container_stx").style.display = "";
+                document.getElementById("players_container_stx").style.width = "";
+            }
 
-        let commonParams={
-            u: document.querySelector('[name="u"]').value,
-            nationality: document.querySelector('[name="nationality"]').value,
-            deadline: document.querySelector('[name="deadline"]').value,
-            category: document.querySelector('[name="category"]').value,
-            valuea: document.querySelector('[name="valuea"]').value,
-            valueb: document.querySelector('[name="valueb"]').value,
-            bida: document.querySelector('[name="bida"]').value,
-            bidb: document.querySelector('[name="bidb"]').value,
-            agea: document.querySelector('[name="agea"]').value,
-            ageb: document.querySelector('[name="ageb"]').value,
-            birth_season_low: document.querySelector('[name="birth_season_low"]').value,
-            birth_season_high: document.querySelector('[name="birth_season_high"]').value,
-            tot_low: document.querySelector('[name="tot_low"]').value,
-            tot_high: document.querySelector('[name="tot_high"]').value,
-            s0a: document.querySelector('[name="s0a"]').value,
-            s0b: document.querySelector('[name="s0b"]').value,
-            s1a: document.querySelector('[name="s1a"]').value,
-            s1b: document.querySelector('[name="s1b"]').value,
-            s2a: document.querySelector('[name="s2a"]').value,
-            s2b: document.querySelector('[name="s2b"]').value,
-            s3a: document.querySelector('[name="s3a"]').value,
-            s3b: document.querySelector('[name="s3b"]').value,
-            s4a: document.querySelector('[name="s4a"]').value,
-            s4b: document.querySelector('[name="s4b"]').value,
-            s5a: document.querySelector('[name="s5a"]').value,
-            s5b: document.querySelector('[name="s5b"]').value,
-            s6a: document.querySelector('[name="s6a"]').value,
-            s6b: document.querySelector('[name="s6b"]').value,
-            s7a: document.querySelector('[name="s7a"]').value,
-            s7b: document.querySelector('[name="s7b"]').value,
-            s8a: document.querySelector('[name="s8a"]').value,
-            s8b: document.querySelector('[name="s8b"]').value,
-            s9a: document.querySelector('[name="s9a"]').value,
-            s9b: document.querySelector('[name="s9b"]').value,
-            s10a: document.querySelector('[name="s10a"]').value,
-            s10b: document.querySelector('[name="s10b"]').value,
-        }
-        if(window.sport=="soccer"){
-            commonParams["s11a"]=document.querySelector('[name="s11a"]').value
-            commonParams["s11b"]=document.querySelector('[name="s11b"]').value
-            commonParams["s12a"]=document.querySelector('[name="s12a"]').value
-            commonParams["s12b"]= document.querySelector('[name="s12b"]').value
-        }
-        let params = new URLSearchParams(commonParams);
-        let query = params.toString();
-        let base=`https://www.managerzone.com/ajax.php?p=transfer&sub=transfer-search&sport=${window.sport}&issearch=true&${query}&o=`
-        let i=0;
-        let doc=""
-        let container=""
-        let jsonResponse=""
+            let commonParams={
+                u: document.querySelector('[name="u"]').value,
+                nationality: document.querySelector('[name="nationality"]').value,
+                deadline: document.querySelector('[name="deadline"]').value,
+                category: document.querySelector('[name="category"]').value,
+                valuea: document.querySelector('[name="valuea"]').value,
+                valueb: document.querySelector('[name="valueb"]').value,
+                bida: document.querySelector('[name="bida"]').value,
+                bidb: document.querySelector('[name="bidb"]').value,
+                agea: document.querySelector('[name="agea"]').value,
+                ageb: document.querySelector('[name="ageb"]').value,
+                birth_season_low: document.querySelector('[name="birth_season_low"]').value,
+                birth_season_high: document.querySelector('[name="birth_season_high"]').value,
+                tot_low: document.querySelector('[name="tot_low"]').value,
+                tot_high: document.querySelector('[name="tot_high"]').value,
+                s0a: document.querySelector('[name="s0a"]').value,
+                s0b: document.querySelector('[name="s0b"]').value,
+                s1a: document.querySelector('[name="s1a"]').value,
+                s1b: document.querySelector('[name="s1b"]').value,
+                s2a: document.querySelector('[name="s2a"]').value,
+                s2b: document.querySelector('[name="s2b"]').value,
+                s3a: document.querySelector('[name="s3a"]').value,
+                s3b: document.querySelector('[name="s3b"]').value,
+                s4a: document.querySelector('[name="s4a"]').value,
+                s4b: document.querySelector('[name="s4b"]').value,
+                s5a: document.querySelector('[name="s5a"]').value,
+                s5b: document.querySelector('[name="s5b"]').value,
+                s6a: document.querySelector('[name="s6a"]').value,
+                s6b: document.querySelector('[name="s6b"]').value,
+                s7a: document.querySelector('[name="s7a"]').value,
+                s7b: document.querySelector('[name="s7b"]').value,
+                s8a: document.querySelector('[name="s8a"]').value,
+                s8b: document.querySelector('[name="s8b"]').value,
+                s9a: document.querySelector('[name="s9a"]').value,
+                s9b: document.querySelector('[name="s9b"]').value,
+                s10a: document.querySelector('[name="s10a"]').value,
+                s10b: document.querySelector('[name="s10b"]').value,
+            }
+            if(window.sport=="soccer"){
+                commonParams["s11a"]=document.querySelector('[name="s11a"]').value
+                commonParams["s11b"]=document.querySelector('[name="s11b"]').value
+                commonParams["s12a"]=document.querySelector('[name="s12a"]').value
+                commonParams["s12b"]= document.querySelector('[name="s12b"]').value
+            }
+            let params = new URLSearchParams(commonParams);
+            let query = params.toString();
+            let base=`https://www.managerzone.com/ajax.php?p=transfer&sub=transfer-search&sport=${window.sport}&issearch=true&${query}&o=`
+            let i=0;
+            let doc=""
+            let container=""
+            let jsonResponse=""
 
 
-        container = document.createElement("div");
-        container.innerHTML = "";
+            container = document.createElement("div");
+            container.innerHTML = "";
 
-        let color="#2C81DB"
+            let color="#2C81DB"
 
-        if(window.sport==="soccer"){color="#4CAF50"}
+            if(window.sport==="soccer"){color="#4CAF50"}
 
-        let progress= `
+            let progress= `
     <div id="loading_bar"></br><br><br><div style="background:#f0f0f0;padding:10px;border-radius:5px;z-index:99999;color:black;min-width:200px">
         <div style="margin-bottom:5px; font-size: small; font-weight: bolder;">Loading... <span id="mz_progress_text">0%</span></div>
         <div style="background:#555;border-radius:3px;height:10px">
@@ -6605,7 +6637,7 @@ self.onmessage = function (e) {
     </div></div>
 `;
 
-        document.getElementById("tdsave").insertAdjacentHTML("afterend",progress)
+            document.getElementById("tdsave").insertAdjacentHTML("afterend",progress)
 
 
 
@@ -6613,156 +6645,144 @@ self.onmessage = function (e) {
 
 
 
-        document.getElementById("players_container").style.display="none"
+            document.getElementById("players_container").style.display="none"
 
 
 
-        setTimeout(async function(){
-            let results = [];
-            let firstData = await fetchRequestTM(base + 0)
-            let pages = Math.floor(firstData.totalHits / 20) * 20;
-            if(pages>500){pages=500}
-            results.push(firstData)
+            setTimeout(async function(){
+                let results = [];
+                let firstData = await fetchRequestTM(base + 0)
+                let pages = Math.floor(firstData.totalHits / 20) * 20;
+                if(pages>500){pages=500}
+                results.push(firstData)
 
-            let urls = [];
-            for(let i = 1; i < pages; i += 20){
-                urls.push(base + i);
-            }
+                let urls = [];
+                for(let i = 20; i <= pages; i += 20){
+                    urls.push(base + i);
+                }
 
+                let completed = 0;
+                let total = urls.length;
 
-            let completed = 0;
-            let total = urls.length;
-
-            percent = Math.round((1 / total) * 100);
-            document.getElementById("mz_progress_bar").style.width = percent + "%";
-            document.getElementById("mz_progress_text").textContent = percent + "%";
-            let chunk_size=20
-            for(let i = 0; i < urls.length; i += chunk_size){
-                let chunk = urls.slice(i, i + chunk_size);
-                let chunkResults = await Promise.all(chunk.map(url => fetchRequestTM(url,total)));
-                results.push(...chunkResults);
-                completed += chunk.length;
-                percent = Math.round((completed / total) * 100);
+                percent = Math.round((1 / total) * 100);
                 document.getElementById("mz_progress_bar").style.width = percent + "%";
                 document.getElementById("mz_progress_text").textContent = percent + "%";
-            }
-            percent=90;
-            document.getElementById("mz_progress_bar").style.width = percent + "%";
-            document.getElementById("mz_progress_text").textContent = percent + "%";
-
-
-            let min_hp_stars=document.getElementById("hp_stars").dataset.selected;
-            let min_lp_stars=document.getElementById("lp_stars").dataset.selected;
-            let min_sp_stars=document.getElementById("sp_stars").dataset.selected;
-            let hp_skills=[]
-            let lp_skills=[]
-
-            if(document.getElementById("hp1_select").value!=="any"){hp_skills.push(document.getElementById("hp1_select").value)}
-            if(document.getElementById("hp2_select").value!=="any"){hp_skills.push(document.getElementById("hp2_select").value)}
-
-            if(document.getElementById("lp1_select").value!=="any"){lp_skills.push(document.getElementById("lp1_select").value)}
-            if(document.getElementById("lp2_select").value!=="any"){lp_skills.push(document.getElementById("lp2_select").value)}
+                let chunk_size=20
+                for(let i = 0; i < urls.length; i += chunk_size){
+                    let chunk = urls.slice(i, i + chunk_size);
+                    let chunkResults = await Promise.all(chunk.map(url => fetchRequestTM(url,total)));
+                    results.push(...chunkResults);
+                    completed += chunk.length;
+                    percent = Math.round((completed / total) * 100);
+                    document.getElementById("mz_progress_bar").style.width = percent + "%";
+                    document.getElementById("mz_progress_text").textContent = percent + "%";
+                }
+                percent=90;
+                document.getElementById("mz_progress_bar").style.width = percent + "%";
+                document.getElementById("mz_progress_text").textContent = percent + "%";
 
 
 
 
-            // Procesa todos los resultados
-            let contShowed=0;
-            results.forEach(data => {
-                let parser = new DOMParser();
-                let doc1 = parser.parseFromString(data.players, "text/html");
-                let players = doc1.querySelectorAll(".playerContainer");
-                players.forEach(p => {
-                    let scout = p.querySelectorAll(".scout_report_row.box_dark");
-                    if(scout.length>0){
-
-                        let scout_divs = p.querySelectorAll(".scout_report_stars");
-
-                        let hp_stars = scout_divs[0].querySelectorAll("i").length;
-                        let lp_stars = scout_divs[1].querySelectorAll("i").length;
-                        let sp_stars = scout_divs[2].querySelectorAll("i").length;
 
 
-                        if((hp_stars>=min_hp_stars)&&(lp_stars>=min_lp_stars)&&(sp_stars>=min_sp_stars)){
+                // Procesa todos los resultados
+                let contShowed=0;
+                results.forEach(data => {
+                    let parser = new DOMParser();
+                    let doc1 = parser.parseFromString(data.players, "text/html");
+                    let players = doc1.querySelectorAll(".playerContainer");
+                    players.forEach(p => {
+                        let scout = p.querySelectorAll(".scout_report_row.box_dark");
+                        if(scout.length>0){
 
-                            if((hp_skills.length>0)||(lp_skills.length>0)){
+                            let scout_divs = p.querySelectorAll(".scout_report_stars");
 
-                                let skill_names = p.querySelectorAll(".skill_name");
-                                let hp_matches=0;
-                                let lp_matches=0;
-                                skill_names.forEach(skill => {
-                                    let spans = skill.querySelectorAll("span");
-                                    if(spans.length>1){
+                            let hp_stars = scout_divs[0].querySelectorAll("i").length;
+                            let lp_stars = scout_divs[1].querySelectorAll("i").length;
+                            let sp_stars = scout_divs[2].querySelectorAll("i").length;
 
-                                        //HP
-                                        if(spans[1].textContent=="1"){
-                                            if(hp_skills.includes(spans[0].textContent)){
-                                                hp_matches++;
+
+                            if((hp_stars>=min_hp_stars)&&(lp_stars>=min_lp_stars)&&(sp_stars>=min_sp_stars)){
+
+                                if((hp_skills.length>0)||(lp_skills.length>0)){
+
+                                    let skill_names = p.querySelectorAll(".skill_name");
+                                    let hp_matches=0;
+                                    let lp_matches=0;
+                                    skill_names.forEach(skill => {
+                                        let spans = skill.querySelectorAll("span");
+                                        if(spans.length>1){
+
+                                            //HP
+                                            if(spans[1].textContent=="1"){
+                                                if(hp_skills.includes(spans[0].textContent)){
+                                                    hp_matches++;
+                                                }
+                                            }
+
+                                            //LP
+                                            if(spans[1].textContent=="2"){
+                                                if(lp_skills.includes(spans[0].textContent)){
+                                                    lp_matches++;
+                                                }
                                             }
                                         }
 
-                                        //LP
-                                        if(spans[1].textContent=="2"){
-                                            if(lp_skills.includes(spans[0].textContent)){
-                                                lp_matches++;
-                                            }
+
+                                    }); //Aqui acaba skills
+
+
+                                    if((hp_skills.length==hp_matches)&&(lp_skills.length==lp_matches)){
+                                        if(contShowed<20){
+                                            container.appendChild(p.cloneNode(true));
                                         }
+                                        searchResults.push(p.cloneNode(true))
+                                        //document.getElementById("players_container_stx").innerHTML+=p.innerHTML
+                                        contShowed++;
                                     }
-
-
-                                }); //Aqui acaba skills
-
-
-                                if((hp_skills.length==hp_matches)&&(lp_skills.length==lp_matches)){
+                                }else{
                                     if(contShowed<20){
                                         container.appendChild(p.cloneNode(true));
                                     }
                                     searchResults.push(p.cloneNode(true))
-                                    //document.getElementById("players_container_stx").innerHTML+=p.innerHTML
                                     contShowed++;
                                 }
-                            }else{
-                                if(contShowed<20){
-                                    container.appendChild(p.cloneNode(true));
-                                }
-                                searchResults.push(p.cloneNode(true))
-                                contShowed++;
-                            }
 
+
+
+
+
+                            }
 
 
 
 
                         }
 
-
-
-
-                    }
+                    });
 
                 });
 
-            });
 
 
-
-            document.getElementById("players_container_stx").innerHTML = container.innerHTML;
-            if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
-            percent=100;
-            document.getElementById("mz_progress_bar").style.width = percent + "%";
-            document.getElementById("mz_progress_text").textContent = percent + "%";
-            document.getElementById("loading_bar").remove()
-
-
-            if(!document.getElementById("mz_first_top")){
-                let search_divs = document.querySelectorAll(".transferSearchPages ");
-                search_divs[0].id="search_div_top"
-                search_divs[0].style.display="none"
-                search_divs[1].id="search_div_bottom"
-                search_divs[1].style.display="none"
+                document.getElementById("players_container_stx").innerHTML = container.innerHTML;
+                if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
+                percent=100;
+                document.getElementById("mz_progress_bar").style.width = percent + "%";
+                document.getElementById("mz_progress_text").textContent = percent + "%";
+                document.getElementById("loading_bar").remove()
 
 
-                let search_menu_top= `
+                if(!document.getElementById("mz_first_top")){
+                    let search_divs = document.querySelectorAll(".transferSearchPages ");
+                    search_divs[0].id="search_div_top"
+                    search_divs[0].style.display="none"
+                    search_divs[1].id="search_div_bottom"
+                    search_divs[1].style.display="none"
+
+
+                    let search_menu_top= `
     <center><div id="search_menu_top_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
         <button id="mz_first_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
         <button id="mz_prev_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
@@ -6773,7 +6793,7 @@ self.onmessage = function (e) {
 `;
 
 
-                let search_menu_bottom= `
+                    let search_menu_bottom= `
     <center><div id="search_menu_bottom_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
         <button id="mz_first_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
         <button id="mz_prev_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
@@ -6783,33 +6803,34 @@ self.onmessage = function (e) {
     </div></center>
 `;
 
-                document.getElementById("search_div_top").insertAdjacentHTML("beforebegin",search_menu_top)
-                document.getElementById("search_div_bottom").insertAdjacentHTML("afterend",search_menu_bottom)
+                    document.getElementById("search_div_top").insertAdjacentHTML("beforebegin",search_menu_top)
+                    document.getElementById("search_div_bottom").insertAdjacentHTML("afterend",search_menu_bottom)
 
-            }
+                }
 
-            currentPage = 1;
-            totalPages =Math.ceil(searchResults.length / 20);
-
-
-
-            document.getElementById("mz_first_top").addEventListener("click", () => goToPageTM(1));
-            document.getElementById("mz_prev_top").addEventListener("click", () => goToPageTM(currentPage - 1));
-            document.getElementById("mz_next_top").addEventListener("click", () => goToPageTM(currentPage + 1));
-            document.getElementById("mz_last_top").addEventListener("click", () => goToPageTM(totalPages));
-
-
-            document.getElementById("mz_first_bottom").addEventListener("click", () => goToPageTM(1));
-            document.getElementById("mz_prev_bottom").addEventListener("click", () => goToPageTM(currentPage - 1));
-            document.getElementById("mz_next_bottom").addEventListener("click", () => goToPageTM(currentPage + 1));
-            document.getElementById("mz_last_bottom").addEventListener("click", () => goToPageTM(totalPages));
-
-
-            updatePageInfoTM();
+                currentPage = 1;
+                totalPages =Math.ceil(searchResults.length / 20);
 
 
 
-        }, 10);
+                document.getElementById("mz_first_top").addEventListener("click", () => goToPageTM(1));
+                document.getElementById("mz_prev_top").addEventListener("click", () => goToPageTM(currentPage - 1));
+                document.getElementById("mz_next_top").addEventListener("click", () => goToPageTM(currentPage + 1));
+                document.getElementById("mz_last_top").addEventListener("click", () => goToPageTM(totalPages));
+
+
+                document.getElementById("mz_first_bottom").addEventListener("click", () => goToPageTM(1));
+                document.getElementById("mz_prev_bottom").addEventListener("click", () => goToPageTM(currentPage - 1));
+                document.getElementById("mz_next_bottom").addEventListener("click", () => goToPageTM(currentPage + 1));
+                document.getElementById("mz_last_bottom").addEventListener("click", () => goToPageTM(totalPages));
+
+
+                updatePageInfoTM();
+                document.getElementById("players_container_stx").style.width=""
+
+
+
+            }, 10);
 
 
 
