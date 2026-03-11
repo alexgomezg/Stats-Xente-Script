@@ -6760,7 +6760,7 @@ self.onmessage = function (e) {
     <center><div id="search_menu_top_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
         <button id="mz_first_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
         <button id="mz_prev_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
-        <span id="mz_page_info_top" style="min-width:80px;text-align:center">Página 1 / ?</span>
+        <span id="mz_page_info_top" style="min-width:80px;text-align:center">Page 1 / ?</span>
         <button id="mz_next_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">▶</button>
         <button id="mz_last_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏭</button>
     </div></center>
