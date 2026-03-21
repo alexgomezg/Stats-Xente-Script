@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.190
+// @version      0.191
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -261,10 +261,8 @@
             //waitToDOM(insertAvgRowAltTable,".snapshot.box_light",5000)
             getDeviceFormat()
             insertAvgRowAltTable()
+            altTableFilterEventListener()
         }
-
-
-
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
@@ -559,6 +557,15 @@
 
     }
 
+    function altTableFilterEventListener(){
+        document.getElementById("filterSubmitContainer").addEventListener('click', function () {
+            getDeviceFormat()
+            setTimeout(function () {
+                insertAvgRowAltTable()
+            }, 1500);
+        });
+    }
+
     function tableLeaguesEventListener(){
         document.getElementById("league_tab_table").addEventListener('click', function () {
             if (document.getElementById("showMenu") === null) {
@@ -821,7 +828,6 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
-
 
 //National Team Page
     function nationalTeamPage(){
@@ -1297,13 +1303,23 @@ self.onmessage = function (e) {
 //Alternative players
     function insertAvgRowAltTable(){
         let fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+        if(window.sport=="hockey"){
+            fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12];
+        }
         let table=document.querySelector(".hitlist.alt-view-table-mobile")
         let isMobile=true;
         if(window.stx_device==="computer"){
-            fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+            if(window.sport=="soccer"){
+                fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+            }else{
+                fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16];
+            }
+
             table = document.getElementById('playerAltViewTable');
             isMobile=false;
         }
+
+        if(!table){return;}
 
         const ths = table.querySelectorAll('thead tr th');
         const lastTh = ths[fieldIndexes[fieldIndexes.length-1]+1];
@@ -6714,7 +6730,6 @@ self.onmessage = function (e) {
         });
 
     }
-
     async function insertPlayersFiltered(){
         document.getElementById("searchb").addEventListener('click', function () {
             if(document.getElementById("search_menu_top_stx")){ document.getElementById("search_menu_top_stx").remove()}
