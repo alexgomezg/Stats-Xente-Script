@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.191
+// @version      0.192
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -261,8 +261,15 @@
             //waitToDOM(insertAvgRowAltTable,".snapshot.box_light",5000)
             getDeviceFormat()
             insertAvgRowAltTable()
-            altTableFilterEventListener()
+            altTableEventListener()
+
+
+
+
         }
+
+
+
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
@@ -557,7 +564,7 @@
 
     }
 
-    function altTableFilterEventListener(){
+    function altTableEventListener(){
         document.getElementById("filterSubmitContainer").addEventListener('click', function () {
             getDeviceFormat()
             setTimeout(function () {
@@ -828,6 +835,7 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
+
 
 //National Team Page
     function nationalTeamPage(){
@@ -1302,6 +1310,7 @@ self.onmessage = function (e) {
     }
 //Alternative players
     function insertAvgRowAltTable(){
+        let iColor="white";
         let fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
         if(window.sport=="hockey"){
             fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -1309,6 +1318,7 @@ self.onmessage = function (e) {
         let table=document.querySelector(".hitlist.alt-view-table-mobile")
         let isMobile=true;
         if(window.stx_device==="computer"){
+            iColor="#555";
             if(window.sport=="soccer"){
                 fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
             }else{
@@ -1333,7 +1343,42 @@ self.onmessage = function (e) {
             const th = document.createElement('th');
             th.align = 'right';
             th.className = 'header';
-            th.innerHTML = '<a href="#" title="SUM Skills">T</a>';
+            if(window.stx_device==="computer"){
+                th.innerHTML = '<a id="header_sorter_t" href="#" title="SUM Skills">T</a>';
+            }else{
+                th.innerHTML = '<i class="bi bi-caret-up-fill" style="display:none;"></i><span title="SUM Skills" style="font-size: 11px;">T</span>';
+            }
+
+
+
+            th.addEventListener('click', () => {
+                if(document.getElementById("header_sorter_t")){
+                    document.getElementById("header_sorter_t").remove()
+                    th.innerHTML = '<i class="bi bi-caret-up-fill" style="display:none;"></i><span title="SUM Skills" style="font-size: 11px;">T</span>';
+                }
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const colIndex = th.cellIndex;
+                const asc = th.dataset.order !== 'asc';
+                const icon = th.querySelector("i");
+                icon.style.color = iColor;
+                icon.classList.value = '';
+                icon.style.display="inline";
+                if(asc){
+                    icon.classList.add("bi", "bi-caret-down-fill");
+                }else{
+                    icon.classList.add("bi", "bi-caret-up-fill");
+                }
+                th.dataset.order = asc ? 'asc' : 'desc';
+
+                rows.sort((a, b) => {
+                    let aVal = parseInt(a.cells[colIndex]?.textContent.trim()) || 0;
+                    let bVal = parseInt(b.cells[colIndex]?.textContent.trim()) || 0;
+                    return asc ? bVal - aVal : aVal - bVal;
+                });
+
+                rows.forEach(row => tbody.appendChild(row));
+            });
 
             const thAtIndex10 = headerRow.children[fieldIndexes[fieldIndexes.length-1]];
             thAtIndex10.insertAdjacentElement('afterend', th);
@@ -1351,7 +1396,7 @@ self.onmessage = function (e) {
 
                 const td = document.createElement('td');
                 td.textContent = sum;
-                td.style.textAlign = 'right';
+                td.align = 'right';
                 td.style.fontWeight = '600';
                 td.style.color = "black"
                 let tdAtIndex10 = cells[fieldIndexes[fieldIndexes.length-1]];
@@ -1431,6 +1476,7 @@ self.onmessage = function (e) {
         table.querySelector('thead').appendChild(avgRow);
         table.style.borderCollapse = 'collapse';
         altTableEventListeners(table,fieldIndexes,isMobile)
+
     }
     function updateAltTable(table,fieldIndexes,isMobile) {
         let avgRow=document.getElementById('stx-avg-row')
@@ -3830,24 +3876,42 @@ self.onmessage = function (e) {
 
         values.set('elo_promedio', 'Average ELO');
         if (window.sport === "soccer") {
-            values.set('edadTop11', 'TOP 11 Age');
+            //values.set('edadTop11', 'TOP 11 Age');
+            values.set('idEquipo', 'Team ID');
         }else{
-            values.set('edadTop11', 'TOP 21 Age');
+            //values.set('edadTop11', 'TOP 21 Age');
+            values.set('idEquipo', 'Team ID');
         }
 
         values.set('tmvalueSenior', 'LM Transfers Cost');
         values.set('tmvalueSUB23', 'U23 LM Transfers Cost');
         values.set('tmvalueSUB21', 'U21 LM Transfers Cost');
+        if (window.sport === "soccer") {
+            values.set('edadTop11', 'TOP 11 Age');
+            values.set('edadSUB23', 'U23 TOP 11 Age');
+        }else{
+            values.set('edadTop11', 'TOP 21 Age');
+            values.set('edadSUB23', 'U23 TOP 21 Age');
+        }
 
         if (window.sport === "soccer") {
             values.set('salario11', 'TOP 11 Salary');
             values.set('salario11_23', 'U23 TOP 11 Salary');
             values.set('salario11_21', 'U21 TOP 11 Salary');
+            values.set('edadSUB21', 'U21 TOP 11 Age');
+            values.set('edadSUB18', 'U18 TOP 11 Age');
         }else{
             values.set('salario11', 'TOP 21 Salary');
             values.set('salario11_23', 'U23 TOP 21 Salary');
             values.set('salario11_21', 'U21 TOP 21 Salary');
+            values.set('edadSUB21', 'U21 TOP 21 Age');
+            values.set('edadSUB18', 'U18 TOP 21 Age');
         }
+
+        values.set('edadUPSenior', 'LM Age');
+        values.set('edadUPSUB23', 'U23 LM Age');
+        values.set('edadUPSUB21', 'U21 LM Age');
+        values.set('edadUPSUB18', 'U18 LM Age');
 
         let contenidoNuevo = '<div id=testClick style="margin: 0 auto;">';
 
@@ -3894,7 +3958,7 @@ self.onmessage = function (e) {
         contenidoNuevo += "</td><td></td></tr>";
         contenidoNuevo += "<tr><td colspan='5' id='separatorTd'" + styleSep + "></td></tr>";
         contenidoNuevo += "</table></center>";
-        contenidoNuevo += '<table id=show3' + styleTable + '><tr><td><label>';
+        contenidoNuevo += '<table  border="0"  id=show3' + styleTable + '><tr><td><label>';
 
         if ((urlParams.get('type') === 'senior') || (urlParams.get('type') === 'world')) {
             if ("valor" === initialValues[urlParams.get('type')]) {
@@ -3937,14 +4001,19 @@ self.onmessage = function (e) {
 
 
             if (clave === "tmvalueSenior") {
-                contenidoNuevo += "<td></td>";
+                contenidoNuevo += "</tr><tr>";
             }
             if (clave === "tmvalueSenior") {
                 contenidoNuevo += "</tr><tr>";
             }
 
             if (clave === "salario11") {
-                contenidoNuevo += "<td></td><td></td></tr><tr>";
+                contenidoNuevo += "</tr><tr>";
+            }
+
+
+            if (clave === "edadUPSenior") {
+                contenidoNuevo += "</tr><tr>";
             }
 
 
@@ -3967,7 +4036,7 @@ self.onmessage = function (e) {
 
         //RELLENO EN BLANCO TABLA
         contenidoNuevo += "<td></td>";
-        contenidoNuevo += "<td></td>";
+        //contenidoNuevo += "<td></td>";
 
 
         let cats_temp=["SENIOR","U23","U21","U18"];
@@ -6457,8 +6526,7 @@ self.onmessage = function (e) {
                             let parser = new DOMParser();
                             let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
                             let matches = xmlDoc.getElementsByTagName("Match");
-
-                            let last_date = ""
+                            let last_date = "2020-01-01"
 
 
                             for (let i = 0; i < matches.length; i++) {
@@ -6498,6 +6566,7 @@ self.onmessage = function (e) {
                             <img src="https://www.statsxente.com/MZ1/View/Images/main_icon.png" alt="" width="130" height="130">
                         </div>
                         <div class="flex-grow-1 textLeft">`
+
 
                             data.forEach(function (match_data) {
 
@@ -6730,6 +6799,7 @@ self.onmessage = function (e) {
         });
 
     }
+
     async function insertPlayersFiltered(){
         document.getElementById("searchb").addEventListener('click', function () {
             if(document.getElementById("search_menu_top_stx")){ document.getElementById("search_menu_top_stx").remove()}
@@ -7120,7 +7190,34 @@ self.onmessage = function (e) {
                     let cat
 
                     switch (event.target.id) {
+                        case 'idEquipo':
+                            valor = teams_data[id][event.target.id]
+                            break;
                         case 'edadTop11':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadSenior':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadSUB23':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadSUB21':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadSUB18':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadUPSenior':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadUPSUB23':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadUPSUB21':
+                            valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
+                            break;
+                        case 'edadUPSUB18':
                             valor = new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(teams_data[id][event.target.id])
                             break;
                         case 'edad':
