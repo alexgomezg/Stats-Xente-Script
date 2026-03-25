@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.192
+// @version      0.193
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -61,6 +61,13 @@
     let percent=0;
     let currentPage = 1;
     let totalPages=20
+    let teamCache = new Map();
+    let observer = new MutationObserver(() => {
+        observer.disconnect();
+        addTeamInfoMarket().finally(() => {
+            observeContainerTM();
+        });
+    });
 
 
     setCSSStyles()
@@ -236,9 +243,6 @@
         }
 
 
-
-
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
             waitToDOMById(trainingReport,"training_report",5000)
@@ -257,15 +261,20 @@
             waitToDOMById(insertScoutFilter,"players_container",5000)
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersSellerFlag"))) {
+            getDeviceFormat()
+            addTeamInfoMarket().finally(() => {
+                observeContainerTM();
+            });
+        }
+
+
+
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players')&& (urlParams.get('sub') === 'alt')) {
             //waitToDOM(insertAvgRowAltTable,".snapshot.box_light",5000)
             getDeviceFormat()
             insertAvgRowAltTable()
             altTableEventListener()
-
-
-
-
         }
 
 
@@ -773,6 +782,42 @@
         }
     }
 
+    function observeContainerTM() {
+        const container = document.getElementById("players_container");
+        if (container) {
+            observer.observe(container, {
+                characterData: true,
+                subtree: true,
+                childList: true
+            });
+        }
+
+        const containerStx = document.getElementById("players_container_stx");
+        if (containerStx) {
+            observer.observe(containerStx, {
+                characterData: true,
+                subtree: true,
+                childList: true
+            });
+        } else {
+            waitForStxContainer();
+        }
+    }
+    function waitForStxContainer() {
+        const watcher = new MutationObserver(() => {
+            const containerStx = document.getElementById("players_container_stx");
+            if (containerStx) {
+                watcher.disconnect();
+                observer.observe(containerStx, {
+                    characterData: true,
+                    subtree: true,
+                    childList: true
+                });
+            }
+        });
+        watcher.observe(document.body, { childList: true, subtree: true });
+    }
+
 
 //Workers
     const workerCode = `
@@ -836,6 +881,87 @@ self.onmessage = function (e) {
 };
 `;
 
+//Seller info transfer market
+    async function processTMPlayer(el) {
+        let divs = el.querySelectorAll('.floatRight.transfer-control-area');
+        if (!divs.length) return;
+        let divs_dark = divs[0].querySelectorAll('.box_dark');
+        if (!divs_dark.length) return;
+        if (divs_dark[0].dataset.stxStatus) return;
+        divs_dark[0].dataset.stxStatus = "processing";
+        if(window.stx_device==="computer"){
+            divs_dark[0].style.height = "8em";
+        }else{
+            divs_dark[0].style.height = "9em";
+        }
+
+        let clase="loader-"+window.sport
+        divs_dark[0].innerHTML +=
+            "<center><div id='hp_loader'>" +
+            "<div style='text-align:center;'><b>Loading...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:1em; width:50%;'></div>" +
+            "</div></center>";
+
+
+
+
+        let table = divs_dark[0].querySelector('table');
+        if (!table) { divs_dark[0].dataset.stxStatus = ""; return; }
+        let rows = table.querySelectorAll('tr');
+        if (rows.length < 3) { divs_dark[0].dataset.stxStatus = ""; return; }
+        let secondRow = rows[2];
+        let tds = secondRow.querySelectorAll('td');
+        if (tds.length < 2) { divs_dark[0].dataset.stxStatus = ""; return; }
+        let link = tds[1].querySelector('a');
+        let href = link ? link.getAttribute('href') : null;
+        if (!href) { divs_dark[0].dataset.stxStatus = ""; return; }
+        let url = new URL(href, window.location.origin);
+        let tid = url.searchParams.get('tid');
+        if (!tid) { divs_dark[0].dataset.stxStatus = ""; return; }
+
+        try {
+            const jsonResponse = await getTeamInfo(tid);
+            let clonedRow = secondRow.cloneNode(true);
+            let clonedRow1 = secondRow.cloneNode(true);
+            let tdsClone = clonedRow.querySelectorAll('td');
+            tdsClone[0].textContent = "Division";
+            tdsClone[1].textContent = `${jsonResponse['league_name']} (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
+            tdsClone[1].style.fontWeight = "bold";
+
+            let tdsClone1 = clonedRow1.querySelectorAll('td');
+            tdsClone1[0].textContent = "Username";
+            tdsClone1[1].innerHTML = `
+                <div style="display:flex; align-items:center; gap:5px; font-weight:bold;">
+                    <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
+                    <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
+                </div>
+            `;
+            rows[2].before(clonedRow1);
+            rows[2].after(clonedRow);
+
+            divs_dark[0].dataset.stxStatus = "done";
+            divs_dark[0].querySelector('#hp_loader').remove();
+        } catch (err) {
+            divs_dark[0].dataset.stxStatus = "";
+            divs_dark[0].querySelector('#hp_loader').remove();
+        }
+    }
+    async function addTeamInfoMarket() {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const stxContainer = document.getElementById("players_container_stx");
+        const scope = stxContainer || document;
+        const elements = [...scope.querySelectorAll('.playerContainer')];
+        const CHUNK_SIZE = 10;
+
+        for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
+            const chunk = elements.slice(i, i + CHUNK_SIZE);
+            await Promise.allSettled(
+                chunk.map(el => processTMPlayer(el).catch(err =>
+                    console.error("Error procesando jugador:", err)
+                ))
+            );
+        }
+    }
 
 //National Team Page
     function nationalTeamPage(){
@@ -7690,6 +7816,17 @@ self.onmessage = function (e) {
             });
         });
     }
+    function gmTMPlayerRequest(url) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                headers: { "Content-Type": "application/json" },
+                onload: res => resolve(res),
+                onerror: err => reject(err)
+            });
+        });
+    }
 
 //UTILS FUNCTIONS
     function deleteCols(tabla,numColumnas) {
@@ -8086,6 +8223,10 @@ self.onmessage = function (e) {
             GM_setValue("transfersFilterFlag", true)
         }
 
+        if (GM_getValue("transfersSellerFlag") === undefined) {
+            GM_setValue("transfersSellerFlag", true)
+        }
+
 
 
 
@@ -8095,7 +8236,8 @@ self.onmessage = function (e) {
 
 
         let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",
-            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag="",tacticsResultsFlag="",transfersFilterFlag=""
+            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag="",
+            tacticsResultsFlag="",transfersFilterFlag="",transfersSellerFlag=""
 
         if (GM_getValue("federationFlag")) federationFlag = "checked"
         if (GM_getValue("matchFlag")) matchFlag = "checked"
@@ -8111,8 +8253,8 @@ self.onmessage = function (e) {
         if (GM_getValue("cupFlag")) cupFlag = "checked"
         if (GM_getValue("nationalTeamFlag")) nationalTeamFlag = "checked"
         if (GM_getValue("tacticsResultsFlag")) tacticsResultsFlag = "checked"
-
         if (GM_getValue("transfersFilterFlag")) transfersFilterFlag = "checked"
+        if (GM_getValue("transfersSellerFlag")) transfersSellerFlag = "checked"
 
 
 
@@ -8146,7 +8288,11 @@ self.onmessage = function (e) {
 
         newContent += '<td><label class="containerPeqAmarillo">Tactics Results<input type="checkbox" id="tacticsResultsFlagSelect" ' + tacticsResultsFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
 
-        newContent += '<td><label class="containerPeqAmarillo">Transfers Filter<input type="checkbox" id="transfersFilterFlagSelect" ' + transfersFilterFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+        newContent += '<td><label class="containerPeqAmarillo">Transfers Filter<input type="checkbox" id="transfersFilterFlagSelect" ' + transfersFilterFlag + '><span class="checkmarkPeqAmarillo"></span></td></tr>'
+
+
+        newContent += '<tr><td><label class="containerPeqAmarillo">Transfers Seller Info<input type="checkbox" id="transfersSellerSelect" ' + transfersSellerFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
+
 
         newContent += "</tr></tbody></table>"
 
@@ -8229,7 +8375,7 @@ self.onmessage = function (e) {
         newContent+="<div style='text-align: center;'><h4>Support the Project:</h4>";
         //newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a></div>'
         newContent += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank">'
-        newContent += '<img src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="75em" height="75em"/></a>'
+        newContent += '<img src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="60em" height="60em"/></a>'
 
 
         newContent +="</br>";
@@ -8426,6 +8572,10 @@ self.onmessage = function (e) {
 
         document.getElementById('transfersFilterFlagSelect').addEventListener('click', function () {
             GM_setValue("transfersFilterFlag", !GM_getValue("transfersFilterFlag"))
+        });
+
+        document.getElementById('transfersSellerSelect').addEventListener('click', function () {
+            GM_setValue("transfersSellerFlag", !GM_getValue("transfersSellerFlag"))
         });
 
 
@@ -8895,6 +9045,17 @@ self.onmessage = function (e) {
 
         }
 
+    }
+    async function getTeamInfo(tid) {
+        if (teamCache.has(tid)) {
+            return teamCache.get(tid);
+        }
+        const response = await gmTMPlayerRequest(
+            "https://statsxente.com/MZ1/Functions/tamper_tmuser.php?sport="+window.sport+"&team_id=" + tid
+        );
+        const jsonResponse = JSON.parse(response.responseText);
+        teamCache.set(tid, jsonResponse);
+        return jsonResponse;
     }
     function setCSSStyles(){
         let link = document.createElement('link');
