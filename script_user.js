@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.198
+// @version      0.199
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -966,11 +966,8 @@ self.onmessage = function (e) {
             let tds11 = firstRow1.querySelectorAll('td');
             let secondTd11 = tds11[4];
             let span11 = secondTd11.querySelector('span');
-            let a = span11.querySelector('a');
-            let href = a.getAttribute('href');
-            let id = href.match(/buy\((\d+)\)/)?.[1];
             let clonedSpan1 = span11.cloneNode(true);
-            clonedSpan1.innerHTML = `<span id="but_stx_${id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
+            clonedSpan1.innerHTML = `<span id="but_stx_${player_id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
             onclick="return false" title="Stats Xente" class="player_icon">
             <span class="player_icon_wrapper"><span class="player_icon_image"
             style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
@@ -984,7 +981,7 @@ self.onmessage = function (e) {
                         + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                     openWindow(link, 0.95, 1.25);
                 });
-            })(id, tid, window.sport, window.lang, team_name, player_name);
+            })(player_id, tid, window.sport, window.lang, team_name, player_name);
 
         }
 
