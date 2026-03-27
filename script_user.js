@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.197
+// @version      0.198
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -911,64 +911,91 @@ self.onmessage = function (e) {
 
 //Seller info transfer market
     async function processTMPlayer(el) {
-
-        let divs = el.querySelectorAll('.floatRight.transfer-control-area');
-        if (!divs.length) return;
-        let divs_dark = divs[0].querySelectorAll('.box_dark');
-        if (!divs_dark.length) return;
-
-
-        if (window.stx_device === "computer") {
-            divs_dark[0].style.height = "8em";
-        } else {
-            divs_dark[0].style.height = "9em";
-        }
-
-
-        let clase = "loader-" + window.sport
-        divs_dark[0].innerHTML +=
-            "<center><div id='hp_loader'>" +
-            "<div style='text-align:center;'><b>Loading...</b></div>" +
-            "<div id='loader' class='" + clase + "' style='height:1em; width:50%;'></div>" +
-            "</div></center>";
-
-
         let id_ = el.querySelector('span.player_id_span');
-        let table = divs_dark[0].querySelector('table');
-        let rows = table.querySelectorAll('tr');
-        let secondRow = rows[2];
-        let tds = secondRow.querySelectorAll('td');
-        let team_name = tds[1].textContent.trim()
-        let names_ = el.querySelectorAll('.player_name');
-        let player_name = names_[0].textContent.trim()
+        let player_id=id_.textContent
+        let divs = el.querySelectorAll('.floatRight.transfer-control-area');
+        let divs_dark = divs[0].querySelectorAll('.box_dark');
+        let tables = divs_dark[0].querySelectorAll('table');
+        let trs = tables[0].querySelectorAll('tr');
+        let tds=trs[2].querySelectorAll('td');
         let link = tds[1].querySelector('a');
         let href = link ? link.getAttribute('href') : null;
         let url = new URL(href, window.location.origin);
         let tid = url.searchParams.get('tid');
-        let player_id=id_.textContent
+        let team_name=tds[1].textContent.trim()
+        let names_ = el.querySelectorAll('.player_name');
+        let player_name = names_[0].textContent.trim()
 
 
-        let flag = true;
-        let jsonResponse = 0;
-        let player_data;
+//DIVISION DATA
+        if(!document.getElementById("team_data_"+player_id)) {
+
+
+            if (window.stx_device === "computer") {
+                divs_dark[0].style.height = "8em";
+            } else {
+                divs_dark[0].style.height = "9em";
+            }
+
+            let jsonResponse = await getTeamInfo(tid)
+
+
+            let clonedRow = trs[2].cloneNode(true);
+            let clonedRow1 = trs[2].cloneNode(true);
+            let tdsClone = clonedRow.querySelectorAll('td');
+            tdsClone[0].textContent = "Division";
+            tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
+            tdsClone[1].style.fontWeight = "bold";
+            let tdsClone1 = clonedRow1.querySelectorAll('td');
+            tdsClone1[0].textContent = "Username";
+            tdsClone1[1].innerHTML = `
+                <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
+                    <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
+                    <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
+                </div>
+            `;
+            trs[2].before(clonedRow1);
+            trs[2].after(clonedRow);
+        }
+
+///BOTON
+        if (!divs_dark[1].querySelector("#but_stx_" + player_id)) {
+            let container1 = divs_dark[1];
+            let table1 = container1.querySelector('table');
+            let firstRow1 = table1.querySelector('tr');
+            let tds11 = firstRow1.querySelectorAll('td');
+            let secondTd11 = tds11[4];
+            let span11 = secondTd11.querySelector('span');
+            let a = span11.querySelector('a');
+            let href = a.getAttribute('href');
+            let id = href.match(/buy\((\d+)\)/)?.[1];
+            let clonedSpan1 = span11.cloneNode(true);
+            clonedSpan1.innerHTML = `<span id="but_stx_${id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
+            onclick="return false" title="Stats Xente" class="player_icon">
+            <span class="player_icon_wrapper"><span class="player_icon_image"
+            style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
+            width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
+            span11.after(clonedSpan1);
+            (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                document.getElementById("but_stx_" + currentId).addEventListener('click', function () {
+
+                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                        + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
+                        + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                    openWindow(link, 0.95, 1.25);
+                });
+            })(id, tid, window.sport, window.lang, team_name, player_name);
+
+        }
+
+
 
         if (GM_getValue("transfersTaxFlag")) {
-            let divs_ = el.querySelectorAll('.floatRight.transfer-control-area');
-            let boxs = divs_[0].querySelectorAll('.box_dark');
-            let original = boxs[2];
-            if (!el.querySelector("#card_" + player_id)) {
-                [jsonResponse, player_data] = await Promise.all([
-                    getTeamInfo(tid),
-                    getDataPlayerTM(id_.textContent)
-                ]);
-
-
-
+            let original = divs_dark[2];
+            if (!document.getElementById("card_" + player_id)) {
+                let player_data=await getDataPlayerTM(player_id)
                 let target = original.cloneNode(true);
-
-
-                let rows2 = boxs[0].querySelectorAll('tr');
-
+                let rows2 = divs_dark[0].querySelectorAll('tr');
                 let targetRow = Array.from(rows2)
                     .slice(2)
                     .find(row => row.textContent.includes(GM_getValue("currency")));
@@ -982,14 +1009,14 @@ self.onmessage = function (e) {
                 if (fee > 5000) fee = 5000
 
 
-                boxs[boxs.length - 1].after(target)
+                divs_dark[divs_dark.length - 1].after(target)
                 target.style.height = "100%"
                 target.style.backgroundColor = "transparent"
                 target.style.border = "0px"
                 target.style.padding = "0px"
                 target.id = "card_" + player_id
 
-                let table1 = boxs[1].querySelector('table');
+                let table1 = divs_dark[1].querySelector('table');
                 let rows1 = table1.querySelectorAll('tr');
                 let innerTable = rows1[0].querySelector('table');
                 rows1 = innerTable.querySelectorAll('tr');
@@ -1036,63 +1063,9 @@ self.onmessage = function (e) {
             jsonResponse = await getTeamInfo(tid)
         }
 
-
-        try {
-            let container1 = divs_dark[1];
-            let table1 = container1.querySelector('table');
-            let firstRow1 = table1.querySelector('tr');
-            let tds11 = firstRow1.querySelectorAll('td');
-            let secondTd11 = tds11[4];
-            let span11 = secondTd11.querySelector('span');
-            let a = span11.querySelector('a');
-            let href = a.getAttribute('href');
-            let id = href.match(/buy\((\d+)\)/)?.[1];
-            let clonedSpan1 = span11.cloneNode(true);
-            if (!divs_dark[1].querySelector("#but_stx_" + id)) {
-                clonedSpan1.innerHTML = `<span id="but_stx_${id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
-            onclick="return false" title="Stats Xente" class="player_icon">
-            <span class="player_icon_wrapper"><span class="player_icon_image"
-            style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
-            width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
-                span11.after(clonedSpan1);
-                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                    document.getElementById("but_stx_" + currentId).addEventListener('click', function () {
-
-                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
-                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
-                            + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                        openWindow(link, 0.95, 1.25);
-                    });
-                })(id, tid, window.sport, window.lang, team_name, player_name);
-
-            }
-            if(!container1.querySelector("#team_data_"+player_id)){
-
-                let clonedRow = secondRow.cloneNode(true);
-                let clonedRow1 = secondRow.cloneNode(true);
-                let tdsClone = clonedRow.querySelectorAll('td');
-                tdsClone[0].textContent = "Division";
-                tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
-                tdsClone[1].style.fontWeight = "bold";
-
-                let tdsClone1 = clonedRow1.querySelectorAll('td');
-                tdsClone1[0].textContent = "Username";
-                tdsClone1[1].innerHTML = `
-                <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
-                    <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
-                    <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
-                </div>
-            `;
-                rows[2].before(clonedRow1);
-                rows[2].after(clonedRow);
-
-                divs_dark[0].querySelector('#hp_loader').remove();
-            }
-        } catch (err) {
-            divs_dark[0].querySelector('#hp_loader').remove();
-        }
-
     }
+
+    //fin
     async function addTeamInfoMarket() {
         if (isRunning) return;
         isRunning = true;
