@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.196
+// @version      0.197
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -65,6 +65,7 @@
     let totalPages=20
     let teamCache;
     let playersCache;
+    let isRunning = false;
     /*let observer = new MutationObserver(() => {
         observer.disconnect();
         addTeamInfoMarket().finally(() => {
@@ -277,8 +278,9 @@
             const originalOpen = XMLHttpRequest.prototype.open;
             XMLHttpRequest.prototype.open = function(method, url, ...rest) {
                 this._url = url;
-                if (url.includes('ajax.php?p=transfer&sub=transfer-')) {
+                if (url.includes('ajax.php?p=transfer&sub=transfer-search')) {
                     this.addEventListener('load', function() {
+                        console.log("here")
                         addTeamInfoMarket()
                     });
                 }
@@ -1066,37 +1068,39 @@ self.onmessage = function (e) {
             }
             if(!container1.querySelector("#team_data_"+player_id)){
 
-            let clonedRow = secondRow.cloneNode(true);
-            let clonedRow1 = secondRow.cloneNode(true);
-            let tdsClone = clonedRow.querySelectorAll('td');
-            tdsClone[0].textContent = "Division";
-            tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
-            tdsClone[1].style.fontWeight = "bold";
+                let clonedRow = secondRow.cloneNode(true);
+                let clonedRow1 = secondRow.cloneNode(true);
+                let tdsClone = clonedRow.querySelectorAll('td');
+                tdsClone[0].textContent = "Division";
+                tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
+                tdsClone[1].style.fontWeight = "bold";
 
-            let tdsClone1 = clonedRow1.querySelectorAll('td');
-            tdsClone1[0].textContent = "Username";
-            tdsClone1[1].innerHTML = `
+                let tdsClone1 = clonedRow1.querySelectorAll('td');
+                tdsClone1[0].textContent = "Username";
+                tdsClone1[1].innerHTML = `
                 <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
                     <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
                     <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
                 </div>
             `;
-            rows[2].before(clonedRow1);
-            rows[2].after(clonedRow);
+                rows[2].before(clonedRow1);
+                rows[2].after(clonedRow);
 
-            divs_dark[0].querySelector('#hp_loader').remove();
-        }
+                divs_dark[0].querySelector('#hp_loader').remove();
+            }
         } catch (err) {
             divs_dark[0].querySelector('#hp_loader').remove();
         }
 
     }
     async function addTeamInfoMarket() {
+        if (isRunning) return;
+        isRunning = true;
         await new Promise(resolve => setTimeout(resolve, 1000));
         const stxContainer = document.getElementById("players_container_stx");
         const scope = stxContainer || document;
         const elements = [...scope.querySelectorAll('.playerContainer')];
-        const CHUNK_SIZE = 20;
+        const CHUNK_SIZE = 5;
 
         for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
             const chunk = elements.slice(i, i + CHUNK_SIZE);
@@ -1109,6 +1113,7 @@ self.onmessage = function (e) {
 
         GM_setValue("TMplayersData_"+window.sport, JSON.stringify([...playersCache]));
         GM_setValue("TMteamsData_"+window.sport, JSON.stringify([...teamCache]));
+        isRunning = false;
     }
 
 //National Team Page
