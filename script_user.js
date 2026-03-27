@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.193
+// @version      0.194
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -24,6 +24,8 @@
 
 (function () {
     'use strict';
+
+
 
     /*let keys = GM_listValues();
     keys.forEach(function(key) {
@@ -61,7 +63,8 @@
     let percent=0;
     let currentPage = 1;
     let totalPages=20
-    let teamCache = new Map();
+    let teamCache;
+    let playersCache;
     let observer = new MutationObserver(() => {
         observer.disconnect();
         addTeamInfoMarket().finally(() => {
@@ -71,14 +74,13 @@
 
 
     setCSSStyles()
+    insertTaxCss()
     createModalMenu()
     waitToDOMById(createModalEventListeners,"saveButton",5000)
     setLangSportCats()
     getUsernameData()
     checkScriptVersion()
     getSelects()
-
-
 
 
     /// FUNCTIONS MENU
@@ -112,12 +114,16 @@
                 waitToDOM(match, ".hitlist.statsLite.marker", 0,7000)
             }, 2000);
         }
-
+        //OWN PLAYERS PAGE
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))&&(!urlParams.has('tid'))
             && (GM_getValue("playersFlag"))) {
             getDeviceFormat()
             waitToDOM(playersPage, ".playerContainer", 0,7000)
             waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
+
+            teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
+            playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+            waitToDOM(taxOnSell, ".player_name", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
@@ -130,6 +136,11 @@
             getDeviceFormat()
             waitToDOM(playersPageStats, ".player_name", 0,7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
+
+            teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
+            playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+            waitToDOM(taxOnSell, ".player_name", 0,7000)
+
         }
 
 
@@ -173,9 +184,6 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
 
             if(!urlParams.has('hidescore')){
-
-
-
                 if ((!urlParams.has('tid'))&&(GM_getValue("tacticsResultsFlag"))){
                     waitToDOM(tactisResumeData, ".group", 0,7000)
                 }
@@ -262,6 +270,24 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersSellerFlag"))) {
+
+            teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
+            playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+                this._url = url;
+                if (url.includes('ajax.php?p=transfer&sub=transfer-')) {
+                    this.addEventListener('load', function() {
+                        addTeamInfoMarket()
+                    });
+                }
+                return originalOpen.call(this, method, url, ...rest);
+            };
+
+            resetCache(window.sport)
+
+
             getDeviceFormat()
             addTeamInfoMarket().finally(() => {
                 observeContainerTM();
@@ -282,7 +308,7 @@
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
-            const elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
+            let elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
             elementos.forEach(function (elemento) {
                 elemento.addEventListener('click', function () {
                     getDeviceFormat()
@@ -292,9 +318,6 @@
             });
         }
     }, 1000);
-
-
-
 
 //BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
@@ -783,8 +806,11 @@
     }
 
     function observeContainerTM() {
-        const container = document.getElementById("players_container");
-        if (container) {
+        if(!window.location.href.includes('p=transfer')){
+            return;
+        }
+        let container = document.getElementById("players_container");
+        if (container && getComputedStyle(container).display !== 'none') {
             observer.observe(container, {
                 characterData: true,
                 subtree: true,
@@ -792,7 +818,7 @@
             });
         }
 
-        const containerStx = document.getElementById("players_container_stx");
+        let containerStx = document.getElementById("players_container_stx");
         if (containerStx) {
             observer.observe(containerStx, {
                 characterData: true,
@@ -883,17 +909,24 @@ self.onmessage = function (e) {
 
 //Seller info transfer market
     async function processTMPlayer(el) {
+
         let divs = el.querySelectorAll('.floatRight.transfer-control-area');
         if (!divs.length) return;
         let divs_dark = divs[0].querySelectorAll('.box_dark');
         if (!divs_dark.length) return;
+
+
+
         if (divs_dark[0].dataset.stxStatus) return;
+
         divs_dark[0].dataset.stxStatus = "processing";
         if(window.stx_device==="computer"){
             divs_dark[0].style.height = "8em";
         }else{
             divs_dark[0].style.height = "9em";
         }
+
+
 
         let clase="loader-"+window.sport
         divs_dark[0].innerHTML +=
@@ -904,7 +937,7 @@ self.onmessage = function (e) {
 
 
 
-
+        let id_ = el.querySelector('span.player_id_span');
         let table = divs_dark[0].querySelector('table');
         if (!table) { divs_dark[0].dataset.stxStatus = ""; return; }
         let rows = table.querySelectorAll('tr');
@@ -912,6 +945,9 @@ self.onmessage = function (e) {
         let secondRow = rows[2];
         let tds = secondRow.querySelectorAll('td');
         if (tds.length < 2) { divs_dark[0].dataset.stxStatus = ""; return; }
+        let team_name=tds[1].textContent.trim()
+        let names_ = el.querySelectorAll('.player_name');
+        let player_name=names_[0].textContent.trim()
         let link = tds[1].querySelector('a');
         let href = link ? link.getAttribute('href') : null;
         if (!href) { divs_dark[0].dataset.stxStatus = ""; return; }
@@ -919,13 +955,118 @@ self.onmessage = function (e) {
         let tid = url.searchParams.get('tid');
         if (!tid) { divs_dark[0].dataset.stxStatus = ""; return; }
 
+        let flag=true;
+        let jsonResponse = 0;
+        let player_data;
+
+        if(GM_getValue("transfersTaxFlag")){
+
+            [jsonResponse, player_data] = await Promise.all([
+                getTeamInfo(tid),
+                getDataPlayerTM(id_.textContent)
+            ]);
+
+
+            let divs_ = el.querySelectorAll('.floatRight.transfer-control-area');
+            let boxs = divs_[0].querySelectorAll('.box_dark');
+            let original = boxs[2];
+            let target = original.cloneNode(true);
+
+
+            let rows2 = boxs[0].querySelectorAll('tr');
+
+            let targetRow = Array.from(rows2)
+                .slice(2)
+                .find(row =>row.textContent.includes(GM_getValue("currency")));
+            let base_price = targetRow
+                ?.querySelectorAll('td')[1]
+                ?.textContent
+                ?.trim();
+            base_price=base_price.replace(/\s/g, "").replace(GM_getValue("currency"), "");
+            let fee=base_price*0.00125
+            if(fee<101)fee=101
+            if(fee>5000)fee=5000
+
+
+            boxs[boxs.length - 1].after(target)
+            target.style.height="100%"
+            target.style.backgroundColor="transparent"
+            target.style.border="0px"
+            target.style.padding="0px"
+
+            let table1 = boxs[1].querySelector('table');
+            let rows1 = table1.querySelectorAll('tr');
+            let innerTable=rows1[0].querySelector('table');
+            rows1 = innerTable.querySelectorAll('tr');
+            let venta= parseFloat(rows1[0].querySelectorAll('td')[1].textContent.replace(/\s/g, "").replace(GM_getValue("currency"), ""));
+
+            let tax_rate=1
+            if(player_data['price']==0){
+                let age=player_data['age']
+                if (age <= 20){tax_rate=0.20}
+                if (age <= 19){tax_rate=0.25}
+                if (age > 20){tax_rate=0.15}
+
+            }else{
+                let days=player_data['days']
+                if (days <= 70) {tax_rate=0.50}
+                if (days <= 28){tax_rate=0.95}
+                if (days > 70) {tax_rate=0.15}
+
+
+            }
+
+            let tax=(venta-player_data['purchase_price'])*tax_rate
+            let profit=(venta-player_data['purchase_price'])-fee-tax
+            let gross_profit=venta-tax-fee
+            if(profit<0){gross_profit=venta-fee}
+            let html=renderTaxBoxes(Math.round(fee),player_data['purchase_price'],venta,player_data['days'],Math.round(tax),Math.round(tax+fee),Math.round(profit),tax_rate,Math.round(gross_profit));
+            target.innerHTML=html;
+        }else{
+
+            jsonResponse = await getTeamInfo(tid)
+        }
+
+
+
+
         try {
-            const jsonResponse = await getTeamInfo(tid);
+            let container1 = divs_dark[1];
+            let table1 = container1.querySelector('table');
+            let firstRow1 = table1.querySelector('tr');
+            let tds11 = firstRow1.querySelectorAll('td');
+            let secondTd11 = tds11[4];
+            let span11 = secondTd11.querySelector('span');
+            let a = span11.querySelector('a');
+            let href = a.getAttribute('href');
+            let id = href.match(/buy\((\d+)\)/)?.[1];
+            let clonedSpan1 = span11.cloneNode(true);
+            if (!divs_dark[1].querySelector("#but_stx_" + id)) {
+                clonedSpan1.innerHTML=`<span id="but_stx_${id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
+            onclick="return false" title="Stats Xente" class="player_icon">
+            <span class="player_icon_wrapper"><span class="player_icon_image"
+            style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
+            width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
+                span11.after(clonedSpan1);
+                (function (currentId, currentTeamId, currentSport, lang,team_name,player_name) {
+                    document.getElementById("but_stx_" + currentId).addEventListener('click', function () {
+
+                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
+                            +"&team_name="+encodeURIComponent(team_name)+"&player_name="+encodeURIComponent(player_name)
+                        openWindow(link, 0.95, 1.25);
+                    });
+                })(id, tid, window.sport, window.lang,team_name,player_name);
+
+            }
+
+
+
             let clonedRow = secondRow.cloneNode(true);
             let clonedRow1 = secondRow.cloneNode(true);
             let tdsClone = clonedRow.querySelectorAll('td');
             tdsClone[0].textContent = "Division";
-            tdsClone[1].textContent = `${jsonResponse['league_name']} (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
+            tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
             tdsClone[1].style.fontWeight = "bold";
 
             let tdsClone1 = clonedRow1.querySelectorAll('td');
@@ -951,7 +1092,7 @@ self.onmessage = function (e) {
         const stxContainer = document.getElementById("players_container_stx");
         const scope = stxContainer || document;
         const elements = [...scope.querySelectorAll('.playerContainer')];
-        const CHUNK_SIZE = 10;
+        const CHUNK_SIZE = 20;
 
         for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
             const chunk = elements.slice(i, i + CHUNK_SIZE);
@@ -961,6 +1102,9 @@ self.onmessage = function (e) {
                 ))
             );
         }
+
+        GM_setValue("TMplayersData_"+window.sport, JSON.stringify([...playersCache]));
+        GM_setValue("TMteamsData_"+window.sport, JSON.stringify([...teamCache]));
     }
 
 //National Team Page
@@ -3768,7 +3912,6 @@ self.onmessage = function (e) {
 
                             if(document.getElementById("show_users").value==="none"){
                                 document.getElementById("show_users").value="done"
-                                let teamCache = {};
                                 elementos.forEach(el => {
                                     let team_td_id=el.id
                                     let user_td_id=team_td_id.replace("team", "user");
@@ -3854,13 +3997,6 @@ self.onmessage = function (e) {
 //Leagues page
     async function leagues() {
         leaguesHistory()
-
-
-
-
-
-
-
         let tablesSearch=document.getElementsByClassName("nice_table")
         let clear = tablesSearch[0].previousElementSibling;
         let selectsDiv=clear.querySelectorAll('select');
@@ -3918,7 +4054,7 @@ self.onmessage = function (e) {
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
         tabla.style.overflowX = 'auto';
-        tabla.style.display='block'
+        //tabla.style.display='block'
         tabla.style.maxWidth='100%'
         let thSegundo = tabla.querySelector("thead th:nth-child(2)");
         thSegundo.style.width = "250px";
@@ -6897,6 +7033,7 @@ self.onmessage = function (e) {
         document.getElementById("searchScoutReport").addEventListener("click", function() {
             event.preventDefault();
             insertPlayersFiltered()
+
         });
 
 
@@ -6925,16 +7062,19 @@ self.onmessage = function (e) {
         });
 
     }
-
     async function insertPlayersFiltered(){
         document.getElementById("searchb").addEventListener('click', function () {
             if(document.getElementById("search_menu_top_stx")){ document.getElementById("search_menu_top_stx").remove()}
             if(document.getElementById("search_menu_bottom_stx")){ document.getElementById("search_menu_bottom_stx").remove()}
             if(document.getElementById("search_div_top")){ document.getElementById("search_div_top").style.display=""}
             if(document.getElementById("search_div_bottom")){ document.getElementById("search_div_bottom").style.display=""}
-            if(document.getElementById("players_container_stx")){document.getElementById("players_container_stx").style.display="none"}
+            if(document.getElementById("players_container_stx")){document.getElementById("players_container_stx").remove()}
             document.getElementById("players_container").style.display=""
             document.getElementById("players_container").style.width=""
+            document.querySelectorAll('[data-stx-status]').forEach(el => {
+                delete el.dataset.stxStatus;
+            });
+            addTeamInfoMarket()
         });
 
         searchResults=[]
@@ -7169,7 +7309,14 @@ self.onmessage = function (e) {
 
 
 
+                /*document.getElementById("players_container").innerHTML = container.innerHTML;
+                document.getElementById("players_container").style.display="block"
+                document.getElementById("players_container_stx").style.display="none"*/
+
+
                 document.getElementById("players_container_stx").innerHTML = container.innerHTML;
+
+
                 if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
                 if(document.getElementById("stx_colorize_skills_mobile")){document.getElementById("stx_colorize_skills_mobile").click()}
                 percent=100;
@@ -7242,8 +7389,224 @@ self.onmessage = function (e) {
 
 
         }
+        addTeamInfoMarket()
 
     } // acaba aqui
+//Tax boxex
+    function renderTaxBoxes(fee_, compra_, venta_, dias,tax_,all_taxes_,profit_,tax_rate,gross_) {
+        let disp="block";
+        if(venta_==0){
+            disp="none"
+        }
+
+
+        let dispg="";
+        if(compra_==0){
+            dispg="none"
+        }
+
+        let disp_row=""
+
+        let class_="pc-success"
+        if(profit_<0){
+            class_="pc-danger"
+            disp_row="none"
+        }
+
+        let classg_="pc-success"
+        if(gross_<0){
+            classg_="pc-danger"
+        }
+
+        let compra=compra_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+        let venta=venta_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+        let fee=fee_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+        let tax=tax_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+        let all_taxes=all_taxes_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+        let profit=profit_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+        let gross=gross_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+
+
+        if(compra_===0){dias="All Carreer"}
+
+        let html;
+
+        if(GM_getValue("transfer_grid_4")){
+            html = `
+        <center><div id="profit-card">
+            <div class="pc-header" style="display:none;">
+                <div class="pc-header-left">
+                    <div class="pc-avatar" id="pc-avatar">??</div>
+                    <div>
+                        <div class="pc-player-name" id="pc-name">—</div>
+                        <div class="pc-player-id"   id="pc-id">—</div>
+                    </div>
+                </div>
+                <span class="pc-badge pc-badge-warning" id="pc-badge">— tasa</span>
+            </div>
+            <div class="pc-grid">
+                <div class="pc-metric">
+                    <div class="pc-metric-label">Purchase Price</div>
+                    <div class="pc-metric-value" id="pc-compra">${compra}</div>
+                </div>
+                <div class="pc-metric">
+                    <div class="pc-metric-label">Sell Price</div>
+                    <div class="pc-metric-value" id="pc-venta">${venta}</div>
+                </div>
+                <div class="pc-metric">
+                    <div class="pc-metric-label">Days</div>
+                    <div class="pc-metric-value" id="pc-dias">${dias}</div>
+                </div>
+                <div class="pc-metric">
+                    <div class="pc-metric-label">Tax</div>
+                    <div class="pc-metric-value" id="pc-impuesto">${tax_rate*100}%</div>
+                </div>
+            </div>
+            <div class="pc-divider"></div>
+            <div class="pc-breakdown" style="display:${disp};">
+                <div class="pc-row" style="display:none;">
+                    <span>Beneficio bruto</span>
+                    <span id="pc-bruto">—</span>
+                </div>
+                <div class="pc-row" style="display:${disp_row};">
+                    <span>Tax (${tax_rate*100}%)</span>
+                    <span id="pc-tasa-txt" class="pc-warning">${tax}</span>
+                </div>
+                 <div class="pc-row" style="display:${disp_row};">
+                    <span>Fee (1.25%)</span>
+                    <span id="pc-tasa-txt" class="pc-warning">${fee}</span>
+                </div>
+                <div class="pc-row" style="display:${disp_row};">
+                    <span>Total</span>
+                    <span id="pc-imp-eur" class="pc-danger">${all_taxes}</span>
+                </div>
+                <div class="pc-divider-sm"></div>
+                 <div class="pc-total-row" style="display:${dispg};">
+                    <span class="pc-total-label">Gross Profit</span>
+                    <span class="pc-total-value ${classg_}" id="pc-neto">${gross}</span>
+                </div>
+                <div class="pc-total-row">
+                    <span class="pc-total-label">Net Profit</span>
+                    <span class="pc-total-value ${class_}" id="pc-neto">${profit}</span>
+                </div>
+            </div>
+        </div> </center>
+    `;
+        }else{
+
+            html = `
+    <center><div id="profit-card">
+        <div class="pc-grid">
+            <div class="pc-metric">
+                <div class="pc-metric-label">Purchase</div>
+                <div class="pc-metric-value">${compra}</div>
+            </div>
+            <div class="pc-metric">
+                <div class="pc-metric-label">Sell</div>
+                <div class="pc-metric-value">${venta}</div>
+            </div>
+            <div class="pc-metric">
+                <div class="pc-metric-label">Days</div>
+                <div class="pc-metric-value">${dias}</div>
+            </div>
+            <div class="pc-metric">
+                <div class="pc-metric-label">Tax</div>
+                <div class="pc-metric-value">${tax_rate*100}%</div>
+            </div>
+        </div>
+        <div class="pc-divider"></div>
+        <div class="pc-breakdown" style="display:${disp};">
+            <div class="pc-row" style="display:${disp_row};">
+                <span>Tax (${tax_rate*100}%)</span>
+                <span class="pc-warning">${tax}</span>
+            </div>
+            <div class="pc-row" style="display:${disp_row};">
+                <span>Fee (1.25%)</span>
+                <span class="pc-warning">${fee}</span>
+            </div>
+            <div class="pc-row" style="display:${disp_row};">
+                <span>Total</span>
+                <span class="pc-danger">${all_taxes}</span>
+            </div>
+            <div class="pc-divider-sm"></div>
+            <div class="pc-total-row" style="display:${dispg};">
+                <span class="pc-total-label">Gross Profit</span>
+                <span class="pc-total-value ${classg_}">${gross}</span>
+            </div>
+            <div class="pc-total-row">
+                <span class="pc-total-label">Net Profit</span>
+                <span class="pc-total-value ${class_}">${profit}</span>
+            </div>
+        </div>
+    </div></center>
+`;
+
+        }
+
+        return html
+
+    }
+    function taxOnSell(){
+
+        let players = document.querySelectorAll(".playerContainer");
+        players.forEach(p => {
+
+            let div = p.querySelector('.player_icon_placeholder.sell_player');
+
+            div?.addEventListener('click', function() {
+
+
+                setTimeout(async() => {
+
+
+                    let form = document.getElementById('sellPlayer');
+
+                    let action = form?.getAttribute('action');
+
+                    let pid = null;
+
+                    if (action) {
+                        let url = new URL(action, window.location.origin);
+                        pid = url.searchParams.get('pid');
+                    }
+                    let player_data= await getDataPlayerTM(pid)
+
+                    document.getElementById('startbid').addEventListener('keyup', function(e) {
+                        let form = document.getElementById('sellPlayer');
+                        let action = form?.getAttribute('action');
+                        let pid = null;
+                        if (action) {
+                            let url = new URL(action, window.location.origin);
+                            pid = url.searchParams.get('pid');
+                        }
+                        let table = form?.querySelector('table');
+                        let rows = table.querySelectorAll('tr');
+                        let fifthRow = rows[4];
+                        let tds = fifthRow?.querySelectorAll('td');
+                        let fee=parseInt(document.getElementById('fee_startbid').value)
+                        let tax_rate=document.getElementById('tax_rate').textContent.replace("%","")
+                        tax_rate=parseFloat(tax_rate)
+                        tax_rate=tax_rate/100
+                        let venta=parseFloat(document.getElementById('startbid').value)
+                        let tax=(venta-player_data['purchase_price'])*tax_rate
+                        let profit=(venta-player_data['purchase_price'])-fee-tax
+                        let gross_profit=venta-tax-fee
+                        if(profit<0){gross_profit=venta-fee}
+                        let html_=renderTaxBoxes(Math.round(fee),player_data['purchase_price'],venta,player_data['days'],Math.round(tax),
+                            Math.round(tax+fee),Math.round(profit),tax_rate,Math.round(gross_profit));
+                        let html ="<div id='tax_data'>"+html_+"</div>"
+                        if(document.getElementById('tax_data')){document.getElementById('tax_data').remove()}
+                        tds[0].innerHTML=html+tds[0].innerHTML
+                    });
+                }, 1000);
+
+
+            });
+
+        });
+
+
+    }
 
 
 //HANDLERS FUNCTIONS
@@ -7816,13 +8179,83 @@ self.onmessage = function (e) {
             });
         });
     }
+    function getDataPlayerTM(id) {
+
+        if (playersCache.has(id)) {
+            return playersCache.get(id);
+        }
+
+
+        return new Promise((resolve, reject) => {
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://www.managerzone.com/?p=players&pid="+id,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onerror: function(err) {
+                    reject(err);
+                },
+                onload: function (response) {
+
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(response.responseText, "text/html");
+
+                    let divs = doc.querySelectorAll('.win_back');
+                    // 2. Filtrar los que tienen tabla
+                    let withTable = Array.from(divs).filter(div =>
+                        div.querySelector('table')
+                    );
+
+                    // 3. Último de esos divs
+                    let lastDiv = withTable[withTable.length - 1];
+                    let hasCurrency =lastDiv?.querySelector('thead').textContent?.includes(GM_getValue("currency"));
+                    if(!hasCurrency){
+                        lastDiv = withTable[withTable.length - 2];
+                    }
+                    if (!lastDiv) return resolve(null);
+
+                    // 4. Tabla dentro
+                    let table = lastDiv.querySelector('table');
+                    let rows = table.querySelectorAll('tr');
+                    let lastRow = rows[rows.length - 1];
+                    let tds = lastRow.querySelectorAll('td');
+
+                    let price=0;
+                    if(tds[4].textContent!=="-"){
+                        price=parseFloat(tds[4].textContent.replace(/\s/g, "").replace("EUR", ""))
+                    }
+
+                    let age = doc
+                        .querySelector('.dg_playerview_info.soccer table tr td strong')
+                        ?.textContent
+                        ?.trim();
+
+
+                    let fechaStr = tds[0].textContent.trim();
+                    let [dia, mes, año] = fechaStr.split('-');
+                    let fecha = new Date(año, mes - 1, dia);
+                    let hoy = new Date();
+                    let diff = hoy - fecha;
+                    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    let data={"age":age,"days":days,"purchase_price":price}
+                    playersCache.set(id,data)
+                    resolve(data);
+                }
+            });
+
+        });
+    }
     function gmTMPlayerRequest(url) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
                 url: url,
                 headers: { "Content-Type": "application/json" },
-                onload: res => resolve(res),
+                onload:  function (response) {
+                    resolve(response)
+                },
                 onerror: err => reject(err)
             });
         });
@@ -8059,7 +8492,7 @@ self.onmessage = function (e) {
         let default_value = GM_getValue("league_default_" + cat, defaults.get(cat))
         GM_setValue("league_default_" + cat, default_value)
 
-        let select = "<select id='league_default_select_" + cat + "' style='width:9em;'>";
+        let select = "<select class='stx-select' id='league_default_select_" + cat + "' style='width:10em;'>";
         values.forEach((valor, clave) => {
             let checked = ""
             if (clave === default_value) {
@@ -8113,349 +8546,312 @@ self.onmessage = function (e) {
 
     }
     function createModalMenu() {
-        let newElement = document.createElement("div");
-        newElement.id = "legendDiv";
-        newElement.className = "stx_legend";
-        let txtToInsert= '<div style="writing-mode: tb-rl;-webkit-writing-mode: vertical-rl; margin: 0 auto; text-align:center;">'
-        if(GM_getValue("available_new_version")==="yes"){
-            txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/alert.png" style="width:15px;height:15px;"/>'
+
+        // ── Inject styles ──────────────────────────────────────────────
+        const style = document.createElement('style');
+        style.textContent = `
+        #stx-overlay {
+            display: none; position: fixed; inset: 0; z-index: 99998;
+            background: rgba(0,0,0,0.45);
+            align-items: center; justify-content: center;
         }
-        txtToInsert+='<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width:25px;height:25px;"/>'
-        txtToInsert+='</div>';
-        newElement.innerHTML=txtToInsert;
-        let body = document.body;
-        body.appendChild(newElement);
-
-        let newModalElement = document.createElement('div');
-        newModalElement.innerHTML = '<div id="snackbar_stx" style="margin: 0 auto; text-align:center;"></div><div id="myModal_cargando-stx" class="modal_cargando-stx"><div class="modal-content_cargando-stx"  id="modal_content_div_cargando-stx"><div id="contenido_modal_cargando-stx" style="overflow-x:auto; background-color:#f2f2f200;"></div></div></div>'
-        body.insertBefore(newModalElement, body.firstChild);
-
-        if (GM_getValue("leagueFlag") === undefined) {
-            GM_setValue("leagueFlag", true)
+        #stx-overlay.open { display: flex; }
+        .stx-modal {
+            background: #fff; border-radius: 12px; overflow: hidden;
+            width: 90%; max-width: 120vh; max-height: 90vh;
+            overflow-y: auto; font-family: system-ui, sans-serif;
         }
-
-        if (GM_getValue("matchFlag") === undefined) {
-            GM_setValue("matchFlag", true)
+        .stx-header {
+            background: #f5c800; padding: 12px 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 1;
         }
-
-        if (GM_getValue("federationFlag") === undefined) {
-            GM_setValue("federationFlag", true)
+        .stx-header span { font-size: 15px; font-weight: 600; color: #3a2e00; }
+        .stx-close {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #fff; border: none; cursor: pointer;
+            font-size: 14px; color: #555; display: flex;
+            align-items: center; justify-content: center;
         }
-
-        if (GM_getValue("playersFlag") === undefined) {
-            GM_setValue("playersFlag", true)
+        .stx-section { padding: 12px 16px; border-bottom: 1px solid #e5e5e5; }
+        .stx-section-title {
+            font-size: 10px; font-weight: 600; color: #999;
+            text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px;
         }
-
-        if (GM_getValue("countryRankFlag") === undefined) {
-            GM_setValue("countryRankFlag", true)
+        .stx-toggles {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 5px;
         }
-
-
-        if (GM_getValue("league_graph_button") === undefined) {
-            GM_setValue("league_graph_button", "checked")
+        .stx-toggle {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 12px; color: #1a1a1a; cursor: pointer;
+            padding: 5px 8px; border-radius: 7px;
+            background: #f5f5f5; border: 0.5px solid #e0e0e0;
+            user-select: none; transition: background .12s;
         }
-
-        if (GM_getValue("league_report_button") === undefined) {
-            GM_setValue("league_report_button", "checked")
+        .stx-toggle:hover { background: #ebebeb; }
+        .stx-dot {
+            width: 14px; height: 14px; border-radius: 3px;
+            border: 1.5px solid #ccc; background: #fff; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .12s, border-color .12s;
         }
-
-        if (GM_getValue("league_calendar_button") === undefined) {
-            GM_setValue("league_calendar_button", "checked")
+        .stx-toggle.on .stx-dot { background: #f5c800; border-color: #c9a400; }
+        .stx-toggle.on .stx-dot::after {
+            content: ''; display: block;
+            width: 6px; height: 6px; border-radius: 1px; background: #3a2e00;
         }
-
-        if (GM_getValue("windowsConfig") === undefined) {
-            GM_setValue("windowsConfig", true)
+        .stx-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+        .stx-row label { font-size: 12px; color: #888; }
+        .stx-checkrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+        .stx-checkitem { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #1a1a1a; cursor: pointer; }
+        .stx-checkitem input { accent-color: #f5c800; width: 14px; height: 14px; cursor: pointer; }
+        .stx-slider-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+        .stx-slider-row label { font-size: 12px; color: #888; white-space: nowrap; }
+        .stx-slider-row input[type=range] { flex: 1; accent-color: #f5c800; }
+        .stx-slider-val { font-size: 12px; color: #555; min-width: 28px; }
+        .stx-two-col { display: flex; gap: 32px; flex-wrap: wrap; }
+        .stx-paypal { text-align: center; padding: 10px 0 4px; }
+        .stx-paypal p { font-size: 12px; color: #888; margin-bottom: 6px; }
+        .stx-footer { padding: 12px 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .stx-btn {
+            padding: 7px 16px; border-radius: 7px; border: none;
+            font-size: 13px; font-weight: 500; cursor: pointer;
         }
-
-        if (GM_getValue("tabsConfig") === undefined) {
-            GM_setValue("tabsConfig", false)
-        }
-
-        if (GM_getValue("show_league_selects") === undefined) {
-            GM_setValue("show_league_selects", true)
-        }
-
-        if (GM_getValue("show_tactic_filter") === undefined) {
-            GM_setValue("show_tactic_filter", true)
-        }
-
-
-        if (GM_getValue("league_image_size") === undefined) {
-            GM_setValue("league_image_size", 20)
-        }
-
-        if (GM_getValue("eloNextMatchesFlag") === undefined) {
-            GM_setValue("eloNextMatchesFlag", true)
-        }
-
-        if (GM_getValue("eloPlayedMatchesFlag") === undefined) {
-            GM_setValue("eloPlayedMatchesFlag", true)
-        }
-
-        if (GM_getValue("teamPageFlag") === undefined) {
-            GM_setValue("teamPageFlag", true)
-        }
-
-        if (GM_getValue("trainingReportFlag") === undefined) {
-            GM_setValue("trainingReportFlag", true)
-        }
-        if (GM_getValue("eloHiddenPlayedMatchesFlag") === undefined) {
-            GM_setValue("eloHiddenPlayedMatchesFlag", true)
-        }
-
-        if (GM_getValue("flFlag") === undefined) {
-            GM_setValue("flFlag", true)
-        }
-
-        if (GM_getValue("cupFlag") === undefined) {
-            GM_setValue("cupFlag", true)
-        }
-
-        if (GM_getValue("nationalTeamFlag") === undefined) {
-            GM_setValue("nationalTeamFlag", true)
-        }
-
-        if (GM_getValue("tacticsResultsFlag") === undefined) {
-            GM_setValue("tacticsResultsFlag", true)
-        }
-
-        if (GM_getValue("transfersFilterFlag") === undefined) {
-            GM_setValue("transfersFilterFlag", true)
-        }
-
-        if (GM_getValue("transfersSellerFlag") === undefined) {
-            GM_setValue("transfersSellerFlag", true)
+        .stx-btn-blue   { background: #2196f3; color: #fff; }
+        .stx-btn-green  { background: #4caf50; color: #fff; }
+        .stx-btn-orange { background: #ff9800; color: #fff; }
+        .stx-btn-red    { background: #f44336; color: #fff; }
+        .stx-update-banner {
+            background: #fff3cd; border-left: 3px solid #f5c800;
+            padding: 8px 16px; font-size: 13px; color: #856404;
         }
 
 
+        .stx-select {
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 7px;
+    border: 0.5px solid #c9a400;
+    background: #fffbe6;
+    color: #3a2e00;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23c9a400'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+    transition: border-color .12s, background .12s;
+}
+.stx-select:hover {
+    border-color: #f5c800;
+    background-color: #fff8d6;
+}
+.stx-select:focus {
+    outline: none;
+    border-color: #f5c800;
+    box-shadow: 0 0 0 2px rgba(245,200,0,0.25);
+}
+    `;
+        document.head.appendChild(style);
 
+        // ── Init GM values ─────────────────────────────────────────────
+        const defaults = {
+            leagueFlag: true, matchFlag: true, federationFlag: true,
+            playersFlag: true, countryRankFlag: true, eloNextMatchesFlag: true,
+            eloPlayedMatchesFlag: true, teamPageFlag: true, trainingReportFlag: true,
+            eloHiddenPlayedMatchesFlag: true, flFlag: true, cupFlag: true,
+            nationalTeamFlag: true, tacticsResultsFlag: true,
+            transfersFilterFlag: true, transfersSellerFlag: true,
+            league_graph_button: "checked", league_report_button: "checked",
+            league_calendar_button: "checked", windowsConfig: true,
+            tabsConfig: false, show_league_selects: true,
+            show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
+            transfersTaxFlag:true
+        };
+        Object.entries(defaults).forEach(([k, v]) => {
+            if (GM_getValue(k) === undefined) GM_setValue(k, v);
+        });
 
+        // ── Trigger icon ───────────────────────────────────────────────
+        const legendDiv = document.createElement('div');
+        legendDiv.id = 'legendDiv';
+        legendDiv.className = 'stx_legend';
 
+        let iconHtml = '<div style="writing-mode: tb-rl; -webkit-writing-mode: vertical-rl; margin: 0 auto; text-align:center;">';
+        if (GM_getValue("available_new_version") === "yes") {
+            iconHtml += '<img alt="" src="https://statsxente.com/MZ1/View/Images/alert.png" style="width:15px;height:15px;"/>';
+        }
+        iconHtml += '<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width:25px;height:25px;"/>';
+        iconHtml += '</div>';
 
+        legendDiv.innerHTML = iconHtml;
+        document.body.appendChild(legendDiv);
 
+        // ── Snackbar ───────────────────────────────────────────────────
+        const snackbar = document.createElement('div');
+        snackbar.id = 'snackbar_stx';
+        snackbar.style.cssText = 'position:fixed;bottom:60px;right:12px;z-index:99999;';
+        document.body.appendChild(snackbar);
 
+        // ── Modal ──────────────────────────────────────────────────────
+        const overlay = document.createElement('div');
+        overlay.id = 'stx-overlay';
 
-        let leagueFlag = "", matchFlag = "", federationFlag = "", playersFlag = "", countryRankFlag = "",eloNextMatchesFlag="",
-            eloPlayedMatchesFlag="",teamFlag="",trainingReportFlag="",eloHiddenPlayedMatchesFlag="",flFlag="",cupFlag="",nationalTeamFlag="",
-            tacticsResultsFlag="",transfersFilterFlag="",transfersSellerFlag=""
+        const chk = key => GM_getValue(key) ? 'checked' : '';
+        const tog = key => GM_getValue(key) ? 'on' : '';
 
-        if (GM_getValue("federationFlag")) federationFlag = "checked"
-        if (GM_getValue("matchFlag")) matchFlag = "checked"
-        if (GM_getValue("leagueFlag")) leagueFlag = "checked"
-        if (GM_getValue("playersFlag")) playersFlag = "checked"
-        if (GM_getValue("countryRankFlag")) countryRankFlag = "checked"
-        if (GM_getValue("eloNextMatchesFlag")) eloNextMatchesFlag = "checked"
-        if (GM_getValue("eloPlayedMatchesFlag")) eloPlayedMatchesFlag = "checked"
-        if (GM_getValue("teamPageFlag")) teamFlag = "checked"
-        if (GM_getValue("trainingReportFlag")) trainingReportFlag = "checked"
-        if (GM_getValue("eloHiddenPlayedMatchesFlag")) eloHiddenPlayedMatchesFlag = "checked"
-        if (GM_getValue("flFlag")) flFlag = "checked"
-        if (GM_getValue("cupFlag")) cupFlag = "checked"
-        if (GM_getValue("nationalTeamFlag")) nationalTeamFlag = "checked"
-        if (GM_getValue("tacticsResultsFlag")) tacticsResultsFlag = "checked"
-        if (GM_getValue("transfersFilterFlag")) transfersFilterFlag = "checked"
-        if (GM_getValue("transfersSellerFlag")) transfersSellerFlag = "checked"
+        const modules = [
+            { key: 'leagueFlag',                id: 'leagueSelect',                  label: 'League' },
+            { key: 'federationFlag',             id: 'federationSelect',              label: 'Federation' },
+            { key: 'matchFlag',                  id: 'matchSelect',                   label: 'Match' },
+            { key: 'eloPlayedMatchesFlag',       id: 'eloPlayedSelect',               label: 'ELO changes' },
+            { key: 'trainingReportFlag',         id: 'trainingReportSelect',          label: 'Training report' },
+            { key: 'playersFlag',                id: 'playersSelect',                 label: 'Players' },
+            { key: 'countryRankFlag',            id: 'countryRankSelect',             label: 'Country rank' },
+            { key: 'teamPageFlag',               id: 'teamSelect',                    label: 'Team' },
+            { key: 'eloNextMatchesFlag',         id: 'eloScheduledSelect',            label: 'ELO team scores' },
+            { key: 'cupFlag',                    id: 'cupFlagSelect',                 label: 'Cups' },
+            { key: 'eloHiddenPlayedMatchesFlag', id: 'eloHiddenPlayedMatchesSelect',  label: 'ELO hidden matches' },
+            { key: 'flFlag',                     id: 'flFlagSelect',                  label: 'Friendly leagues' },
+            { key: 'nationalTeamFlag',           id: 'nationalTeamFlagSelect',        label: 'National team' },
+            { key: 'tacticsResultsFlag',         id: 'tacticsResultsFlagSelect',      label: 'Tactics results' },
+            { key: 'transfersFilterFlag',        id: 'transfersFilterFlagSelect',     label: 'Transfers filter' },
+            { key: 'transfersSellerFlag',        id: 'transfersSellerSelect',         label: 'Transfers seller' },
+            { key: 'transfersTaxFlag',        id: 'transfersTaxSelect',         label: 'Transfers tax' },
+        ];
 
+        let html = '<div class="stx-modal">';
 
+        // Header
+        html += `<div class="stx-header"><span>Stast Xente Script Config</span><button class="stx-close" id="stxClose">✕</button></div>`;
 
+        // Update banner
 
-
-
-
-
-
-
-        let newContent = '<div style="margin: 0 auto; text-align:center;"><img alt="" id="closeButton" src="https://statsxente.com/MZ1/View/Images/error.png" style="width:40px; height:40px; cursor:pointer;"/></div>'
-        newContent += '<div style="margin: 0 auto; text-align:center;" id=alert_tittle class="caja_mensaje_50">Config</div><div id="div1" class="modal_div_content_main"  style="display: flex; flex-direction: column; overflow: auto; max-width: 100%;">'
-        newContent +='</br><table style="width:75%; margin: 0 auto; text-align:left;"><tbody><tr>';
-        newContent += '<td><label class="containerPeqAmarillo">League<input type="checkbox" id="leagueSelect" ' + leagueFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Federation<input type="checkbox" id="federationSelect" ' + federationFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Match<input type="checkbox" id="matchSelect" ' + matchFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">ELO Changes<input type="checkbox" id="eloPlayedSelect" ' + eloPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Training Report<input type="checkbox" id="trainingReportSelect" ' + trainingReportFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '</tr><tr>'
-        newContent += '<td><label class="containerPeqAmarillo">Players<input type="checkbox" id="playersSelect" ' + playersFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Country Rank<input type="checkbox" id="countryRankSelect" ' + countryRankFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Team<input type="checkbox" id="teamSelect" ' + teamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">ELO Teams Scores<input type="checkbox" id="eloScheduledSelect" ' + eloNextMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '<td><label class="containerPeqAmarillo">Cups<input type="checkbox" id="cupFlagSelect" ' + cupFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-        newContent += '</tr><tr>'
-        newContent += '<td><label class="containerPeqAmarillo">ELO Hidden Played Matches<input type="checkbox" id="eloHiddenPlayedMatchesSelect" ' + eloHiddenPlayedMatchesFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-
-        newContent += '<td><label class="containerPeqAmarillo">Friendly Leagues<input type="checkbox" id="flFlagSelect" ' + flFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-
-        newContent += '<td><label class="containerPeqAmarillo">National Team<input type="checkbox" id="nationalTeamFlagSelect" ' + nationalTeamFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-
-        newContent += '<td><label class="containerPeqAmarillo">Tactics Results<input type="checkbox" id="tacticsResultsFlagSelect" ' + tacticsResultsFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-
-        newContent += '<td><label class="containerPeqAmarillo">Transfers Filter<input type="checkbox" id="transfersFilterFlagSelect" ' + transfersFilterFlag + '><span class="checkmarkPeqAmarillo"></span></td></tr>'
-
-
-        newContent += '<tr><td><label class="containerPeqAmarillo">Transfers Seller Info<input type="checkbox" id="transfersSellerSelect" ' + transfersSellerFlag + '><span class="checkmarkPeqAmarillo"></span></td>'
-
-
-        newContent += "</tr></tbody></table>"
-
-        newContent += "<hr>"
-        newContent += "<h3 style='text-align: left; padding-left:7px;'>Leagues Config</h3>"
-
-        newContent += "<table style='margin: 0 auto; text-align:center;'><tr>"
-        newContent += "<td>Default Senior Param: <td>" + generateValuesSelect('senior') + "</td>";
-        newContent += "<td>Default U23 Param: <td>" + generateValuesSelect('u23') + "</td>";
-        newContent += "<td>Default U21 Param: <td>" + generateValuesSelect('u21') + "</td>";
-        newContent += "<td>Default U18 Param: <td>" + generateValuesSelect('u18') + "</td>";
-
-        newContent += "</tr><tr>"
-
-
-        let checked_graph = GM_getValue("league_graph_button")
-        let checked_report = GM_getValue("league_report_button")
-        let checked_calendar = GM_getValue("league_calendar_button")
-
-        newContent += "<td style='margin: 0 auto; text-align:center;' colspan='8'><table style='margin: 0 auto; text-align:center;'><tr><td><label><input " + checked_graph + " type='checkbox' value='graph' class='textMiddle' id='league_graph_check'><img alt='' class='textMiddle' src='https://statsxente.com/MZ1/View/Images/graph.png' width='20px' height='20px'/> <span class='textMiddle'>Progress</span></label></td>"
-        newContent += "<td style='margin: 0 auto; text-align:center;'><label><input " + checked_report + " type='checkbox' value='graph' id='league_report_check' class='textMiddle'><img alt='' class='textMiddle' src='https://statsxente.com/MZ1/View/Images/report.png' width='20px' height='20px'/> <span class='textMiddle'>Graph</span></label></td>"
-
-        newContent += "<td style='margin: 0 auto; text-align:center;'><label><input " + checked_calendar + " type='checkbox' value='graph' id='league_calendar_check' class='textMiddle'><img alt='' class='textMiddle' src='https://statsxente.com/MZ1/View/Images/calendar.png' width='20px' height='20px'/> <span class='textMiddle'>ELO Matches</span></label></td></tr></table></td>"
-
-        newContent += '</tr><tr>';
-
-        newContent += '<td colspan="4"><label><span class="textMiddle">Icons Size</span> <input class="textMiddle" id="slider_input" class="range-slider_input" type="range" value="' + GM_getValue("league_image_size") + '" min="10" max="30">'
-        newContent += '<img alt="" class="textMiddle" id="testImage" src="https://statsxente.com/MZ1/View/Images/calendar.png" width="20px" height="20px"/>'
-        newContent += '<span class="textMiddle" style="padding-left:10px;" id="sizeImageLeagueSpan"> (' + GM_getValue("league_image_size") + ')</span></label></center></td>'
-
-
-
-        let checkedLeagueSelects = ""
-        if (GM_getValue("show_league_selects")) {
-            checkedLeagueSelects = "checked"
+        if(GM_getValue("available_new_version") === "yes") {
+            html += `<div class="stx-update-banner">New version available: <strong>${GM_getValue("stx_latest_version")}</strong> — <button class="stx-btn stx-btn-blue" id="updateButton" style="padding:3px 10px;font-size:12px;"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button></div>`;
         }
 
-        newContent += '<td style=\'margin: 0 auto; text-align:center;\' colspan="4"><label class="textMiddle"><input ' + checkedLeagueSelects + ' type="checkbox" class="textMiddle" value="graph" id="show_league_checkbox">Show selects</label></center></td>'
-        newContent += "</tr></table>"
-        newContent += "<hr>"
+        // Modules toggles
+        html += '<div class="stx-section"><div class="stx-section-title">Modules</div><div class="stx-toggles">';
+        modules.forEach(m => {
+            html += `<label class="stx-toggle ${tog(m.key)}" data-key="${m.key}" id="${m.id}"><div class="stx-dot"></div>${m.label}</label>`;
+        });
+        html += '</div></div>';
 
-        newContent += "<table border='0' style='display:flex;'><tr><td>"
-        newContent += "<h3 style='text-align: left; padding-left:7px;'>Played Matches Config</h3></td><td>"
-        newContent += "<h3 style='text-align: left; padding-left:7px;'>Tabs Config</h3></td></tr><tr><td>"
-        let filterTacticCheck = ""
-        if (GM_getValue("show_tactic_filter")) {
-            filterTacticCheck = "checked"
-        }
+        // Leagues config
+        html += '<div class="stx-section"><div class="stx-section-title">Leagues config</div>';
+        html += '<div class="stx-row">';
+        ['senior', 'u23', 'u21', 'u18'].forEach(cat => {
+            html += `<label>${cat.toUpperCase()}</label>${generateValuesSelect(cat)}`;
+        });
+        html += '</div>';
+        html += '<div class="stx-checkrow" style="margin-bottom:8px;">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="league_graph_check" ${chk('league_graph_button')}> Progress</label>`;
+        html += `<label class="stx-checkitem"><input type="checkbox" id="league_report_check" ${chk('league_report_button')}> Graph</label>`;
+        html += `<label class="stx-checkitem"><input type="checkbox" id="league_calendar_check" ${chk('league_calendar_button')}> ELO matches</label>`;
+        html += `<label class="stx-checkitem"><input type="checkbox" id="show_league_checkbox" ${chk('show_league_selects')}> Show selects</label>`;
+        html += '</div>';
+        html += `<div class="stx-slider-row"><label>Icons size</label><input type="range" min="10" max="30" step="1" value="${GM_getValue('league_image_size')}" id="slider_input"><span class="stx-slider-val" id="sizeImageLeagueSpan">${GM_getValue('league_image_size')}</span></div>`;
+        html += '</div>';
 
+        // Played matches + Tabs
+        html += '<div class="stx-section stx-two-col">';
+        html += '<div><div class="stx-section-title">Played matches</div>';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="show_tactic_checkbox" ${chk('show_tactic_filter')}> Show tactic filter</label></div>`;
+        html += '<div><div class="stx-section-title">Tabs config</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="windowsConfig" ${chk('windowsConfig')}> Windows</label>`;
+        html += `<label class="stx-checkitem"><input type="checkbox" id="tabsConfig" ${chk('tabsConfig')}> Tabs</label>`;
+        html += '</div></div>'
 
-        newContent += "<label><input type='checkbox' id='show_tactic_checkbox' " + filterTacticCheck + ">Show Tactic Filter</label>";
-        newContent += "</td>"
-        newContent += "<td>"
-
-        let checkedTab = ""
-        if (GM_getValue("tabsConfig")) {
-            checkedTab = "checked"
-        }
-
-        let checkedWin = ""
-        if (GM_getValue("windowsConfig")) {
-            checkedWin = "checked"
-        }
-
-
-        newContent += "<label><input type='checkbox' id='windowsConfig' " + checkedWin + ">Windows</label>";
-        newContent += "<label><input type='checkbox' id='tabsConfig' " + checkedTab + ">Tabs</label>";
-        newContent += "</td></tr></table>"
-
-
-
-        newContent += '<div style="padding-bottom:10px; margin: 0 auto; text-align:center;">'
-        if(GM_getValue("available_new_version")==="yes"){
-            newContent += '<h2>New vesion available: '+GM_getValue("stx_latest_version")+'</h2>'
-        }
-
-        if(GM_getValue("available_new_version")==="yes"){
-            newContent += '<button class="btn-update" id="updateButton"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button>'
-        }
-        newContent+="<div style='text-align: center;'><h4>Support the Project:</h4>";
-        //newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a></div>'
-        newContent += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank">'
-        newContent += '<img src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="60em" height="60em"/></a>'
+        html += '<div><div class="stx-section-title">Transfer Tax Grid</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="transfer_grid_2" ${chk('transfer_grid_2')}> 2x2 Grid</label>`;
+        html += `<label class="stx-checkitem"><input type="checkbox" id="transfer_grid_4" ${chk('transfer_grid_4')}> 1x4 Grid</label>`;
+        html += '</div></div>'
 
 
-        newContent +="</br>";
-        newContent += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="btn-update"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a>'
 
-        newContent +='<button class="btn-save" style="margin-left:10px;" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;">Save</i></button>'
-        newContent+='<button id="reloadSelects" class="btn-delete" style="margin-left:10px; width:10em; background-color:#ff9800;"><i class="bi bi-arrow-clockwise" style="font-style:normal;">Reload Selects</i></button>'
 
-        newContent+='<button id="deleteButton" class="btn-delete" style="margin-left:10px;"><i class="bi bi-trash-fill" style="font-style:normal;">Reset</i></button>'
-        newContent+='</div>';
-        newContent += '</div></center></br></br>';
-        document.getElementById("contenido_modal_cargando-stx").innerHTML = newContent
-        createLeagueConfigOptionsListeners();
-        document.getElementById("contenido_modal_cargando-stx").style.width = "75%";
-        document.getElementById("myModal_cargando-stx").style.display = "none"
-        getNativeTableStyles()
+        html +='</div>';
 
-        document.getElementById("myModal_cargando-stx").style.paddingTop="0px"
 
-        document.getElementById("alert_tittle").style.backgroundColor = GM_getValue("bg_native")
 
-        if(GM_getValue("available_new_version")==="yes"){
+        // PayPal
+        html += '<div class="stx-paypal"><p>Support the project</p>';
+        html += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank"><img src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="50" height="50"/></a></div>';
 
-            document.getElementById("updateButton").addEventListener('click', function () {
-                GM_setValue("date_checked_version","-")
+        // Footer buttons
+        html += '<div class="stx-footer">';
+        html += '<button class="stx-btn stx-btn-green" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;"> Save</i></button>';
+        html += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="stx-btn stx-btn-blue"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a>';
+        html += '<button class="stx-btn stx-btn-orange" id="reloadSelects"><i class="bi bi-arrow-clockwise" style="font-style:normal;"> Reload Selects</i></button>';
+        html += '<button class="stx-btn stx-btn-red" id="deleteButton"><i class="bi bi-trash-fill" style="font-style:normal;"> Reset</i></button>';
+        html += '</div></div>';
+
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
+
+        // ── Listeners ──────────────────────────────────────────────────
+
+        // Toggle modules
+        overlay.querySelectorAll('.stx-toggle').forEach(label => {
+            label.addEventListener('click', () => label.classList.toggle('on'));
+        });
+
+        // Slider
+        document.getElementById('slider_input').addEventListener('input', function () {
+            document.getElementById('sizeImageLeagueSpan').textContent = this.value;
+            document.getElementById('testImage') && (document.getElementById('testImage').style.width = this.value + 'px');
+        });
+
+        // Open/close modal
+        legendDiv.addEventListener('click', () => overlay.classList.toggle('open'));
+        document.getElementById('stxClose').addEventListener('click', () => overlay.classList.remove('open'));
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+        // Save
+        document.getElementById('saveButton').addEventListener('click', () => {
+            // Persist module toggles
+            modules.forEach(m => {
+                GM_setValue(m.key, document.getElementById(m.id)?.classList.contains('on') ?? false);
+            });
+            GM_setValue('league_graph_button',    document.getElementById('league_graph_check').checked    ? 'checked' : '');
+            GM_setValue('league_report_button',   document.getElementById('league_report_check').checked   ? 'checked' : '');
+            GM_setValue('league_calendar_button', document.getElementById('league_calendar_check').checked ? 'checked' : '');
+            GM_setValue('show_league_selects',    document.getElementById('show_league_checkbox').checked);
+            GM_setValue('show_tactic_filter',     document.getElementById('show_tactic_checkbox').checked);
+            GM_setValue('windowsConfig',          document.getElementById('windowsConfig').checked);
+            GM_setValue('tabsConfig',             document.getElementById('tabsConfig').checked);
+            GM_setValue('transfer_grid_2',          document.getElementById('transfer_grid_2').checked);
+            GM_setValue('transfer_grid_4',          document.getElementById('transfer_grid_4').checked);
+            GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
+            window.location.reload();
+        });
+
+        // Reset
+        document.getElementById('deleteButton').addEventListener('click', () => {
+            GM_listValues().forEach(key => GM_deleteValue(key));
+            window.location.reload();
+        });
+
+        // Reload selects
+        document.getElementById('reloadSelects').addEventListener('click', () => {
+            GM_setValue("date_checked_selects", "0");
+            getSelects();
+            window.location.reload();
+        });
+
+        // Update button
+        if (GM_getValue("available_new_version") === "yes") {
+            document.getElementById('updateButton')?.addEventListener('click', () => {
+                GM_setValue("date_checked_version", "-");
                 window.open("https://update.greasyfork.org/scripts/491442/Stats%20Xente%20Script.user.js", "_blank");
             });
         }
 
-
-
-
-
-        document.getElementById("legendDiv").addEventListener('click', function () {
-
-            if (document.getElementById("myModal_cargando-stx").style.display === "none") {
-                document.getElementById("myModal_cargando-stx").style.display = "flex";
-            } else {
-                document.getElementById("myModal_cargando-stx").style.display = "none";
-            }
-
-        });
-
-
-        document.getElementById("closeButton").addEventListener('click', function () {
-            document.getElementById("myModal_cargando-stx").style.display = "none";
-        });
-
-
-        document.getElementById("saveButton").addEventListener('click', function () {
-            window.location.reload();
-        });
-
-
-
-
-        (function () {
-            document.getElementById("deleteButton").addEventListener('click', function () {
-                let keys = GM_listValues();
-                keys.forEach(function (key) {
-                    GM_deleteValue(key);
-                });
-                window.location.reload();
-            });
-        })();
-
-        (function () {
-            document.getElementById("reloadSelects").addEventListener('click', function () {
-                GM_setValue("date_checked_selects","0")
-                getSelects()
-                window.location.reload();
-            });
-        })();
-
-
-
-
-
-        // }, 3000);
-
+        createLeagueConfigOptionsListeners();
+        getNativeTableStyles();
     }
     function getNativeTableStyles() {
         let elemento = document.querySelector('.subheader.clearfix');
@@ -9015,6 +9411,7 @@ self.onmessage = function (e) {
         }
         if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
         if(document.getElementById("stx_colorize_skills_mobile")){document.getElementById("stx_colorize_skills_mobile").click()}
+        addTeamInfoMarket()
     }
     function playersPageStatsAll(){
         let params = new URLSearchParams(window.location.search)
@@ -9045,6 +9442,42 @@ self.onmessage = function (e) {
 
         }
 
+    }
+    function getSize(key) {
+        let data = GM_getValue(key, "[]");
+        let bytes = new Blob([data]).size;
+        return bytes;
+    }
+    function resetCache(sport){
+        let data = GM_getValue("TMplayersData_"+sport, "[]");
+        let bytes = new Blob([data]).size;
+        console.log(`Tamaño: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
+
+        data = GM_getValue("TMteamsData_"+sport, "[]");
+        bytes = new Blob([data]).size;
+        console.log(`Tamaño: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
+
+
+
+
+        let lastReset = GM_getValue("TM_lastReset_"+sport, 0);
+        let now = Date.now();
+        let ONE_DAY = 24 * 60 * 60 * 1000;
+        let playersSize = getSize("TMplayersData_"+sport);
+        let teamsSize = getSize("TMteamsData_"+sport);
+
+        let shouldReset =
+            (now - lastReset > ONE_DAY) ||   // ha pasado 1 día
+            (playersSize > 150 * 1024) ||    // >150KB
+            (teamsSize > 150 * 1024);
+
+        if (shouldReset) {
+            GM_setValue("TMplayersData_"+sport, "[]");
+            GM_setValue("TMteamsData_"+sport, "[]");
+            GM_setValue("TM_lastReset_"+sport, now);
+            teamCache = new Map();
+            playersCache = new Map();
+        }
     }
     async function getTeamInfo(tid) {
         if (teamCache.has(tid)) {
@@ -9628,7 +10061,143 @@ cursor:pointer;
   `)
 
     }
+    function insertTaxCss(){
+        let css=""
+        if(GM_getValue("transfer_grid_2")){
 
+
+            css = `
+    #profit-card {
+        background: #d1d1d1;
+        border: 1px solid #e0dfd8;
+        border-radius: 10px;
+        overflow: hidden;
+        width: 99%;
+        max-width: 480px;
+        font-family: system-ui, sans-serif;
+        font-size: 11px;
+    }
+    #profit-card .pc-grid {
+        padding: 4px 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+    }
+    #profit-card .pc-metric {
+        background: #f7f6f2;
+        border-radius: 6px;
+        padding: 3px 8px;
+    }
+    #profit-card .pc-metric-label {
+        font-size: 9px;
+        color: #336f93;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 1px;
+    }
+    #profit-card .pc-metric-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+    #profit-card .pc-divider {
+        height: 1px;
+        background: #e0dfd8;
+        margin: 0 10px;
+    }
+    #profit-card .pc-breakdown {
+        padding: 4px 10px 6px;
+    }
+    #profit-card .pc-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1px;
+    }
+    #profit-card .pc-row span:first-child { font-size: 11px; color: #0a0a0a; }
+    #profit-card .pc-row span:last-child  { font-size: 11px; color: #1a1a1a; font-weight: 500; }
+    #profit-card .pc-divider-sm { height: 1px; background: #e0dfd8; margin: 4px 0; }
+    #profit-card .pc-total-row  { display: flex; justify-content: space-between; align-items: center; }
+    #profit-card .pc-total-label { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+    #profit-card .pc-total-value { font-size: 14px; font-weight: 700; color: #1a1a1a; }
+    #profit-card .pc-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+    #profit-card .pc-badge-warning { background: #fef3c7; color: #92400e; }
+    #profit-card .pc-badge-danger  { background: #fee2e2; color: #991b1b; }
+    #profit-card .pc-badge-success { background: #d1fae5; color: #065f46; }
+    #profit-card .pc-warning { color: #b45309 !important; }
+    #profit-card .pc-danger  { color: #dc2626 !important; }
+    #profit-card .pc-success { color: #059669 !important; }
+`;
+        }else{
+
+            css = `
+    #profit-card {
+        background: #d1d1d1;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        overflow: hidden;
+        width: 99%;
+        font-family: system-ui, sans-serif;
+    }
+    #profit-card .pc-grid {
+        display: flex;
+        gap: 3px;
+        padding: 4px 6px;
+    }
+    #profit-card .pc-metric {
+        background: #f7f6f2;
+        border-radius: 5px;
+        padding: 3px 7px;
+        flex: 1;
+        text-align: center;
+    }
+    #profit-card .pc-metric-label {
+        font-size: 8px;
+        color: #336f93;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        white-space: nowrap;
+    }
+    #profit-card .pc-metric-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: #1a1a1a;
+        white-space: nowrap;
+    }
+    #profit-card .pc-divider {
+        height: 1px;
+        background: #ccc;
+        margin: 0 6px;
+    }
+    #profit-card .pc-breakdown {
+        padding: 3px 8px 5px;
+    }
+    #profit-card .pc-row {
+        display: flex;
+        justify-content: space-between;
+        line-height: 1.4;
+    }
+    #profit-card .pc-row span:first-child { font-size: 10px; color: #0a0a0a; }
+    #profit-card .pc-row span:last-child  { font-size: 10px; color: #1a1a1a; font-weight: 600; }
+    #profit-card .pc-divider-sm { height: 1px; background: #ccc; margin: 3px 0; }
+    #profit-card .pc-total-row  { display: flex; justify-content: space-between; align-items: center; }
+    #profit-card .pc-total-label { font-size: 11px; font-weight: 700; color: #1a1a1a; }
+    #profit-card .pc-total-value { font-size: 13px; font-weight: 700; }
+    #profit-card .pc-warning { color: #b45309 !important; }
+    #profit-card .pc-danger  { color: #dc2626 !important; }
+    #profit-card .pc-success { color: #059669 !important; }
+`;
+
+        }
+
+
+        let style = document.createElement('style');
+        style.textContent = css;
+        document.head.appendChild(style);
+
+    }
     async function playersPage1() {
         setTimeout(function () {
             let player_images
@@ -10044,4 +10613,5 @@ cursor:pointer;
         }
         return parseFloat(numStr.replace(',', '.'));
     }
+
 })();
