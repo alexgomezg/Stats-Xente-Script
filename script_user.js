@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.195
+// @version      0.196
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -916,19 +916,14 @@ self.onmessage = function (e) {
         if (!divs_dark.length) return;
 
 
-
-        if (divs_dark[0].dataset.stxStatus) return;
-
-        divs_dark[0].dataset.stxStatus = "processing";
-        if(window.stx_device==="computer"){
+        if (window.stx_device === "computer") {
             divs_dark[0].style.height = "8em";
-        }else{
+        } else {
             divs_dark[0].style.height = "9em";
         }
 
 
-
-        let clase="loader-"+window.sport
+        let clase = "loader-" + window.sport
         divs_dark[0].innerHTML +=
             "<center><div id='hp_loader'>" +
             "<div style='text-align:center;'><b>Loading...</b></div>" +
@@ -936,98 +931,108 @@ self.onmessage = function (e) {
             "</div></center>";
 
 
-
         let id_ = el.querySelector('span.player_id_span');
         let table = divs_dark[0].querySelector('table');
-        if (!table) { divs_dark[0].dataset.stxStatus = ""; return; }
         let rows = table.querySelectorAll('tr');
-        if (rows.length < 3) { divs_dark[0].dataset.stxStatus = ""; return; }
         let secondRow = rows[2];
         let tds = secondRow.querySelectorAll('td');
-        if (tds.length < 2) { divs_dark[0].dataset.stxStatus = ""; return; }
-        let team_name=tds[1].textContent.trim()
+        let team_name = tds[1].textContent.trim()
         let names_ = el.querySelectorAll('.player_name');
-        let player_name=names_[0].textContent.trim()
+        let player_name = names_[0].textContent.trim()
         let link = tds[1].querySelector('a');
         let href = link ? link.getAttribute('href') : null;
-        if (!href) { divs_dark[0].dataset.stxStatus = ""; return; }
         let url = new URL(href, window.location.origin);
         let tid = url.searchParams.get('tid');
-        if (!tid) { divs_dark[0].dataset.stxStatus = ""; return; }
+        let player_id=id_.textContent
 
-        let flag=true;
+
+        let flag = true;
         let jsonResponse = 0;
         let player_data;
 
-        if(GM_getValue("transfersTaxFlag")){
-
-            [jsonResponse, player_data] = await Promise.all([
-                getTeamInfo(tid),
-                getDataPlayerTM(id_.textContent)
-            ]);
-
-
+        if (GM_getValue("transfersTaxFlag")) {
             let divs_ = el.querySelectorAll('.floatRight.transfer-control-area');
             let boxs = divs_[0].querySelectorAll('.box_dark');
             let original = boxs[2];
-            let target = original.cloneNode(true);
+            if (!el.querySelector("#card_" + player_id)) {
+                [jsonResponse, player_data] = await Promise.all([
+                    getTeamInfo(tid),
+                    getDataPlayerTM(id_.textContent)
+                ]);
 
 
-            let rows2 = boxs[0].querySelectorAll('tr');
 
-            let targetRow = Array.from(rows2)
-                .slice(2)
-                .find(row =>row.textContent.includes(GM_getValue("currency")));
-            let base_price = targetRow
-                ?.querySelectorAll('td')[1]
-                ?.textContent
-                ?.trim();
-            base_price=base_price.replace(/\s/g, "").replace(GM_getValue("currency"), "");
-            let fee=base_price*0.00125
-            if(fee<101)fee=101
-            if(fee>5000)fee=5000
+                let target = original.cloneNode(true);
 
 
-            boxs[boxs.length - 1].after(target)
-            target.style.height="100%"
-            target.style.backgroundColor="transparent"
-            target.style.border="0px"
-            target.style.padding="0px"
+                let rows2 = boxs[0].querySelectorAll('tr');
 
-            let table1 = boxs[1].querySelector('table');
-            let rows1 = table1.querySelectorAll('tr');
-            let innerTable=rows1[0].querySelector('table');
-            rows1 = innerTable.querySelectorAll('tr');
-            let venta= parseFloat(rows1[0].querySelectorAll('td')[1].textContent.replace(/\s/g, "").replace(GM_getValue("currency"), ""));
-
-            let tax_rate=1
-            if(player_data['price']==0){
-                let age=player_data['age']
-                if (age <= 20){tax_rate=0.20}
-                if (age <= 19){tax_rate=0.25}
-                if (age > 20){tax_rate=0.15}
-
-            }else{
-                let days=player_data['days']
-                if (days <= 70) {tax_rate=0.50}
-                if (days <= 28){tax_rate=0.95}
-                if (days > 70) {tax_rate=0.15}
+                let targetRow = Array.from(rows2)
+                    .slice(2)
+                    .find(row => row.textContent.includes(GM_getValue("currency")));
+                let base_price = targetRow
+                    ?.querySelectorAll('td')[1]
+                    ?.textContent
+                    ?.trim();
+                base_price = base_price.replace(/\s/g, "").replace(GM_getValue("currency"), "");
+                let fee = base_price * 0.00125
+                if (fee < 101) fee = 101
+                if (fee > 5000) fee = 5000
 
 
+                boxs[boxs.length - 1].after(target)
+                target.style.height = "100%"
+                target.style.backgroundColor = "transparent"
+                target.style.border = "0px"
+                target.style.padding = "0px"
+                target.id = "card_" + player_id
+
+                let table1 = boxs[1].querySelector('table');
+                let rows1 = table1.querySelectorAll('tr');
+                let innerTable = rows1[0].querySelector('table');
+                rows1 = innerTable.querySelectorAll('tr');
+                let venta = parseFloat(rows1[0].querySelectorAll('td')[1].textContent.replace(/\s/g, "").replace(GM_getValue("currency"), ""));
+
+                let tax_rate = 1
+                if (player_data['price'] == 0) {
+                    let age = player_data['age']
+                    if (age <= 20) {
+                        tax_rate = 0.20
+                    }
+                    if (age <= 19) {
+                        tax_rate = 0.25
+                    }
+                    if (age > 20) {
+                        tax_rate = 0.15
+                    }
+
+                } else {
+                    let days = player_data['days']
+                    if (days <= 70) {
+                        tax_rate = 0.50
+                    }
+                    if (days <= 28) {
+                        tax_rate = 0.95
+                    }
+                    if (days > 70) {
+                        tax_rate = 0.15
+                    }
+
+
+                }
+
+                let tax = (venta - player_data['purchase_price']) * tax_rate
+                let profit = (venta - player_data['purchase_price']) - fee - tax
+                let gross_profit = venta - tax - fee
+                if (profit < 0) {
+                    gross_profit = venta - fee
+                }
+                let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit), tax_rate, Math.round(gross_profit));
+                target.innerHTML = html;
             }
-
-            let tax=(venta-player_data['purchase_price'])*tax_rate
-            let profit=(venta-player_data['purchase_price'])-fee-tax
-            let gross_profit=venta-tax-fee
-            if(profit<0){gross_profit=venta-fee}
-            let html=renderTaxBoxes(Math.round(fee),player_data['purchase_price'],venta,player_data['days'],Math.round(tax),Math.round(tax+fee),Math.round(profit),tax_rate,Math.round(gross_profit));
-            target.innerHTML=html;
-        }else{
-
+        } else {
             jsonResponse = await getTeamInfo(tid)
         }
-
-
 
 
         try {
@@ -1042,25 +1047,24 @@ self.onmessage = function (e) {
             let id = href.match(/buy\((\d+)\)/)?.[1];
             let clonedSpan1 = span11.cloneNode(true);
             if (!divs_dark[1].querySelector("#but_stx_" + id)) {
-                clonedSpan1.innerHTML=`<span id="but_stx_${id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
+                clonedSpan1.innerHTML = `<span id="but_stx_${id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
             onclick="return false" title="Stats Xente" class="player_icon">
             <span class="player_icon_wrapper"><span class="player_icon_image"
             style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
             width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
                 span11.after(clonedSpan1);
-                (function (currentId, currentTeamId, currentSport, lang,team_name,player_name) {
+                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                     document.getElementById("but_stx_" + currentId).addEventListener('click', function () {
 
                         let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                             + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
-                            +"&team_name="+encodeURIComponent(team_name)+"&player_name="+encodeURIComponent(player_name)
+                            + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                         openWindow(link, 0.95, 1.25);
                     });
-                })(id, tid, window.sport, window.lang,team_name,player_name);
+                })(id, tid, window.sport, window.lang, team_name, player_name);
 
             }
-
-
+            if(!container1.querySelector("#team_data_"+player_id)){
 
             let clonedRow = secondRow.cloneNode(true);
             let clonedRow1 = secondRow.cloneNode(true);
@@ -1072,7 +1076,7 @@ self.onmessage = function (e) {
             let tdsClone1 = clonedRow1.querySelectorAll('td');
             tdsClone1[0].textContent = "Username";
             tdsClone1[1].innerHTML = `
-                <div style="display:flex; align-items:center; gap:5px; font-weight:bold;">
+                <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
                     <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
                     <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
                 </div>
@@ -1080,12 +1084,12 @@ self.onmessage = function (e) {
             rows[2].before(clonedRow1);
             rows[2].after(clonedRow);
 
-            divs_dark[0].dataset.stxStatus = "done";
-            divs_dark[0].querySelector('#hp_loader').remove();
-        } catch (err) {
-            divs_dark[0].dataset.stxStatus = "";
             divs_dark[0].querySelector('#hp_loader').remove();
         }
+        } catch (err) {
+            divs_dark[0].querySelector('#hp_loader').remove();
+        }
+
     }
     async function addTeamInfoMarket() {
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -7071,9 +7075,6 @@ self.onmessage = function (e) {
             if(document.getElementById("players_container_stx")){document.getElementById("players_container_stx").remove()}
             document.getElementById("players_container").style.display=""
             document.getElementById("players_container").style.width=""
-            document.querySelectorAll('[data-stx-status]').forEach(el => {
-                delete el.dataset.stxStatus;
-            });
             addTeamInfoMarket()
         });
 
@@ -7382,6 +7383,8 @@ self.onmessage = function (e) {
                 updatePageInfoTM();
                 document.getElementById("players_container_stx").style.width=""
                 addTeamInfoMarket()
+                console.log("zzzz")
+
 
             }, 10);
 
