@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.194
+// @version      0.195
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -65,12 +65,12 @@
     let totalPages=20
     let teamCache;
     let playersCache;
-    let observer = new MutationObserver(() => {
+    /*let observer = new MutationObserver(() => {
         observer.disconnect();
         addTeamInfoMarket().finally(() => {
-            observeContainerTM();
+            //observeContainerTM();
         });
-    });
+    });*/
 
 
     setCSSStyles()
@@ -290,7 +290,7 @@
 
             getDeviceFormat()
             addTeamInfoMarket().finally(() => {
-                observeContainerTM();
+                //observeContainerTM();
             });
         }
 
@@ -7381,15 +7381,14 @@ self.onmessage = function (e) {
 
                 updatePageInfoTM();
                 document.getElementById("players_container_stx").style.width=""
-
-
+                addTeamInfoMarket()
 
             }, 10);
 
 
 
         }
-        addTeamInfoMarket()
+
 
     } // acaba aqui
 //Tax boxex
