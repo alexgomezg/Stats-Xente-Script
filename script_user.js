@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.199
+// @version      0.200
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -270,12 +270,12 @@
             waitToDOMById(insertScoutFilter,"players_container",5000)
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersSellerFlag"))) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')) {
 
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
 
-            const originalOpen = XMLHttpRequest.prototype.open;
+            /*const originalOpen = XMLHttpRequest.prototype.open;
             XMLHttpRequest.prototype.open = function(method, url, ...rest) {
                 this._url = url;
                 if (url.includes('ajax.php?p=transfer&sub=transfer-search')) {
@@ -285,14 +285,29 @@
                     });
                 }
                 return originalOpen.call(this, method, url, ...rest);
-            };
+            };*/
 
             resetCache(window.sport)
-
-
             getDeviceFormat()
             addTeamInfoMarket().finally(() => {
-                //observeContainerTM();
+                const observer = new MutationObserver((mutations) => {
+                    const changed = mutations.some((mutation) =>
+                            mutation.addedNodes.length > 0 && (
+                                mutation.target.id === "players_container" ||
+                                [...mutation.addedNodes].some(node =>
+                                    node.classList && node.classList.contains("playerContainer")
+                                )
+                            )
+                    );
+
+                    if (changed) {
+                        console.log("----Event----")
+                        addTeamInfoMarket();
+                    }
+                });
+
+                const el = document.getElementById("players_container");
+                if (el) observer.observe(el, { childList: true, subtree: true });
             });
         }
 
@@ -807,45 +822,6 @@
         }
     }
 
-    function observeContainerTM() {
-        if(!window.location.href.includes('p=transfer')){
-            return;
-        }
-        let container = document.getElementById("players_container");
-        if (container && getComputedStyle(container).display !== 'none') {
-            observer.observe(container, {
-                characterData: true,
-                subtree: true,
-                childList: true
-            });
-        }
-
-        let containerStx = document.getElementById("players_container_stx");
-        if (containerStx) {
-            observer.observe(containerStx, {
-                characterData: true,
-                subtree: true,
-                childList: true
-            });
-        } else {
-            waitForStxContainer();
-        }
-    }
-    function waitForStxContainer() {
-        const watcher = new MutationObserver(() => {
-            const containerStx = document.getElementById("players_container_stx");
-            if (containerStx) {
-                watcher.disconnect();
-                observer.observe(containerStx, {
-                    characterData: true,
-                    subtree: true,
-                    childList: true
-                });
-            }
-        });
-        watcher.observe(document.body, { childList: true, subtree: true });
-    }
-
 
 //Workers
     const workerCode = `
@@ -911,6 +887,7 @@ self.onmessage = function (e) {
 
 //Seller info transfer market
     async function processTMPlayer(el) {
+
         let id_ = el.querySelector('span.player_id_span');
         let player_id=id_.textContent
         let divs = el.querySelectorAll('.floatRight.transfer-control-area');
@@ -927,35 +904,93 @@ self.onmessage = function (e) {
         let player_name = names_[0].textContent.trim()
 
 
-//DIVISION DATA
-        if(!document.getElementById("team_data_"+player_id)) {
+        let tasks = [];
 
+        //tasks.push(!document.getElementById("card_" + player_id) ? getDataPlayerTM(player_id) : null);
+        tasks.push(
+            (!document.getElementById("card_" + player_id) && GM_getValue("transfersTaxFlag"))
+                ? getDataPlayerTM(player_id)
+                : null
+        );
 
-            if (window.stx_device === "computer") {
-                divs_dark[0].style.height = "8em";
-            } else {
-                divs_dark[0].style.height = "9em";
+        tasks.push(
+            (!document.getElementById("team_data_" + player_id) && GM_getValue("transfersSellerFlag"))
+                ? getTeamInfo(tid)
+                : null
+        );
+        //tasks.push(!document.getElementById("team_data_" + player_id) ? getTeamInfo(tid) : null);
+        if (GM_getValue("transfersSellerFlag")) {
+            if (!document.getElementById("team_data_" + player_id)) {
+                divs_dark[0].style.height = "10em";
+                let loaderDiv = document.createElement('center');
+                loaderDiv.innerHTML = `
+  <div id='hp_loader_${player_id}'>
+    <div style='text-align:center;'><b>Loading...</b></div>
+    <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%;'></div>
+  </div>
+`;
+                divs_dark[0].appendChild(loaderDiv);
+
             }
+        }
 
-            let jsonResponse = await getTeamInfo(tid)
+        let target=null
+        if (GM_getValue("transfersTaxFlag")) {
+            if (!document.getElementById("card_" + player_id)) {
+                let original = divs_dark[2];
+                target = original.cloneNode(true);
+                let html = `<center>
+  <div id='hp_loader_card_${player_id}'>
+    <div style='text-align:center;'><b>Loading...</b></div>
+    <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%;'></div>
+  </div></center>
+`;
+                target.innerHTML = html;
+                target.style.height = "25%"
+                divs_dark[divs_dark.length - 1].after(target)
+
+            }
+        }
 
 
-            let clonedRow = trs[2].cloneNode(true);
-            let clonedRow1 = trs[2].cloneNode(true);
-            let tdsClone = clonedRow.querySelectorAll('td');
-            tdsClone[0].textContent = "Division";
-            tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
-            tdsClone[1].style.fontWeight = "bold";
-            let tdsClone1 = clonedRow1.querySelectorAll('td');
-            tdsClone1[0].textContent = "Username";
-            tdsClone1[1].innerHTML = `
+
+        const [player_data, jsonResponse] = await Promise.all(tasks);
+
+
+//DIVISION DATA
+        if (GM_getValue("transfersSellerFlag")) {
+            if (!document.getElementById("team_data_" + player_id)) {
+
+
+                //let jsonResponse = await getTeamInfo(tid)
+
+
+                let clonedRow = trs[2].cloneNode(true);
+                let clonedRow1 = trs[2].cloneNode(true);
+                let tdsClone = clonedRow.querySelectorAll('td');
+                tdsClone[0].textContent = "Division";
+                tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
+                tdsClone[1].style.fontWeight = "bold";
+                let tdsClone1 = clonedRow1.querySelectorAll('td');
+                tdsClone1[0].textContent = "Username";
+                tdsClone1[1].innerHTML = `
                 <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
                     <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
                     <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
                 </div>
             `;
-            trs[2].before(clonedRow1);
-            trs[2].after(clonedRow);
+                trs[2].before(clonedRow1);
+                trs[2].after(clonedRow);
+                if (document.getElementById("hp_loader_" + player_id)) {
+                    document.getElementById("hp_loader_" + player_id).remove()
+                }
+                if (window.stx_device === "computer") {
+                    divs_dark[0].style.height = "8em";
+                } else {
+                    divs_dark[0].style.height = "9em";
+                }
+
+            }
         }
 
 ///BOTON
@@ -973,25 +1008,18 @@ self.onmessage = function (e) {
             style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
             width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
             span11.after(clonedSpan1);
-            (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                document.getElementById("but_stx_" + currentId).addEventListener('click', function () {
 
-                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
-                        + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
-                        + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                    openWindow(link, 0.95, 1.25);
-                });
-            })(player_id, tid, window.sport, window.lang, team_name, player_name);
+
 
         }
 
 
 
         if (GM_getValue("transfersTaxFlag")) {
-            let original = divs_dark[2];
+            //let original = divs_dark[2];
             if (!document.getElementById("card_" + player_id)) {
-                let player_data=await getDataPlayerTM(player_id)
-                let target = original.cloneNode(true);
+                //let player_data=await getDataPlayerTM(player_id)
+                //let target = original.cloneNode(true);
                 let rows2 = divs_dark[0].querySelectorAll('tr');
                 let targetRow = Array.from(rows2)
                     .slice(2)
@@ -1006,7 +1034,7 @@ self.onmessage = function (e) {
                 if (fee > 5000) fee = 5000
 
 
-                divs_dark[divs_dark.length - 1].after(target)
+
                 target.style.height = "100%"
                 target.style.backgroundColor = "transparent"
                 target.style.border = "0px"
@@ -1056,20 +1084,37 @@ self.onmessage = function (e) {
                 let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit), tax_rate, Math.round(gross_profit));
                 target.innerHTML = html;
             }
-        } else {
-            jsonResponse = await getTeamInfo(tid)
+        }
+        if (!divs_dark[1].querySelector("#but_stx_" + player_id)) {
+
+            (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                document.getElementById("but_stx_" + currentId).addEventListener('click', function () {
+
+                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                        + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
+                        + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                    openWindow(link, 0.95, 1.25);
+                });
+            })(player_id, tid, window.sport, window.lang, team_name, player_name);
+
         }
 
     }
-
-    //fin
     async function addTeamInfoMarket() {
+        console.log("----START----")
         if (isRunning) return;
         isRunning = true;
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const stxContainer = document.getElementById("players_container_stx");
-        const scope = stxContainer || document;
-        const elements = [...scope.querySelectorAll('.playerContainer')];
+        //await new Promise(resolve => setTimeout(resolve, 1000));
+        await waitForElement('.playerContainer', 5000);
+
+
+        let elements = document.getElementById("players_container").querySelectorAll('.playerContainer')
+        if(document.getElementById("players_container_stx")){
+            document.querySelectorAll('[id^="team_data_"], [id^="card_"]').forEach(el => el.remove());
+            elements = document.getElementById("players_container_stx").querySelectorAll('.playerContainer')
+
+        }
+        elements = Array.from(elements);
         const CHUNK_SIZE = 5;
 
         for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
@@ -1084,7 +1129,9 @@ self.onmessage = function (e) {
         GM_setValue("TMplayersData_"+window.sport, JSON.stringify([...playersCache]));
         GM_setValue("TMteamsData_"+window.sport, JSON.stringify([...teamCache]));
         isRunning = false;
+        console.log("----END----")
     }
+
 
 //National Team Page
     function nationalTeamPage(){
@@ -7050,6 +7097,7 @@ self.onmessage = function (e) {
             if(document.getElementById("players_container_stx")){document.getElementById("players_container_stx").remove()}
             document.getElementById("players_container").style.display=""
             document.getElementById("players_container").style.width=""
+            document.querySelectorAll('[id^="team_data_"], [id^="card_"]').forEach(el => el.remove());
             addTeamInfoMarket()
         });
 
@@ -7358,9 +7406,6 @@ self.onmessage = function (e) {
                 updatePageInfoTM();
                 document.getElementById("players_container_stx").style.width=""
                 addTeamInfoMarket()
-                console.log("zzzz")
-
-
             }, 10);
 
 
@@ -8308,6 +8353,28 @@ self.onmessage = function (e) {
         let timeout = setTimeout(function () {
             clearInterval(interval);
         }, miliseconds);
+    }
+    function waitForElement(selector, timeout = 10000) {
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector(selector);
+            if (existing) return resolve(existing);
+
+            const timer = setTimeout(() => {
+                observerElement.disconnect();
+                reject(new Error(`Timeout: "${selector}" no apareció en ${timeout}ms`));
+            }, timeout);
+
+            let observerElement = new MutationObserver((_, obs) => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    clearTimeout(timer);
+                    obs.disconnect();
+                    resolve(el);
+                }
+            });
+
+            observerElement.observe(document.body, { childList: true, subtree: true });
+        });
     }
     function openWindow(link, porAncho, porAlto) {
         let ventanaAncho = (window.innerWidth) * porAncho
@@ -9428,11 +9495,11 @@ self.onmessage = function (e) {
     function resetCache(sport){
         let data = GM_getValue("TMplayersData_"+sport, "[]");
         let bytes = new Blob([data]).size;
-        console.log(`Tamaño: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
+        console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
 
         data = GM_getValue("TMteamsData_"+sport, "[]");
         bytes = new Blob([data]).size;
-        console.log(`Tamaño: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
+        console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
 
 
 
