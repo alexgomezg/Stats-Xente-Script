@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.200
+// @version      0.201
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -7570,15 +7570,12 @@ self.onmessage = function (e) {
     }
     function taxOnSell(){
 
-        let players = document.querySelectorAll(".playerContainer");
-        players.forEach(p => {
-
-            let div = p.querySelector('.player_icon_placeholder.sell_player');
-
-            div?.addEventListener('click', function() {
-
+        let spans = document.querySelectorAll(".player_icon_placeholder.sell_player");
+        spans.forEach(span => {
+            span.addEventListener('click', function() {
 
                 setTimeout(async() => {
+
 
 
                     let form = document.getElementById('sellPlayer');
