@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.201
+// @version      0.202
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -65,6 +65,7 @@
     let totalPages=20
     let teamCache;
     let playersCache;
+    let teamFinancesCache
     let isRunning = false;
     /*let observer = new MutationObserver(() => {
         observer.disconnect();
@@ -275,6 +276,8 @@
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
 
+            teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_"+window.sport, "[]")));
+
             /*const originalOpen = XMLHttpRequest.prototype.open;
             XMLHttpRequest.prototype.open = function(method, url, ...rest) {
                 this._url = url;
@@ -299,29 +302,22 @@
                                 )
                             )
                     );
-
-                    if (changed) {
+                    if (changed && !document.getElementById("players_container_stx")) {
                         console.log("----Event----")
                         addTeamInfoMarket();
                     }
                 });
-
                 const el = document.getElementById("players_container");
                 if (el) observer.observe(el, { childList: true, subtree: true });
             });
         }
 
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players')&& (urlParams.get('sub') === 'alt')) {
-            //waitToDOM(insertAvgRowAltTable,".snapshot.box_light",5000)
             getDeviceFormat()
             insertAvgRowAltTable()
             altTableEventListener()
         }
-
-
-
 
 
         if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
@@ -334,7 +330,20 @@
                 });
             });
         }
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'tactics')) {
+            processTacticSkillsData()
+        }
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (urlParams.has('u'))&& (GM_getValue("teamsFinancialMarket"))) {
+            if(GM_getValue("onlySinglePages")){
+                teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_"+window.sport, "[]")))
+                insertFinancialData(document.getElementById("thePlayers_0"))
+            }
+        }
     }, 1000);
+
+
 
 //BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
@@ -887,7 +896,9 @@ self.onmessage = function (e) {
 
 //Seller info transfer market
     async function processTMPlayer(el) {
-
+        if ((!GM_getValue("onlySinglePages"))&& (GM_getValue("teamsFinancialMarket"))){
+            insertFinancialData(el)
+        }
         let id_ = el.querySelector('span.player_id_span');
         let player_id=id_.textContent
         let divs = el.querySelectorAll('.floatRight.transfer-control-area');
@@ -1007,6 +1018,7 @@ self.onmessage = function (e) {
             <span class="player_icon_wrapper"><span class="player_icon_image"
             style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
             width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
+            clonedSpan1.className = "player_icon_placeholder training_graphs "+window.sport;
             span11.after(clonedSpan1);
 
 
@@ -1029,7 +1041,7 @@ self.onmessage = function (e) {
                     ?.textContent
                     ?.trim();
                 base_price = base_price.replace(/\s/g, "").replace(GM_getValue("currency"), "");
-                let fee = base_price * 0.00125
+                let fee = base_price * 0.0125
                 if (fee < 101) fee = 101
                 if (fee > 5000) fee = 5000
 
@@ -1104,7 +1116,6 @@ self.onmessage = function (e) {
         console.log("----START----")
         if (isRunning) return;
         isRunning = true;
-        //await new Promise(resolve => setTimeout(resolve, 1000));
         await waitForElement('.playerContainer', 5000);
 
 
@@ -1131,8 +1142,6 @@ self.onmessage = function (e) {
         isRunning = false;
         console.log("----END----")
     }
-
-
 //National Team Page
     function nationalTeamPage(){
         let tables=document.getElementById("ui-tabs-1").getElementsByTagName("table");
@@ -1607,6 +1616,7 @@ self.onmessage = function (e) {
 //Alternative players
     function insertAvgRowAltTable(){
         let iColor="white";
+        let excluded=[]
         let fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
         if(window.sport=="hockey"){
             fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -1616,9 +1626,11 @@ self.onmessage = function (e) {
         if(window.stx_device==="computer"){
             iColor="#555";
             if(window.sport=="soccer"){
+                excluded=[17,18]
                 fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
             }else{
                 fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16];
+                excluded=[6]
             }
 
             table = document.getElementById('playerAltViewTable');
@@ -1684,11 +1696,16 @@ self.onmessage = function (e) {
                 startIndex=1;
             }
 
+
             table.querySelectorAll('tbody tr').forEach(row => {
                 const cells = row.querySelectorAll('td');
-                const sum = fieldIndexes.slice(startIndex).reduce((acc, idx) => {
-                    return acc + (parseInt(cells[idx]?.textContent?.trim()) || 0);
-                }, 0);
+                const sum = fieldIndexes
+                    .slice(startIndex)
+                    .reduce((acc, idx) => {
+                        if (excluded.includes(idx)) return acc;
+
+                        return acc + (parseInt(cells[idx]?.textContent?.trim()) || 0);
+                    }, 0);
 
                 const td = document.createElement('td');
                 td.textContent = sum;
@@ -1703,7 +1720,6 @@ self.onmessage = function (e) {
         }
 
         if (!table) return;
-
         const scrollContainer = table.closest('.responsive-show');
         if (scrollContainer) {
             const computed = getComputedStyle(scrollContainer);
@@ -1781,7 +1797,6 @@ self.onmessage = function (e) {
             avgRow.style.display = 'none';
             return;
         }
-
         const totals = {};
         fieldIndexes.forEach(idx => totals[idx] = 0);
         checked.forEach(chk => {
@@ -1801,8 +1816,8 @@ self.onmessage = function (e) {
         fieldIndexes.forEach(idx => {
             const cell = document.getElementById(`stx-avg-field-${idx}`);
             if (cell) {
-                const avg = totals[idx] / checked.length;
-                cell.textContent = avg % 1 === 0 ? avg : avg.toFixed(1);
+                let avg = totals[idx] / checked.length;
+                cell.textContent = avg % 1 === 0 ? avg : Math.round(avg * 100) / 100;
                 cell.style.color="white"
             }
         });
@@ -7046,6 +7061,13 @@ self.onmessage = function (e) {
         txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
         txt +="</td></tr></table></div>"
 
+        txt+='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#retired_filter\').slideToggle();">Retiring Filter</div>';
+        txt += '<div id="retired_filter" style="display:flex; gap:15px; align-items:center;">';
+        txt += '<label><input type="checkbox" class="checkbox" id="retiring_players" name="retiring_players"> Retiring</label>';
+        txt += '<label><input type="checkbox" class="checkbox" id="non_retiring_players" name="non_retiring_players">Non Retiring</label>';
+        txt +='</div>'
+        txt+='</div>'
+
         let txt1='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
         txt1+='; font-family: \'Roboto\'; font-weight:bold; font-size:small; padding: 3px 0px;" id="searchScoutReport">'
         txt1+='<img src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15px" height="15px"/> Search</button>'
@@ -7115,7 +7137,8 @@ self.onmessage = function (e) {
         if(document.getElementById("lp1_select").value!=="any"){lp_skills.push(document.getElementById("lp1_select").value)}
         if(document.getElementById("lp2_select").value!=="any"){lp_skills.push(document.getElementById("lp2_select").value)}
 
-        if((min_hp_stars==0)&&(min_lp_stars==0)&&(min_sp_stars==0)&&(hp_skills.length==0)&&(lp_skills.length==0)){
+        if((min_hp_stars==0)&&(min_lp_stars==0)&&(min_sp_stars==0)&&(hp_skills.length==0)&&(lp_skills.length==0)
+            &&(!document.getElementById("retiring_players").checked)&&(!document.getElementById("non_retiring_players").checked)){
             document.getElementById("searchb").click()
             return;
         }
@@ -7261,70 +7284,76 @@ self.onmessage = function (e) {
                     let players = doc1.querySelectorAll(".playerContainer");
                     players.forEach(p => {
                         let scout = p.querySelectorAll(".scout_report_row.box_dark");
-                        if(scout.length>0){
+                        const retiring = document.getElementById("retiring_players").checked;
+                        const nonRetiring = document.getElementById("non_retiring_players").checked;
+                        const noneSelected = !retiring && !nonRetiring;
+                        const isRetiring = p.querySelector(".dg_playerview_retire") !== null;
+                        if (noneSelected || (retiring && isRetiring) || (nonRetiring && !isRetiring)) {
+                            if(scout.length>0){
 
-                            let scout_divs = p.querySelectorAll(".scout_report_stars");
+                                let scout_divs = p.querySelectorAll(".scout_report_stars");
 
-                            let hp_stars = scout_divs[0].querySelectorAll("i").length;
-                            let lp_stars = scout_divs[1].querySelectorAll("i").length;
-                            let sp_stars = scout_divs[2].querySelectorAll("i").length;
+                                let hp_stars = scout_divs[0].querySelectorAll("i").length;
+                                let lp_stars = scout_divs[1].querySelectorAll("i").length;
+                                let sp_stars = scout_divs[2].querySelectorAll("i").length;
 
 
-                            if((hp_stars>=min_hp_stars)&&(lp_stars>=min_lp_stars)&&(sp_stars>=min_sp_stars)){
+                                if((hp_stars>=min_hp_stars)&&(lp_stars>=min_lp_stars)&&(sp_stars>=min_sp_stars)){
 
-                                if((hp_skills.length>0)||(lp_skills.length>0)){
+                                    if((hp_skills.length>0)||(lp_skills.length>0)){
 
-                                    let skill_names = p.querySelectorAll(".skill_name");
-                                    let hp_matches=0;
-                                    let lp_matches=0;
-                                    skill_names.forEach(skill => {
-                                        let spans = skill.querySelectorAll("span");
-                                        if(spans.length>1){
+                                        let skill_names = p.querySelectorAll(".skill_name");
+                                        let hp_matches=0;
+                                        let lp_matches=0;
+                                        skill_names.forEach(skill => {
+                                            let spans = skill.querySelectorAll("span");
+                                            if(spans.length>1){
 
-                                            //HP
-                                            if(spans[1].textContent=="1"){
-                                                if(hp_skills.includes(spans[0].textContent)){
-                                                    hp_matches++;
+                                                //HP
+                                                if(spans[1].textContent=="1"){
+                                                    if(hp_skills.includes(spans[0].textContent)){
+                                                        hp_matches++;
+                                                    }
+                                                }
+
+                                                //LP
+                                                if(spans[1].textContent=="2"){
+                                                    if(lp_skills.includes(spans[0].textContent)){
+                                                        lp_matches++;
+                                                    }
                                                 }
                                             }
 
-                                            //LP
-                                            if(spans[1].textContent=="2"){
-                                                if(lp_skills.includes(spans[0].textContent)){
-                                                    lp_matches++;
-                                                }
+
+                                        }); //Aqui acaba skills
+
+
+                                        if((hp_skills.length==hp_matches)&&(lp_skills.length==lp_matches)){
+                                            if(contShowed<20){
+                                                container.appendChild(p.cloneNode(true));
                                             }
+                                            searchResults.push(p.cloneNode(true))
+                                            //document.getElementById("players_container_stx").innerHTML+=p.innerHTML
+                                            contShowed++;
                                         }
-
-
-                                    }); //Aqui acaba skills
-
-
-                                    if((hp_skills.length==hp_matches)&&(lp_skills.length==lp_matches)){
+                                    }else{
                                         if(contShowed<20){
                                             container.appendChild(p.cloneNode(true));
                                         }
                                         searchResults.push(p.cloneNode(true))
-                                        //document.getElementById("players_container_stx").innerHTML+=p.innerHTML
                                         contShowed++;
                                     }
-                                }else{
-                                    if(contShowed<20){
-                                        container.appendChild(p.cloneNode(true));
-                                    }
-                                    searchResults.push(p.cloneNode(true))
-                                    contShowed++;
+
+
+
+
+
                                 }
 
 
 
 
-
                             }
-
-
-
-
                         }
 
                     });
@@ -7568,22 +7597,15 @@ self.onmessage = function (e) {
         return html
 
     }
+//Insert tax data on sell player page
     function taxOnSell(){
-
         let spans = document.querySelectorAll(".player_icon_placeholder.sell_player");
         spans.forEach(span => {
             span.addEventListener('click', function() {
-
                 setTimeout(async() => {
-
-
-
                     let form = document.getElementById('sellPlayer');
-
                     let action = form?.getAttribute('action');
-
                     let pid = null;
-
                     if (action) {
                         let url = new URL(action, window.location.origin);
                         pid = url.searchParams.get('pid');
@@ -7625,6 +7647,319 @@ self.onmessage = function (e) {
         });
 
 
+    }
+//Insert skills resume on tactic page
+    function processTacticSkillsData(){
+        GM_setValue("showSkillsResumeTemp",GM_getValue("showSkillsResume"))
+        let playersMap = new Map();
+        let sSkillNames=[]
+        let cont=0;
+        sSkillNames.push(mz.translations["age"])
+        teamTactic.tacticsData.TeamPlayers.Player.forEach(player => {
+            let skills = [];
+            skills.push(parseInt(player["@attributes"].age))
+            let cont1=0;
+            player.Skills.forEach(skill => {
+                if(window.sport=="hockey"){
+                    if(cont1>0){
+                        skills.push(parseInt(skill["@attributes"].value))
+                    }
+                    if(cont==0){
+                        if(cont1>0){
+                            sSkillNames.push(mz.translations[skill["@attributes"].name+"_short"])
+                        }
+                    }
+                    cont1++;
+                }else{
+                    if(cont1<11){
+                        skills.push(parseInt(skill["@attributes"].value))
+                    }
+                    if(cont==0){
+                        if(cont1<11){
+                            sSkillNames.push(mz.translations[skill["@attributes"].name+"_short"])
+                        }
+                    }
+                    cont1++;
+                }
+            });
+            let data={"id":player["@attributes"].playerId,"name":player["@attributes"].playerName,"skills":skills}
+            playersMap.set(player["@attributes"].playerId,data)
+            cont++;
+        });
+
+
+        if(window.sport=="hockey"){
+            tacticsSkillsResumeHockey(playersMap,sSkillNames)
+            let target = document.getElementById("lineups");
+            let observer = new MutationObserver((mutations) => {
+                mutations.forEach(m => {
+                    tacticsSkillsResumeHockey(playersMap,sSkillNames)
+                });
+            });
+
+            observer.observe(target, {
+                attributes: true,
+                childList: true,
+                subtree: true,
+                attributeFilter: ["class"]
+            });
+
+        }else{
+            tactisSkillsResume(playersMap,sSkillNames)
+            let target = document.getElementById("pitch-wrapper");
+            let observer = new MutationObserver((mutations) => {
+                mutations.forEach(m => {
+                    tactisSkillsResume(playersMap,sSkillNames)
+                });
+            });
+            observer.observe(target, {
+                attributes: true,
+                childList: true,
+                subtree: true,
+                attributeFilter: ["class"]
+            });
+
+        }
+
+
+    }
+    function tacticsSkillsResumeHockey(playersMap,sSkillNames){
+        if(document.getElementById("skillsTable")){document.getElementById("skillsTable").remove()}
+        let totalSkills=Array(11).fill(0);
+        let l1=Array(11).fill(0);
+        let l2=Array(11).fill(0);
+        let l3=Array(11).fill(0);
+        let l4=Array(11).fill(0);
+        let p1=Array(11).fill(0);
+        let p2=Array(11).fill(0);
+        let b1=Array(11).fill(0);
+        let b2=Array(11).fill(0);
+        let gk=Array(11).fill(0);
+        let linesName=["L1","L2","L3","L4","P1","P2","B1","B2","GK"];
+        let totalPlayers = 0;
+        let totalSkillsSUM=0;
+
+        let processedPlayers=[];
+
+        ["#n1", "#n2","#n3","#n4","#p1","#p2","#b1","#b2","#goalkeeper"].forEach((selector, lineIndex) => {
+            let line = [l1,l2,l3,l4,p1,p2,b1,b2,gk][lineIndex];
+            let lineTotal = 0;
+
+            document.querySelectorAll(`${selector} [data-pid]`).forEach(el => {
+                let id = el.dataset.pid;
+                let skills = playersMap.get(id).skills;
+                if (!["#p1", "#p2", "#b1", "#b2"].includes(selector)) {
+                    if (!processedPlayers.includes(id)) {
+                        totalPlayers++;
+                    }
+                }
+                skills.forEach((val, i) => {
+                    line[i] += val;
+                    if (i > 0) lineTotal += val;
+                    if (!["#p1", "#p2", "#b1", "#b2"].includes(selector)) {
+                        if (!processedPlayers.includes(id)) {
+                            totalSkills[i] += val;
+                            if (i > 0) totalSkillsSUM += val;
+                        }
+
+
+                    }
+
+                });
+                processedPlayers.push(id);
+            });
+            line.push(lineTotal); // Al final del loop, añade la suma al final de la línea
+        });
+
+        let styleIcon = ""
+        let styleSep = " style='display:none;'";
+        let styleTable="none"
+        if (GM_getValue("showSkillsResumeTemp") === true) {
+            styleIcon = " active"
+            styleSep = "style='padding-top:5px;'";
+            styleTable="table"
+        }
+
+        let playersNum = 5;
+        let html = "<div id='skillsTable'>"
+        html+='<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
+        html+="<div id='sep' "+styleSep+"></br></div>"
+        html+="</br><center><table id='tableSkills' style='display:"+styleTable+"; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
+        html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>Line</td>`;
+        sSkillNames.forEach(val => {
+            html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>${val}</td>`;
+        });
+        html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>AVG</td>`;
+        html += "</tr></thead><tbody style='background-color:white;'>";
+
+
+        [l1, l2, l3, l4,p1,p2,b1,b2,gk].forEach((line, lineIndex) => {
+            playersNum=5
+            if(lineIndex==8){playersNum=1}
+            if(line[0]>0){
+                html += "<tr>";
+                html += `<td style='padding: 5px 7px;'>${linesName[lineIndex]}</td>`;
+                line.forEach(val => {
+                    html += `<td style='padding: 5px 7px;'>${Math.round((val / playersNum) * 100) / 100}</td>`;
+                });
+                html += "</tr>";
+            }
+        });
+
+        html += "<tr>";
+        html += `<td style='padding: 5px 7px;'>Total</td>`;
+        totalSkills.forEach(val => {
+            html += `<td style='padding: 5px 7px;'>${Math.round((val / totalPlayers) * 100) / 100}</td>`;
+        });
+        html += `<td style='padding: 5px 7px;'>${Math.round((totalSkillsSUM / totalPlayers) * 100) / 100}</td>`;
+        html += "</tr>";
+        html += "</tbody></table></center></div>";
+        document.getElementById("formation-container").innerHTML+=html
+        document.getElementById("moreInfo").addEventListener('click', function () {
+            document.getElementById("moreInfo").classList.toggle('active');
+
+            if (document.getElementById("moreInfo").classList.contains("active")) {
+                document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+                $('#sep').fadeIn(1);
+                $('#tableSkills').fadeIn('slow');
+                $('#showMenu').fadeIn('slow');
+                GM_setValue("showSkillsResumeTemp",true)
+            } else {
+                document.getElementById("line2").style.transform = 'rotateZ(45deg)';
+                document.getElementById("line1").style.transform = 'rotateZ(-45deg)';
+                document.getElementById("moreInfo").style.transform = 'rotateZ(45deg)';
+                $('#sep').fadeOut('slow');
+                $('#tableSkills').fadeOut('slow');
+                $('#showMenu').fadeOut('slow');
+                GM_setValue("showSkillsResumeTemp",false)
+            }
+
+        });
+
+
+
+        if (GM_getValue("showSkillsResumeTemp") === true) {
+            document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+            document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+            document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+        }
+
+    }
+    function tactisSkillsResume(playersMap,sSkillNames){
+        if(document.getElementById("skillsTable")){document.getElementById("skillsTable").remove()}
+        let totalSkills = Array(12).fill(0);
+        let grandTotal=0
+        let playersNum=0;
+        const elements = document.querySelectorAll('[id*="drag_n_"]:not(.substitute)');
+        elements.forEach(el => {
+            let id=el.id.replace("drag_n_","")
+            let skills = playersMap.get(id).skills;
+            let cont=0;
+            skills.forEach((val, i) => {
+                if(i<12){
+                    totalSkills[i] += val;
+                    if(cont>0){
+                        grandTotal += val;
+                    }
+                    cont++;
+                }
+            });
+            playersNum++;
+        });
+        let styleIcon = ""
+        let styleSep = " style='display:none;'";
+        let styleTable="none"
+        if (GM_getValue("showSkillsResumeTemp") === true) {
+            styleIcon = " active"
+            styleSep = "style='padding-top:5px;'";
+            styleTable="table"
+        }
+
+        let html = "<div id='skillsTable'>"
+        html+='<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
+        html+="<div id='sep' "+styleSep+"></br></div>"
+
+        html+="<center><table id='tableSkills' style='display:"+styleTable+"; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
+        let cont=0;
+        sSkillNames.forEach(val => {
+            html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>${val}</td>`;
+
+        });
+        html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>AVG</td>`;
+
+        html += "</tr></thead><tbody style='background-color:white;'><tr>";
+        html += `<td style='padding: 5px 7px;'>${Math.round((totalSkills[0]/playersNum) * 100) / 100}</td>`;
+        for(let i=1;i<totalSkills.length;i++){
+            let val=totalSkills[i]
+            html += `<td style='padding: 5px 7px;'>${Math.round((val/playersNum) * 100) / 100}</td>`;
+        }
+        html += `<td style='padding: 5px 7px;'>${Math.round((grandTotal/playersNum) * 100) / 100}</td>`;
+
+        html += "</tr></tbody></table></center></div>";
+        document.getElementById("formation-container").innerHTML+=html
+
+
+        if (GM_getValue("showSkillsResumeTemp") === true) {
+            document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+            document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+            document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+        }
+
+        document.getElementById("moreInfo").addEventListener('click', function () {
+            document.getElementById("moreInfo").classList.toggle('active');
+
+            if (document.getElementById("moreInfo").classList.contains("active")) {
+                document.getElementById("line2").style.transform = 'rotateZ(0deg)';
+                document.getElementById("line1").style.transform = 'rotateZ(180deg)';
+                document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
+                $('#sep').fadeIn(1);
+                $('#tableSkills').fadeIn('slow');
+                $('#showMenu').fadeIn('slow');
+                GM_setValue("showSkillsResumeTemp",true)
+            } else {
+                document.getElementById("line2").style.transform = 'rotateZ(45deg)';
+                document.getElementById("line1").style.transform = 'rotateZ(-45deg)';
+                document.getElementById("moreInfo").style.transform = 'rotateZ(45deg)';
+                $('#sep').fadeOut('slow');
+                $('#tableSkills').fadeOut('slow');
+                $('#showMenu').fadeOut('slow');
+                GM_setValue("showSkillsResumeTemp",false)
+            }
+
+        });
+
+    }
+//Insert financial team data on market
+    async function insertFinancialData(el){
+        let cont=0;
+        const links = el.querySelectorAll('a[href*="tid="]');
+        for (const link of [...links].slice(1)) {
+            const url = new URL(link.href);
+            const tid = url.searchParams.get("tid");
+            let flag=false
+            if(cont==0){
+                flag=link.parentNode.querySelector("[id^='economyRating']")!== null
+            }else{
+                flag=link.closest(".clippable").querySelector("[id^='economyRating']") !== null
+            }
+
+            if(!flag){
+                let rating = await getTeamFinancialRating(tid);
+                let color=getFinanceColor(rating)
+                let styl="style='border: 1px solid black; background-color: "+color+"; display: inline-block; width: 1.5em; height: 1.2em; border-radius: 3px; font-size: 0.9em; font-weight: bold; color: white; text-align: center; line-height: 1.2em;'"
+
+                if(cont==0){
+                    link.insertAdjacentHTML("beforebegin", "<span "+styl+" id='economyRating'>"+rating+"</span> ");
+
+                }else{
+                    link.previousElementSibling.insertAdjacentHTML("beforebegin","<span "+styl+" id='economyRating'>"+rating+"</span> ");
+                }
+            }
+            cont++;
+        }
+        GM_setValue("TMplayersFinancesData_"+window.sport, JSON.stringify([...teamFinancesCache]));
     }
 
 
@@ -8279,6 +8614,30 @@ self.onmessage = function (e) {
             });
         });
     }
+    function getTeamFinancialRating(tid) {
+        return new Promise((resolve, reject) => {
+            if (teamFinancesCache.has(tid)) {
+                resolve(teamFinancesCache.get(tid))
+            }
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://www.managerzone.com/?p=team&tid=" + tid,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onerror: function(err) {
+                    reject(err);
+                },
+                onload: function (response) {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(response.responseText, "text/html");
+                    let spans = doc.querySelectorAll("span.financialWealthContainer");
+                    teamFinancesCache.set(tid, spans[0].textContent);
+                    resolve(spans[0].textContent);
+                }
+            });
+        });
+    }
 
 //UTILS FUNCTIONS
     function deleteCols(tabla,numColumnas) {
@@ -8587,8 +8946,6 @@ self.onmessage = function (e) {
 
     }
     function createModalMenu() {
-
-        // ── Inject styles ──────────────────────────────────────────────
         const style = document.createElement('style');
         style.textContent = `
         #stx-overlay {
@@ -8696,8 +9053,6 @@ self.onmessage = function (e) {
 }
     `;
         document.head.appendChild(style);
-
-        // ── Init GM values ─────────────────────────────────────────────
         const defaults = {
             leagueFlag: true, matchFlag: true, federationFlag: true,
             playersFlag: true, countryRankFlag: true, eloNextMatchesFlag: true,
@@ -8709,13 +9064,12 @@ self.onmessage = function (e) {
             league_calendar_button: "checked", windowsConfig: true,
             tabsConfig: false, show_league_selects: true,
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
-            transfersTaxFlag:true
+            transfersTaxFlag:true,showSkillsResume:true,tacticsSkillsResume: true,teamsFinancialMarket:true,onlySinglePages:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
         });
 
-        // ── Trigger icon ───────────────────────────────────────────────
         const legendDiv = document.createElement('div');
         legendDiv.id = 'legendDiv';
         legendDiv.className = 'stx_legend';
@@ -8730,21 +9084,20 @@ self.onmessage = function (e) {
         legendDiv.innerHTML = iconHtml;
         document.body.appendChild(legendDiv);
 
-        // ── Snackbar ───────────────────────────────────────────────────
+
         const snackbar = document.createElement('div');
         snackbar.id = 'snackbar_stx';
         snackbar.style.cssText = 'position:fixed;bottom:60px;right:12px;z-index:99999;';
         document.body.appendChild(snackbar);
 
-        // ── Modal ──────────────────────────────────────────────────────
+
         const overlay = document.createElement('div');
         overlay.id = 'stx-overlay';
-
         const chk = key => GM_getValue(key) ? 'checked' : '';
         const tog = key => GM_getValue(key) ? 'on' : '';
 
         const modules = [
-            { key: 'leagueFlag',                id: 'leagueSelect',                  label: 'League' },
+            { key: 'leagueFlag',                 id: 'leagueSelect',                   label: 'League' },
             { key: 'federationFlag',             id: 'federationSelect',              label: 'Federation' },
             { key: 'matchFlag',                  id: 'matchSelect',                   label: 'Match' },
             { key: 'eloPlayedMatchesFlag',       id: 'eloPlayedSelect',               label: 'ELO changes' },
@@ -8760,16 +9113,17 @@ self.onmessage = function (e) {
             { key: 'tacticsResultsFlag',         id: 'tacticsResultsFlagSelect',      label: 'Tactics results' },
             { key: 'transfersFilterFlag',        id: 'transfersFilterFlagSelect',     label: 'Transfers filter' },
             { key: 'transfersSellerFlag',        id: 'transfersSellerSelect',         label: 'Transfers seller' },
-            { key: 'transfersTaxFlag',        id: 'transfersTaxSelect',         label: 'Transfers tax' },
+            { key: 'transfersTaxFlag',           id: 'transfersTaxSelect',            label: 'Transfers tax' },
+            { key: 'tacticsSkillsResume',        id: 'tacticsSkillsResume',           label: 'Tactics skills resume' },
+            { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',           label: 'Teams financial data' },
         ];
 
         let html = '<div class="stx-modal">';
 
-        // Header
+
         html += `<div class="stx-header"><span>Stast Xente Script Config</span><button class="stx-close" id="stxClose">✕</button></div>`;
 
         // Update banner
-
         if(GM_getValue("available_new_version") === "yes") {
             html += `<div class="stx-update-banner">New version available: <strong>${GM_getValue("stx_latest_version")}</strong> — <button class="stx-btn stx-btn-blue" id="updateButton" style="padding:3px 10px;font-size:12px;"><i class="bi bi-arrow-down-circle-fill" style="font-style:normal;"> Update</i></button></div>`;
         }
@@ -8806,13 +9160,21 @@ self.onmessage = function (e) {
         html += `<label class="stx-checkitem"><input type="checkbox" id="tabsConfig" ${chk('tabsConfig')}> Tabs</label>`;
         html += '</div></div>'
 
+        //Transfer tax grid
         html += '<div><div class="stx-section-title">Transfer Tax Grid</div><div class="stx-checkrow">';
         html += `<label class="stx-checkitem"><input type="checkbox" id="transfer_grid_2" ${chk('transfer_grid_2')}> 2x2 Grid</label>`;
         html += `<label class="stx-checkitem"><input type="checkbox" id="transfer_grid_4" ${chk('transfer_grid_4')}> 1x4 Grid</label>`;
         html += '</div></div>'
 
+        //Tactic skills resume
+        html += '<div><div class="stx-section-title">Tactics Page</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="showSkillsResume" ${chk('showSkillsResume')}> Show skills resume</label>`;
+        html += '</div></div>'
 
-
+        //Teams financial market
+        html += '<div><div class="stx-section-title">Teams financial data</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="onlySinglePages" ${chk('onlySinglePages')}> Only on single pages</label>`;
+        html += '</div></div>'
 
         html +='</div>';
 
@@ -8833,7 +9195,6 @@ self.onmessage = function (e) {
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
 
-        // ── Listeners ──────────────────────────────────────────────────
 
         // Toggle modules
         overlay.querySelectorAll('.stx-toggle').forEach(label => {
@@ -8844,6 +9205,21 @@ self.onmessage = function (e) {
         document.getElementById('slider_input').addEventListener('input', function () {
             document.getElementById('sizeImageLeagueSpan').textContent = this.value;
             document.getElementById('testImage') && (document.getElementById('testImage').style.width = this.value + 'px');
+        });
+
+        //Grids
+        let grid2 = document.getElementById("transfer_grid_2");
+        let grid4 = document.getElementById("transfer_grid_4");
+        grid2.addEventListener("change", () => {
+            if (grid2.checked) {
+                grid4.checked = false;
+            }
+        });
+
+        grid4.addEventListener("change", () => {
+            if (grid4.checked) {
+                grid2.checked = false;
+            }
         });
 
         // Open/close modal
@@ -8866,6 +9242,8 @@ self.onmessage = function (e) {
             GM_setValue('tabsConfig',             document.getElementById('tabsConfig').checked);
             GM_setValue('transfer_grid_2',          document.getElementById('transfer_grid_2').checked);
             GM_setValue('transfer_grid_4',          document.getElementById('transfer_grid_4').checked);
+            GM_setValue('onlySinglePages',          document.getElementById('onlySinglePages').checked);
+            GM_setValue('showSkillsResume',          document.getElementById('showSkillsResume').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
             window.location.reload();
         });
@@ -9498,27 +9876,62 @@ self.onmessage = function (e) {
         bytes = new Blob([data]).size;
         console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
 
+        data = GM_getValue("TM_lastReset_teams_financial"+sport, "[]");
+        bytes = new Blob([data]).size;
+        console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
 
 
 
-        let lastReset = GM_getValue("TM_lastReset_"+sport, 0);
+
+
         let now = Date.now();
-        let ONE_DAY = 24 * 60 * 60 * 1000;
+        let TIME_LIMIT = 48 * 60 * 60 * 1000; //TWO days
+        let SIZE_LIMIT=200
         let playersSize = getSize("TMplayersData_"+sport);
         let teamsSize = getSize("TMteamsData_"+sport);
+        let teamsFinancialSize = getSize("TMplayersFinancesData_"+sport);
 
-        let shouldReset =
-            (now - lastReset > ONE_DAY) ||   // ha pasado 1 día
-            (playersSize > 150 * 1024) ||    // >150KB
-            (teamsSize > 150 * 1024);
-
-        if (shouldReset) {
+        //PLAYERS
+        let lastReset = GM_getValue("TM_lastReset_players"+sport, 0);
+        let shouldReset = (now - lastReset > TIME_LIMIT) || (playersSize > SIZE_LIMIT * 1024);
+        if (shouldReset) {SIZE_LIMIT
             GM_setValue("TMplayersData_"+sport, "[]");
-            GM_setValue("TMteamsData_"+sport, "[]");
-            GM_setValue("TM_lastReset_"+sport, now);
-            teamCache = new Map();
+            GM_setValue("TM_lastReset_players"+sport, now);
             playersCache = new Map();
         }
+
+        //TEAMS
+        lastReset = GM_getValue("TM_lastReset_teams"+sport, 0);
+        shouldReset = (now - lastReset > TIME_LIMIT) || (teamsSize > SIZE_LIMIT * 1024);
+        if (shouldReset) {SIZE_LIMIT
+            GM_setValue("TMteamsData_"+sport, "[]");
+            GM_setValue("TM_lastReset_teams"+sport, now);
+            teamCache = new Map();
+        }
+
+        //Teams Fianancial
+        lastReset = GM_getValue("TM_lastReset_teams_financial"+sport, 0);
+        shouldReset = (now - lastReset > TIME_LIMIT) || (teamsFinancialSize > SIZE_LIMIT * 1024);
+        if (shouldReset) {SIZE_LIMIT
+            GM_setValue("TMplayersFinancesData_"+sport, "[]");
+            GM_setValue("TM_lastReset_teams_financial"+sport, now);
+            teamFinancesCache = new Map();
+        }
+
+
+
+    }
+    function getFinanceColor(rating) {
+        const financesColors = {
+            A: '#2ecc71',
+            B: '#82cc2e',
+            C: '#f0d000',
+            D: '#f08c00',
+            E: '#e85d00',
+            F: '#e02020'
+        };
+        let level = rating?.charAt(0).toUpperCase();
+        return financesColors[level] ?? '#ccc';
     }
     async function getTeamInfo(tid) {
         if (teamCache.has(tid)) {
