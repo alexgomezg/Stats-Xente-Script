@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.204
+// @version      0.205
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -7814,7 +7814,8 @@ self.onmessage = function (e) {
         html += `<td style='padding: 5px 7px;'>${Math.round((totalSkillsSUM / totalPlayers) * 100) / 100}</td>`;
         html += "</tr>";
         html += "</tbody></table></center></div>";
-        document.getElementById("formation-container").innerHTML+=html
+        //document.getElementById("formation-container").innerHTML+=html
+        document.getElementById("formation-container").insertAdjacentHTML('beforeend', html);
         document.getElementById("moreInfo").addEventListener('click', function () {
             document.getElementById("moreInfo").classList.toggle('active');
 
@@ -7850,23 +7851,32 @@ self.onmessage = function (e) {
     function tactisSkillsResume(playersMap,sSkillNames){
         if(document.getElementById("skillsTable")){document.getElementById("skillsTable").remove()}
         let totalSkills = Array(12).fill(0);
-        let grandTotal=0
-        let playersNum=0;
+        let posBySkills = { st: Array(12).fill(0), mf: Array(12).fill(0), de: Array(12).fill(0), gk: Array(12).fill(0) };
+        let grandTotal = 0;
+        let playersNum = 0;
+        let playersByPos = { st: 0, mf: 0, de: 0, gk: 0 };
+
         const elements = document.querySelectorAll('[id*="drag_n_"]:not(.substitute)');
         elements.forEach(el => {
-            let id=el.id.replace("drag_n_","")
+            let id = el.id.replace("drag_n_", "");
+            let y_ = parseInt(el.style.top.replace("px", ""));
+
+            let pos = "mf";
+            if(y_ < 103) pos = "st";
+            if(y_ > 204) pos = "de";
+            if(y_ > 300) pos = "gk";
+
             let skills = playersMap.get(id).skills;
-            let cont=0;
             skills.forEach((val, i) => {
-                if(i<12){
+                if(i < 12){
                     totalSkills[i] += val;
-                    if(cont>0){
-                        grandTotal += val;
-                    }
-                    cont++;
+                    posBySkills[pos][i] += val;
+                    if(i > 0) grandTotal += val;
                 }
             });
+
             playersNum++;
+            playersByPos[pos]++;
         });
         let styleIcon = ""
         let styleSep = " style='display:none;'";
@@ -7880,25 +7890,39 @@ self.onmessage = function (e) {
         let html = "<div id='skillsTable'>"
         html+='<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
         html+="<div id='sep' "+styleSep+"></br></div>"
-
         html+="<center><table id='tableSkills' style='display:"+styleTable+"; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
-        let cont=0;
+
+        html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>Pos</td>`;
         sSkillNames.forEach(val => {
             html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>${val}</td>`;
-
         });
         html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>AVG</td>`;
+        html += "</tr></thead><tbody style='background-color:white;'>";
 
-        html += "</tr></thead><tbody style='background-color:white;'><tr>";
-        html += `<td style='padding: 5px 7px;'>${Math.round((totalSkills[0]/playersNum) * 100) / 100}</td>`;
-        for(let i=1;i<totalSkills.length;i++){
-            let val=totalSkills[i]
-            html += `<td style='padding: 5px 7px;'>${Math.round((val/playersNum) * 100) / 100}</td>`;
-        }
-        html += `<td style='padding: 5px 7px;'>${Math.round((grandTotal/playersNum) * 100) / 100}</td>`;
+        // Fila total
+        const posRows = [
+            { label: "Gk",    skills: posBySkills.gk, num: playersByPos.gk },
+            { label: "De",    skills: posBySkills.de, num: playersByPos.de },
+            { label: "Mf",    skills: posBySkills.mf, num: playersByPos.mf },
+            { label: "St",    skills: posBySkills.st, num: playersByPos.st },
+            { label: "AVG", skills: totalSkills, num: playersNum },
+        ];
 
-        html += "</tr></tbody></table></center></div>";
-        document.getElementById("formation-container").innerHTML+=html
+        posRows.forEach(({ label, skills, num }) => {
+            if(num === 0) return;
+            const rowGrandTotal = skills.slice(1).reduce((a, b) => a + b, 0);
+            html += "<tr>";
+            html += `<td style='padding: 5px 7px; font-weight:bold;'>${label}</td>`;
+            skills.forEach(val => {
+                html += `<td style='padding: 5px 7px;'>${Math.round((val / num) * 100) / 100}</td>`;
+            });
+            html += `<td style='padding: 5px 7px;'>${Math.round((rowGrandTotal / num) * 100) / 100}</td>`;
+            html += "</tr>";
+        });
+
+        html += "</tbody></table></center></div>";
+        //document.getElementById("formation-container").innerHTML+=html
+        document.getElementById("formation-container").insertAdjacentHTML('beforeend', html);
 
 
         if (GM_getValue("showSkillsResumeTemp") === true) {
