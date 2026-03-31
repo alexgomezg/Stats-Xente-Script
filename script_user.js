@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.202
+// @version      0.203
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -9064,7 +9064,7 @@ self.onmessage = function (e) {
             league_calendar_button: "checked", windowsConfig: true,
             tabsConfig: false, show_league_selects: true,
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
-            transfersTaxFlag:true,showSkillsResume:true,tacticsSkillsResume: true,teamsFinancialMarket:true,onlySinglePages:true
+            transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,onlySinglePages:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
