@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.203
+// @version      0.204
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -9876,7 +9876,7 @@ self.onmessage = function (e) {
         bytes = new Blob([data]).size;
         console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
 
-        data = GM_getValue("TM_lastReset_teams_financial"+sport, "[]");
+        data = GM_getValue("TMplayersFinancesData_"+sport, "[]");
         bytes = new Blob([data]).size;
         console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
 
