@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.205
+// @version      0.206
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -67,6 +67,7 @@
     let playersCache;
     let teamFinancesCache
     let isRunning = false;
+    //let currentGeneration = 0;
     /*let observer = new MutationObserver(() => {
         observer.disconnect();
         addTeamInfoMarket().finally(() => {
@@ -120,12 +121,13 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))&&(!urlParams.has('tid'))
             && (GM_getValue("playersFlag"))) {
             getDeviceFormat()
+            waitToDOM(taxOnSell, ".player_name", 0,7000)
             waitToDOM(playersPage, ".playerContainer", 0,7000)
             waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
 
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
-            waitToDOM(taxOnSell, ".player_name", 0,7000)
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
@@ -136,12 +138,13 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
             getDeviceFormat()
+            waitToDOM(taxOnSell, ".player_name", 0,7000)
             waitToDOM(playersPageStats, ".player_name", 0,7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
 
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
-            waitToDOM(taxOnSell, ".player_name", 0,7000)
+
 
         }
 
@@ -291,25 +294,34 @@
             };*/
 
             resetCache(window.sport)
-            getDeviceFormat()
-            addTeamInfoMarket().finally(() => {
-                const observer = new MutationObserver((mutations) => {
-                    const changed = mutations.some((mutation) =>
-                            mutation.addedNodes.length > 0 && (
-                                mutation.target.id === "players_container" ||
-                                [...mutation.addedNodes].some(node =>
-                                    node.classList && node.classList.contains("playerContainer")
-                                )
+            getDeviceFormat();
+            //addTeamInfoMarket()
+            const observer = new MutationObserver((mutations) => {
+                const changed = mutations.some((mutation) =>
+                        mutation.addedNodes.length > 0 && (
+                            mutation.target.id === "players_container" ||
+                            [...mutation.addedNodes].some(node =>
+                                    node.classList && (
+                                        node.classList.contains("playerContainer") ||
+                                        node.classList.contains("player_loading_div1")
+                                    )
+                            ) ||
+                            [...mutation.addedNodes].some(node =>
+                                node.querySelector?.('.player_loading_div1')
                             )
-                    );
-                    if (changed && !document.getElementById("players_container_stx")) {
-                        console.log("----Event----")
-                        addTeamInfoMarket();
-                    }
-                });
-                const el = document.getElementById("players_container");
-                if (el) observer.observe(el, { childList: true, subtree: true });
+                        )
+                );
+                if (changed && !document.getElementById("players_container_stx")) {
+                    console.log("----Event----")
+                    isRunning = false;
+                    //currentGeneration++;
+                    addTeamInfoMarket();
+                }
             });
+            const el = document.getElementById("players_container");
+            if (el) observer.observe(el, { childList: true, subtree: true });
+            //});
+            addTeamInfoMarket()
         }
 
 
@@ -320,19 +332,27 @@
         }
 
 
-        if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){
-            let elementos = document.querySelectorAll('.player_link'); //Adds stats icon in players page, when click on player info
-            elementos.forEach(function (elemento) {
-                elemento.addEventListener('click', function () {
-                    getDeviceFormat()
-                    waitToDOM(playersPageStats, ".player_name", 0,7000)
-                    waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
-                });
-            });
+        if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')){//Adds stats icon in players page, when click on player info
+            insertPlayersLinkEventListeners()
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'tactics')) {
+            playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
             processTacticSkillsData()
+
+
+            let observerTactics = new MutationObserver((mutations) => {
+                mutations.forEach(mutation => {
+                    insertPlayersLinkEventListeners()
+                });
+            });
+
+            observerTactics.observe(document.getElementById('playerInfoWindow'), {
+                attributes: true
+            });
+
+
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (urlParams.has('u'))&& (GM_getValue("teamsFinancialMarket"))) {
@@ -831,6 +851,19 @@
         }
     }
 
+    function insertPlayersLinkEventListeners(){
+        let elementos = document.querySelectorAll('.player_link');
+        elementos.forEach(function (elemento) {
+            elemento.addEventListener('click', function () {
+                getDeviceFormat()
+                waitToDOM(playersPageStats, ".player_name", 0,7000)
+                waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
+                waitToDOM(taxOnSell, ".player_name", 0,7000)
+
+            });
+        });
+    }
+
 
 //Workers
     const workerCode = `
@@ -895,10 +928,9 @@ self.onmessage = function (e) {
 `;
 
 //Seller info transfer market
-    async function processTMPlayer(el) {
-        if ((!GM_getValue("onlySinglePages"))&& (GM_getValue("teamsFinancialMarket"))){
-            insertFinancialData(el)
-        }
+    async function processTMPlayer(el,generation) {
+        //if (generation !== currentGeneration) return;
+
         let id_ = el.querySelector('span.player_id_span');
         let player_id=id_.textContent
         let divs = el.querySelectorAll('.floatRight.transfer-control-area');
@@ -916,14 +948,14 @@ self.onmessage = function (e) {
 
 
         let tasks = [];
-
+        //if (generation !== currentGeneration) return;
         //tasks.push(!document.getElementById("card_" + player_id) ? getDataPlayerTM(player_id) : null);
         tasks.push(
             (!document.getElementById("card_" + player_id) && GM_getValue("transfersTaxFlag"))
                 ? getDataPlayerTM(player_id)
                 : null
         );
-
+        //if (generation !== currentGeneration) return;
         tasks.push(
             (!document.getElementById("team_data_" + player_id) && GM_getValue("transfersSellerFlag"))
                 ? getTeamInfo(tid)
@@ -946,6 +978,7 @@ self.onmessage = function (e) {
         }
 
         let target=null
+        //if (generation !== currentGeneration) return;
         if (GM_getValue("transfersTaxFlag")) {
             if (!document.getElementById("card_" + player_id)) {
                 let original = divs_dark[2];
@@ -963,12 +996,16 @@ self.onmessage = function (e) {
             }
         }
 
+        if ((!GM_getValue("onlySinglePages"))&& (GM_getValue("teamsFinancialMarket"))){
+            //await insertFinancialData(el)
+            tasks.push(insertFinancialData(el))
+        }
 
-
-        const [player_data, jsonResponse] = await Promise.all(tasks);
+        const [player_data, jsonResponse,economic_flags] = await Promise.all(tasks);
 
 
 //DIVISION DATA
+        //if (generation !== currentGeneration) return;
         if (GM_getValue("transfersSellerFlag")) {
             if (!document.getElementById("team_data_" + player_id)) {
 
@@ -1005,6 +1042,7 @@ self.onmessage = function (e) {
         }
 
 ///BOTON
+        //if (generation !== currentGeneration) return;
         if (!divs_dark[1].querySelector("#but_stx_" + player_id)) {
             let container1 = divs_dark[1];
             let table1 = container1.querySelector('table');
@@ -1026,7 +1064,7 @@ self.onmessage = function (e) {
         }
 
 
-
+        //if (generation !== currentGeneration) return;
         if (GM_getValue("transfersTaxFlag")) {
             //let original = divs_dark[2];
             if (!document.getElementById("card_" + player_id)) {
@@ -1087,16 +1125,28 @@ self.onmessage = function (e) {
 
                 }
 
-                let tax = (venta - player_data['purchase_price']) * tax_rate
+                let compra=player_data['purchase_price']
+                if(compra==0){compra=player_data['value']}
+                /*let tax=(venta-compra)*tax_rate
+                let profit=(venta-player_data['purchase_price'])-fee-tax
+                let gross_profit=venta-tax-fee*/
+
+                let tax = (venta - compra) * tax_rate
                 let profit = (venta - player_data['purchase_price']) - fee - tax
                 let gross_profit = venta - tax - fee
+
+                /*let tax = (venta - player_data['purchase_price']) * tax_rate
+                let profit = (venta - player_data['purchase_price']) - fee - tax
+                let gross_profit = venta - tax - fee*/
                 if (profit < 0) {
                     gross_profit = venta - fee
                 }
-                let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit), tax_rate, Math.round(gross_profit));
+                let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit),
+                    tax_rate, Math.round(gross_profit),player_data['value']);
                 target.innerHTML = html;
             }
         }
+        //if (generation !== currentGeneration) return;
         if (!divs_dark[1].querySelector("#but_stx_" + player_id)) {
 
             (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
@@ -1113,12 +1163,16 @@ self.onmessage = function (e) {
 
     }
     async function addTeamInfoMarket() {
-        console.log("----START----")
+        if(document.querySelector(".player_loading_div")!==null){
+            return;
+        }
+        let myGeneration = 0
+        console.log("START")
+        //isRunning = false;
         if (isRunning) return;
         isRunning = true;
         await waitForElement('.playerContainer', 5000);
-
-
+        //if (myGeneration !== currentGeneration) return;
         let elements = document.getElementById("players_container").querySelectorAll('.playerContainer')
         if(document.getElementById("players_container_stx")){
             document.querySelectorAll('[id^="team_data_"], [id^="card_"]').forEach(el => el.remove());
@@ -1126,12 +1180,12 @@ self.onmessage = function (e) {
 
         }
         elements = Array.from(elements);
-        const CHUNK_SIZE = 5;
+        const CHUNK_SIZE = 5
 
         for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
             const chunk = elements.slice(i, i + CHUNK_SIZE);
             await Promise.allSettled(
-                chunk.map(el => processTMPlayer(el).catch(err =>
+                chunk.map(el => processTMPlayer(el,myGeneration).catch(err =>
                     console.error("Error procesando jugador:", err)
                 ))
             );
@@ -7444,8 +7498,15 @@ self.onmessage = function (e) {
 
     } // acaba aqui
 //Tax boxex
-    function renderTaxBoxes(fee_, compra_, venta_, dias,tax_,all_taxes_,profit_,tax_rate,gross_) {
+    function renderTaxBoxes(fee_, compra_, venta_, dias,tax_,all_taxes_,profit_,tax_rate,gross_,value_) {
         let disp="block";
+
+
+        if(tax_<0){
+            tax_=0
+            all_taxes_=fee_
+        }
+
         if(venta_==0){
             disp="none"
         }
@@ -7469,6 +7530,8 @@ self.onmessage = function (e) {
             classg_="pc-danger"
         }
 
+
+
         let compra=compra_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
         let venta=venta_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
         let fee=fee_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
@@ -7476,6 +7539,15 @@ self.onmessage = function (e) {
         let all_taxes=all_taxes_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
         let profit=profit_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
         let gross=gross_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+
+        let value=value_.toLocaleString('es-ES').replace(/\./g, ' ')+" "+GM_getValue("currency")
+
+        let txt="Purchase Price"
+        let compra_val=compra
+        if(compra_==0){
+            txt="Value"
+            compra_val=value
+        }
 
 
         if(compra_===0){dias="All Carreer"}
@@ -7497,8 +7569,8 @@ self.onmessage = function (e) {
             </div>
             <div class="pc-grid">
                 <div class="pc-metric">
-                    <div class="pc-metric-label">Purchase Price</div>
-                    <div class="pc-metric-value" id="pc-compra">${compra}</div>
+                    <div class="pc-metric-label">${txt}</div>
+                    <div class="pc-metric-value" id="pc-compra">${compra_val}</div>
                 </div>
                 <div class="pc-metric">
                     <div class="pc-metric-label">Sell Price</div>
@@ -7601,8 +7673,19 @@ self.onmessage = function (e) {
     function taxOnSell(){
         let spans = document.querySelectorAll(".player_icon_placeholder.sell_player");
         spans.forEach(span => {
-            span.addEventListener('click', function() {
-                setTimeout(async() => {
+            span.addEventListener('click', async function() {
+                //setTimeout(async() => {
+                await waitForElement("#sellPlayer",5000)
+                let form = document.getElementById('sellPlayer');
+                let action = form?.getAttribute('action');
+                let pid = null;
+                if (action) {
+                    let url = new URL(action, window.location.origin);
+                    pid = url.searchParams.get('pid');
+                }
+                let player_data= await getDataPlayerTM(pid)
+
+                document.getElementById('startbid').addEventListener('keyup', function(e) {
                     let form = document.getElementById('sellPlayer');
                     let action = form?.getAttribute('action');
                     let pid = null;
@@ -7610,36 +7693,28 @@ self.onmessage = function (e) {
                         let url = new URL(action, window.location.origin);
                         pid = url.searchParams.get('pid');
                     }
-                    let player_data= await getDataPlayerTM(pid)
-
-                    document.getElementById('startbid').addEventListener('keyup', function(e) {
-                        let form = document.getElementById('sellPlayer');
-                        let action = form?.getAttribute('action');
-                        let pid = null;
-                        if (action) {
-                            let url = new URL(action, window.location.origin);
-                            pid = url.searchParams.get('pid');
-                        }
-                        let table = form?.querySelector('table');
-                        let rows = table.querySelectorAll('tr');
-                        let fifthRow = rows[4];
-                        let tds = fifthRow?.querySelectorAll('td');
-                        let fee=parseInt(document.getElementById('fee_startbid').value)
-                        let tax_rate=document.getElementById('tax_rate').textContent.replace("%","")
-                        tax_rate=parseFloat(tax_rate)
-                        tax_rate=tax_rate/100
-                        let venta=parseFloat(document.getElementById('startbid').value)
-                        let tax=(venta-player_data['purchase_price'])*tax_rate
-                        let profit=(venta-player_data['purchase_price'])-fee-tax
-                        let gross_profit=venta-tax-fee
-                        if(profit<0){gross_profit=venta-fee}
-                        let html_=renderTaxBoxes(Math.round(fee),player_data['purchase_price'],venta,player_data['days'],Math.round(tax),
-                            Math.round(tax+fee),Math.round(profit),tax_rate,Math.round(gross_profit));
-                        let html ="<div id='tax_data'>"+html_+"</div>"
-                        if(document.getElementById('tax_data')){document.getElementById('tax_data').remove()}
-                        tds[0].innerHTML=html+tds[0].innerHTML
-                    });
-                }, 1000);
+                    let table = form?.querySelector('table');
+                    let rows = table.querySelectorAll('tr');
+                    let fifthRow = rows[4];
+                    let tds = fifthRow?.querySelectorAll('td');
+                    let fee=parseInt(document.getElementById('fee_startbid').value)
+                    let tax_rate=document.getElementById('tax_rate').textContent.replace("%","")
+                    tax_rate=parseFloat(tax_rate)
+                    tax_rate=tax_rate/100
+                    let venta=parseFloat(document.getElementById('startbid').value)
+                    let compra=player_data['purchase_price']
+                    if(compra==0){compra=player_data['value']}
+                    let tax=(venta-compra)*tax_rate
+                    let profit=(venta-player_data['purchase_price'])-fee-tax
+                    let gross_profit=venta-tax-fee
+                    if(profit<0){gross_profit=venta-fee}
+                    let html_=renderTaxBoxes(Math.round(fee),player_data['purchase_price'],venta,player_data['days'],Math.round(tax),
+                        Math.round(tax+fee),Math.round(profit),tax_rate,Math.round(gross_profit),player_data['value']);
+                    let html ="<div id='tax_data'>"+html_+"</div>"
+                    if(document.getElementById('tax_data')){document.getElementById('tax_data').remove()}
+                    tds[0].innerHTML=html+tds[0].innerHTML
+                });
+                //}, 1000);
 
 
             });
@@ -7896,7 +7971,7 @@ self.onmessage = function (e) {
         sSkillNames.forEach(val => {
             html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>${val}</td>`;
         });
-        html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>AVG</td>`;
+        html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>SUM</td>`;
         html += "</tr></thead><tbody style='background-color:white;'>";
 
         // Fila total
@@ -7905,7 +7980,7 @@ self.onmessage = function (e) {
             { label: "De",    skills: posBySkills.de, num: playersByPos.de },
             { label: "Mf",    skills: posBySkills.mf, num: playersByPos.mf },
             { label: "St",    skills: posBySkills.st, num: playersByPos.st },
-            { label: "AVG", skills: totalSkills, num: playersNum },
+            { label: "All",   skills: totalSkills, num: playersNum },
         ];
 
         posRows.forEach(({ label, skills, num }) => {
@@ -8565,7 +8640,6 @@ self.onmessage = function (e) {
 
 
         return new Promise((resolve, reject) => {
-
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://www.managerzone.com/?p=players&pid="+id,
@@ -8610,6 +8684,13 @@ self.onmessage = function (e) {
                         ?.textContent
                         ?.trim();
 
+                    let value = [5, 6, 7]
+                        .map(n => doc.querySelector(`.dg_playerview_info.soccer table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim())
+                        .find(Boolean);
+                    value=value.replace(GM_getValue("currency"),"")
+                    value=value.replace(/\s+/g, '');
+                    value=parseInt(value)
+
 
                     let fechaStr = tds[0].textContent.trim();
                     let [dia, mes, año] = fechaStr.split('-');
@@ -8617,7 +8698,7 @@ self.onmessage = function (e) {
                     let hoy = new Date();
                     let diff = hoy - fecha;
                     let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    let data={"age":age,"days":days,"purchase_price":price}
+                    let data={"age":age,"days":days,"purchase_price":price,"value":value}
                     playersCache.set(id,data)
                     resolve(data);
                 }
@@ -9892,9 +9973,15 @@ self.onmessage = function (e) {
         return bytes;
     }
     function resetCache(sport){
+
         let data = GM_getValue("TMplayersData_"+sport, "[]");
         let bytes = new Blob([data]).size;
         console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
+
+        //DELETE ON NEXT VERSIONS
+        if(!data.includes('"value":')){
+            GM_setValue("TMplayersData_"+sport, "[]");
+        }
 
         data = GM_getValue("TMteamsData_"+sport, "[]");
         bytes = new Blob([data]).size;
@@ -9903,8 +9990,6 @@ self.onmessage = function (e) {
         data = GM_getValue("TMplayersFinancesData_"+sport, "[]");
         bytes = new Blob([data]).size;
         console.log(`Size: ${bytes} bytes / ${(bytes / 1024).toFixed(2)} KB`);
-
-
 
 
 
