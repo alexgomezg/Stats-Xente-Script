@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.210
+// @version      0.211
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -89,13 +89,13 @@
     /// FUNCTIONS MENU
     setTimeout(function () {
 
-        /*document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'l') {
                 e.preventDefault();
                 console.log("Disparado")
                 addTeamInfoMarket();
             }
-        });*/
+        });
 
 
 
@@ -927,249 +927,252 @@ self.onmessage = function (e) {
 
 //Seller info transfer market
     async function processTMPlayer(el,generation) {
-        ///CHECK DUPLICATES
-        if (el.querySelector('[id*="hp_loader"]')?.innerHTML.trim()){
-            //el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
-            return;
-        }
+        try {
+            ///CHECK DUPLICATES
+            if (el.querySelector('[id*="hp_loader"]')?.innerHTML.trim()){
+                //el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
+                return;
+            }
 
-        let id_ = el.querySelector('span.player_id_span');
-        let player_id=id_.textContent
-        let divs = el.querySelectorAll('.floatRight.transfer-control-area');
-        let divs_dark = divs[0].querySelectorAll('.box_dark');
-        let tables = divs_dark[0].querySelectorAll('table');
-        let trs = tables[0].querySelectorAll('tr');
-        let tds=trs[2].querySelectorAll('td');
-        let link = tds[1].querySelector('a');
-        let href = link ? link.getAttribute('href') : null;
-        let url = new URL(href, window.location.origin);
-        let tid = url.searchParams.get('tid');
-        let team_name=tds[1].textContent.trim()
-        let names_ = el.querySelectorAll('.player_name');
-        let player_name = names_[0].textContent.trim()
+            let id_ = el.querySelector('span.player_id_span');
+            let player_id=id_.textContent
+            let divs = el.querySelectorAll('.floatRight.transfer-control-area');
+            let divs_dark = divs[0].querySelectorAll('.box_dark');
+            let tables = divs_dark[0].querySelectorAll('table');
+            let trs = tables[0].querySelectorAll('tr');
+            let tds=trs[2].querySelectorAll('td');
+            let link = tds[1].querySelector('a');
+            let href = link ? link.getAttribute('href') : null;
+            let url = new URL(href, window.location.origin);
+            let tid = url.searchParams.get('tid');
+            let team_name=tds[1].textContent.trim()
+            let names_ = el.querySelectorAll('.player_name');
+            let player_name = names_[0].textContent.trim()
 
 
-        let tasks = [];
-        //if (generation !== currentGeneration) return;
-        //tasks.push(!document.getElementById("card_" + player_id) ? getDataPlayerTM(player_id) : null);
-        tasks.push(
-            (!document.getElementById("card_" + player_id) && GM_getValue("transfersTaxFlag"))
-                ? getDataPlayerTM(player_id)
-                : null
-        );
-        //if (generation !== currentGeneration) return;
-        tasks.push(
-            (!document.getElementById("team_data_" + player_id) && GM_getValue("transfersSellerFlag"))
-                ? getTeamInfo(tid)
-                : null
-        );
-        //tasks.push(!document.getElementById("team_data_" + player_id) ? getTeamInfo(tid) : null);
-        if (GM_getValue("transfersSellerFlag")) {
-            if (!document.getElementById("team_data_" + player_id)) {
-                divs_dark[0].style.height = "10em";
-                let loaderDiv = document.createElement('center');
-                loaderDiv.innerHTML = `
+            let tasks = [];
+            //if (generation !== currentGeneration) return;
+            //tasks.push(!document.getElementById("card_" + player_id) ? getDataPlayerTM(player_id) : null);
+            tasks.push(
+                (!document.getElementById("card_" + player_id) && GM_getValue("transfersTaxFlag"))
+                    ? getDataPlayerTM(player_id)
+                    : null
+            );
+            //if (generation !== currentGeneration) return;
+            tasks.push(
+                (!document.getElementById("team_data_" + player_id) && GM_getValue("transfersSellerFlag"))
+                    ? getTeamInfo(tid)
+                    : null
+            );
+            //tasks.push(!document.getElementById("team_data_" + player_id) ? getTeamInfo(tid) : null);
+            if (GM_getValue("transfersSellerFlag")) {
+                if (!document.getElementById("team_data_" + player_id)) {
+                    divs_dark[0].style.height = "10em";
+                    let loaderDiv = document.createElement('center');
+                    loaderDiv.innerHTML = `
   <div id='hp_loader_${player_id}'>
     <div style='text-align:center;'><b>Loading...</b></div>
     <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%;'></div>
   </div>
 `;
-                divs_dark[0].appendChild(loaderDiv);
+                    divs_dark[0].appendChild(loaderDiv);
 
+                }
             }
-        }
 
-        let target=null
-        //if (generation !== currentGeneration) return;
-        if (GM_getValue("transfersTaxFlag")) {
-            if (!document.getElementById("card_" + player_id)) {
-                let original = divs_dark[2];
-                target = original.cloneNode(true);
-                let html = `<center>
+            let target=null
+            //if (generation !== currentGeneration) return;
+            if (GM_getValue("transfersTaxFlag")) {
+                if (!document.getElementById("card_" + player_id)) {
+                    let original = divs_dark[2];
+                    target = original.cloneNode(true);
+                    let html = `<center>
   <div id='hp_loader_card_${player_id}'>
     <div style='text-align:center;'><b>Loading...</b></div>
     <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%;'></div>
   </div></center>
 `;
-                target.innerHTML = html;
-                target.style.height = "25%"
-                divs_dark[divs_dark.length - 1].after(target)
+                    target.innerHTML = html;
+                    target.style.height = "25%"
+                    divs_dark[divs_dark.length - 1].after(target)
 
+                }
             }
-        }
+            if ((!GM_getValue("onlySinglePages"))&& (GM_getValue("teamsFinancialMarket"))){
+                //await insertFinancialData(el)
+                tasks.push(insertFinancialData(el))
+            }
 
-        if ((!GM_getValue("onlySinglePages"))&& (GM_getValue("teamsFinancialMarket"))){
-            //await insertFinancialData(el)
-            tasks.push(insertFinancialData(el))
-        }
-
-        const [player_data, jsonResponse,economic_flags] = await Promise.all(tasks);
+            const [player_data, jsonResponse,economic_flags] = await Promise.all(tasks);
 
 
 //DIVISION DATA
-        //if (generation !== currentGeneration) return;
-        if (GM_getValue("transfersSellerFlag")) {
-            if (!document.getElementById("team_data_" + player_id)) {
+            //if (generation !== currentGeneration) return;
+            if (GM_getValue("transfersSellerFlag")) {
+                if (!document.getElementById("team_data_" + player_id)) {
 
 
-                //let jsonResponse = await getTeamInfo(tid)
+                    //let jsonResponse = await getTeamInfo(tid)
 
 
-                let clonedRow = trs[2].cloneNode(true);
-                let clonedRow1 = trs[2].cloneNode(true);
-                let tdsClone = clonedRow.querySelectorAll('td');
-                tdsClone[0].textContent = "Division";
-                tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
-                tdsClone[1].style.fontWeight = "bold";
-                let tdsClone1 = clonedRow1.querySelectorAll('td');
-                tdsClone1[0].textContent = "Username";
-                tdsClone1[1].innerHTML = `
+                    let clonedRow = trs[2].cloneNode(true);
+                    let clonedRow1 = trs[2].cloneNode(true);
+                    let tdsClone = clonedRow.querySelectorAll('td');
+                    tdsClone[0].textContent = "Division";
+                    tdsClone[1].innerHTML = `<a href="?p=league&type=senior&sid=${jsonResponse['league_id']}" target="_blank">${jsonResponse['league_name']}</a> (${jsonResponse['pos']}º - ${jsonResponse['points']} pts)`;
+                    tdsClone[1].style.fontWeight = "bold";
+                    let tdsClone1 = clonedRow1.querySelectorAll('td');
+                    tdsClone1[0].textContent = "Username";
+                    tdsClone1[1].innerHTML = `
                 <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
                     <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
                     <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
                 </div>
             `;
-                trs[2].before(clonedRow1);
-                trs[2].after(clonedRow);
-                if (document.getElementById("hp_loader_" + player_id)) {
-                    document.getElementById("hp_loader_" + player_id).remove()
-                }
-                if (window.stx_device === "computer") {
-                    divs_dark[0].style.height = "8em";
-                } else {
-                    divs_dark[0].style.height = "9em";
-                }
+                    trs[2].before(clonedRow1);
+                    trs[2].after(clonedRow);
+                    if (document.getElementById("hp_loader_" + player_id)) {
+                        document.getElementById("hp_loader_" + player_id).remove()
+                    }
+                    if (window.stx_device === "computer") {
+                        divs_dark[0].style.height = "8em";
+                    } else {
+                        divs_dark[0].style.height = "9em";
+                    }
 
+                }
             }
-        }
 
 ///BOTON
-        //if (generation !== currentGeneration) return;
-        if (!divs_dark[1].querySelector("#but_stx_" + player_id)) {
-            let container1 = divs_dark[1];
-            let table1 = container1.querySelector('table');
-            let firstRow1 = table1.querySelector('tr');
-            let tds11 = firstRow1.querySelectorAll('td');
-            let secondTd11 = tds11[4];
-            let span11 = secondTd11.querySelector('span');
-            let newSpan = document.createElement('span');
-            /*let clonedSpan1 = span11.cloneNode(true);*/
-            newSpan.innerHTML = `<span id="but_stx_${player_id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
+            //if (generation !== currentGeneration) return;
+            if (!divs_dark[1].querySelector("#but_stx_" + player_id)) {
+                let container1 = divs_dark[1];
+                let table1 = container1.querySelector('table');
+                let firstRow1 = table1.querySelector('tr');
+                let tds11 = firstRow1.querySelectorAll('td');
+                let secondTd11 = tds11[4];
+                let span11 = secondTd11.querySelector('span');
+                let newSpan = document.createElement('span');
+                /*let clonedSpan1 = span11.cloneNode(true);*/
+                newSpan.innerHTML = `<span id="but_stx_${player_id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
             title="Stats Xente" class="player_icon">
             <span class="player_icon_wrapper"><span class="player_icon_image"
             style="background-image: url('https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png');
             width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
-            newSpan.className = "player_icon_placeholder training_graphs1 "+window.sport;
-            span11.after(newSpan);
+                newSpan.className = "player_icon_placeholder training_graphs1 "+window.sport;
+                span11.after(newSpan);
 
 
-            if (divs_dark[1].querySelector("#but_stx_" + player_id)) {
+                if (divs_dark[1].querySelector("#but_stx_" + player_id)) {
 
-                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                    el.querySelector("#but_stx_" + currentId).addEventListener('click', function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
-                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
-                            + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                        openWindow(link, 0.95, 1.25);
-                    });
-                })(player_id, tid, window.sport, window.lang, team_name, player_name);
+                    (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                        el.querySelector("#but_stx_" + currentId).addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                                + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
+                                + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                            openWindow(link, 0.95, 1.25);
+                        });
+                    })(player_id, tid, window.sport, window.lang, team_name, player_name);
+
+                }
+
 
             }
 
 
-        }
-
-
-        //if (generation !== currentGeneration) return;
-        if (GM_getValue("transfersTaxFlag")) {
-            //let original = divs_dark[2];
-            if (!document.getElementById("card_" + player_id)) {
-                //let player_data=await getDataPlayerTM(player_id)
-                //let target = original.cloneNode(true);
-                let rows2 = divs_dark[0].querySelectorAll('tr');
-                let targetRow = Array.from(rows2)
-                    .slice(2)
-                    .find(row => row.textContent.includes(GM_getValue("currency")));
-                let base_price = targetRow
-                    ?.querySelectorAll('td')[1]
-                    ?.textContent
-                    ?.trim();
-                base_price = base_price.replace(/\s/g, "").replace(GM_getValue("currency"), "");
-                let fee = base_price * 0.0125
-                if (fee < 101) fee = 101
-                if (fee > 5000) fee = 5000
+            //if (generation !== currentGeneration) return;
+            if (GM_getValue("transfersTaxFlag")) {
+                //let original = divs_dark[2];
+                if (!document.getElementById("card_" + player_id)) {
+                    //let player_data=await getDataPlayerTM(player_id)
+                    //let target = original.cloneNode(true);
+                    let rows2 = divs_dark[0].querySelectorAll('tr');
+                    let targetRow = Array.from(rows2)
+                        .slice(2)
+                        .find(row => row.textContent.includes(GM_getValue("currency")));
+                    let base_price = targetRow
+                        ?.querySelectorAll('td')[1]
+                        ?.textContent
+                        ?.trim();
+                    base_price = base_price.replace(/\s/g, "").replace(GM_getValue("currency"), "");
+                    let fee = base_price * 0.0125
+                    if (fee < 101) fee = 101
+                    if (fee > 5000) fee = 5000
 
 
 
-                target.style.height = "100%"
-                target.style.backgroundColor = "transparent"
-                target.style.border = "0px"
-                target.style.padding = "0px"
-                target.id = "card_" + player_id
+                    target.style.height = "100%"
+                    target.style.backgroundColor = "transparent"
+                    target.style.border = "0px"
+                    target.style.padding = "0px"
+                    target.id = "card_" + player_id
 
-                let table1 = divs_dark[1].querySelector('table');
-                let rows1 = table1.querySelectorAll('tr');
-                let innerTable = rows1[0].querySelector('table');
-                rows1 = innerTable.querySelectorAll('tr');
-                let venta = parseFloat(rows1[0].querySelectorAll('td')[1].textContent.replace(/\s/g, "").replace(GM_getValue("currency"), ""));
+                    let table1 = divs_dark[1].querySelector('table');
+                    let rows1 = table1.querySelectorAll('tr');
+                    let innerTable = rows1[0].querySelector('table');
+                    rows1 = innerTable.querySelectorAll('tr');
+                    let venta = parseFloat(rows1[0].querySelectorAll('td')[1].textContent.replace(/\s/g, "").replace(GM_getValue("currency"), ""));
 
-                let tax_rate = 1
-                if (player_data['price'] == 0) {
-                    let age = player_data['age']
-                    if (age <= 20) {
-                        tax_rate = 0.20
+                    let tax_rate = 1
+                    if (player_data['price'] == 0) {
+                        let age = player_data['age']
+                        if (age <= 20) {
+                            tax_rate = 0.20
+                        }
+                        if (age <= 19) {
+                            tax_rate = 0.25
+                        }
+                        if (age > 20) {
+                            tax_rate = 0.15
+                        }
+
+                    } else {
+                        let days = player_data['days']
+                        if (days <= 70) {
+                            tax_rate = 0.50
+                        }
+                        if (days <= 28) {
+                            tax_rate = 0.95
+                        }
+                        if (days > 70) {
+                            tax_rate = 0.15
+                        }
+
+
                     }
-                    if (age <= 19) {
-                        tax_rate = 0.25
-                    }
-                    if (age > 20) {
-                        tax_rate = 0.15
-                    }
 
-                } else {
-                    let days = player_data['days']
-                    if (days <= 70) {
-                        tax_rate = 0.50
-                    }
-                    if (days <= 28) {
-                        tax_rate = 0.95
-                    }
-                    if (days > 70) {
-                        tax_rate = 0.15
-                    }
+                    let compra=player_data['purchase_price']
+                    if(compra==0){compra=player_data['value']}
+                    /*let tax=(venta-compra)*tax_rate
+                    let profit=(venta-player_data['purchase_price'])-fee-tax
+                    let gross_profit=venta-tax-fee*/
 
+                    let tax = (venta - compra) * tax_rate
+                    if(tax<0){tax=0}
+                    let profit = (venta - player_data['purchase_price']) - fee - tax
+                    let gross_profit = venta - tax - fee
 
+                    /*let tax = (venta - player_data['purchase_price']) * tax_rate
+                    let profit = (venta - player_data['purchase_price']) - fee - tax
+                    let gross_profit = venta - tax - fee*/
+                    if (profit < 0) {
+                        gross_profit = venta - fee
+                    }
+                    let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit),
+                        tax_rate, Math.round(gross_profit),player_data['value']);
+                    target.innerHTML = html;
                 }
-
-                let compra=player_data['purchase_price']
-                if(compra==0){compra=player_data['value']}
-                /*let tax=(venta-compra)*tax_rate
-                let profit=(venta-player_data['purchase_price'])-fee-tax
-                let gross_profit=venta-tax-fee*/
-
-                let tax = (venta - compra) * tax_rate
-                if(tax<0){tax=0}
-                let profit = (venta - player_data['purchase_price']) - fee - tax
-                let gross_profit = venta - tax - fee
-
-                /*let tax = (venta - player_data['purchase_price']) * tax_rate
-                let profit = (venta - player_data['purchase_price']) - fee - tax
-                let gross_profit = venta - tax - fee*/
-                if (profit < 0) {
-                    gross_profit = venta - fee
-                }
-                let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit),
-                    tax_rate, Math.round(gross_profit),player_data['value']);
-                target.innerHTML = html;
             }
+
+
+            ///CHECK DUPLICATES
+            el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
+        } catch (error) {
+            el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
+            console.error(error);
         }
-
-
-        ///CHECK DUPLICATES
-        el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
-
 
 
     }
@@ -1201,6 +1204,8 @@ self.onmessage = function (e) {
                     console.error("Error procesando jugador:", err)
                 ))
             );
+            /* GM_setValue("TMplayersData_" + window.sport, JSON.stringify([...playersCache]));
+             GM_setValue("TMteamsData_" + window.sport, JSON.stringify([...teamCache]));*/
         }
 
         GM_setValue("TMplayersData_"+window.sport, JSON.stringify([...playersCache]));
@@ -8694,7 +8699,7 @@ self.onmessage = function (e) {
                         ?.trim();
 
                     let value = [5, 6, 7]
-                        .map(n => doc.querySelector(`.dg_playerview_info.soccer table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim())
+                        .map(n => doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim())
                         .find(Boolean);
                     value=value.replace(GM_getValue("currency"),"")
                     value=value.replace(/\s+/g, '');
