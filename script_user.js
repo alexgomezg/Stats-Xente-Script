@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.209
+// @version      0.210
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -8668,20 +8668,16 @@ self.onmessage = function (e) {
                     let doc = parser.parseFromString(response.responseText, "text/html");
 
                     let divs = doc.querySelectorAll('.win_back');
-                    // 2. Filtrar los que tienen tabla
                     let withTable = Array.from(divs).filter(div =>
                         div.querySelector('table')
                     );
 
-                    // 3. Último de esos divs
                     let lastDiv = withTable[withTable.length - 1];
                     let hasCurrency =lastDiv?.querySelector('thead').textContent?.includes(GM_getValue("currency"));
                     if(!hasCurrency){
                         lastDiv = withTable[withTable.length - 2];
                     }
                     if (!lastDiv) return resolve(null);
-
-                    // 4. Tabla dentro
                     let table = lastDiv.querySelector('table');
                     let rows = table.querySelectorAll('tr');
                     let lastRow = rows[rows.length - 1];
@@ -9307,6 +9303,7 @@ self.onmessage = function (e) {
         html += '<button class="stx-btn stx-btn-green" id="saveButton"><i class="bi bi-house-door-fill" style="font-style:normal;"> Save</i></button>';
         html += '<a href="https://www.managerzone.com/?p=forum&sub=topic&topic_id=13032964&forum_id=10&sport=soccer" target="_blank"><button class="stx-btn stx-btn-blue"><i class="bi bi-eye-fill" style="font-style:normal;"> Details</i></button></a>';
         html += '<button class="stx-btn stx-btn-orange" id="reloadSelects"><i class="bi bi-arrow-clockwise" style="font-style:normal;"> Reload Selects</i></button>';
+        html += '<button class="stx-btn stx-btn-orange" id="resetDB"><i class="bi bi-database-fill" style="font-style:normal;"> Reset Database</i></button>';
         html += '<button class="stx-btn stx-btn-red" id="deleteButton"><i class="bi bi-trash-fill" style="font-style:normal;"> Reset</i></button>';
         html += '</div></div>';
 
@@ -9363,6 +9360,21 @@ self.onmessage = function (e) {
             GM_setValue('onlySinglePages',          document.getElementById('onlySinglePages').checked);
             GM_setValue('showSkillsResume',          document.getElementById('showSkillsResume').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
+            window.location.reload();
+        });
+
+        // Reset DB
+        document.getElementById('resetDB').addEventListener('click', () => {
+            let now = Date.now();
+            GM_setValue("TMplayersData_"+sport, "[]");
+            GM_setValue("TM_lastReset_players"+sport, now);
+
+            GM_setValue("TMteamsData_"+sport, "[]");
+            GM_setValue("TM_lastReset_teams"+sport, now);
+
+            GM_setValue("TMplayersFinancesData_"+sport, "[]");
+            GM_setValue("TM_lastReset_teams_financial"+sport, now);
+            teamFinancesCache = new Map();
             window.location.reload();
         });
 
