@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.206
+// @version      0.207
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -133,6 +133,7 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
             getDeviceFormat()
             waitToDOM(playersPageStatsAll, ".player_name", 0,7000)
+
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
         }
 
@@ -140,6 +141,7 @@
             getDeviceFormat()
             waitToDOM(taxOnSell, ".player_name", 0,7000)
             waitToDOM(playersPageStats, ".player_name", 0,7000)
+            console.log("aaa")
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
 
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
@@ -313,8 +315,6 @@
                 );
                 if (changed && !document.getElementById("players_container_stx")) {
                     console.log("----Event----")
-                    isRunning = false;
-                    //currentGeneration++;
                     addTeamInfoMarket();
                 }
             });
@@ -339,19 +339,6 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'tactics')) {
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
             processTacticSkillsData()
-
-
-            let observerTactics = new MutationObserver((mutations) => {
-                mutations.forEach(mutation => {
-                    insertPlayersLinkEventListeners()
-                });
-            });
-
-            observerTactics.observe(document.getElementById('playerInfoWindow'), {
-                attributes: true
-            });
-
-
 
         }
 
@@ -852,16 +839,34 @@
     }
 
     function insertPlayersLinkEventListeners(){
-        let elementos = document.querySelectorAll('.player_link');
-        elementos.forEach(function (elemento) {
-            elemento.addEventListener('click', function () {
-                getDeviceFormat()
-                waitToDOM(playersPageStats, ".player_name", 0,7000)
-                waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
-                waitToDOM(taxOnSell, ".player_name", 0,7000)
 
-            });
+        /* let elementos = document.querySelectorAll('.player_link');
+         elementos.forEach(function (elemento) {
+             elemento.addEventListener('click', function () {
+                 getDeviceFormat()
+                 waitToDOM(playersPageStats, ".player_name", 0,7000)
+                 waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
+                 waitToDOM(taxOnSell, ".player_name", 0,7000)
+
+             });
+         });*/
+
+        document.addEventListener('click', (e) => {
+            let player = e.target.closest('.player_link');
+
+            if (!player) return; // no es un elemento que nos interesa
+
+            //e.preventDefault(); // opcional, por si son <a>
+
+            getDeviceFormat()
+            waitToDOM(playersPageStats, ".player_name", 0,7000)
+            waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
+            waitToDOM(taxOnSell, ".player_name", 0,7000)
+
+            // aquí tu lógica
         });
+
+
     }
 
 
@@ -1132,6 +1137,7 @@ self.onmessage = function (e) {
                 let gross_profit=venta-tax-fee*/
 
                 let tax = (venta - compra) * tax_rate
+                if(tax<0){tax=0}
                 let profit = (venta - player_data['purchase_price']) - fee - tax
                 let gross_profit = venta - tax - fee
 
@@ -1161,6 +1167,11 @@ self.onmessage = function (e) {
 
         }
 
+        ///CHECK DUPLICATES
+        el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
+
+
+
     }
     async function addTeamInfoMarket() {
         if(document.querySelector(".player_loading_div")!==null){
@@ -1168,7 +1179,8 @@ self.onmessage = function (e) {
         }
         let myGeneration = 0
         console.log("START")
-        //isRunning = false;
+        ///CHECK DUPLICATES
+        isRunning = false;
         if (isRunning) return;
         isRunning = true;
         await waitForElement('.playerContainer', 5000);
@@ -7705,6 +7717,7 @@ self.onmessage = function (e) {
                     let compra=player_data['purchase_price']
                     if(compra==0){compra=player_data['value']}
                     let tax=(venta-compra)*tax_rate
+                    if(tax<0){tax=0}
                     let profit=(venta-player_data['purchase_price'])-fee-tax
                     let gross_profit=venta-tax-fee
                     if(profit<0){gross_profit=venta-fee}
