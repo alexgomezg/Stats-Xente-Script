@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.208
+// @version      0.209
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -95,7 +95,7 @@
                 console.log("Disparado")
                 addTeamInfoMarket();
             }
-        });*/s
+        });*/
 
 
 
@@ -1066,7 +1066,7 @@ self.onmessage = function (e) {
             if (divs_dark[1].querySelector("#but_stx_" + player_id)) {
 
                 (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                    document.getElementById("but_stx_" + currentId).addEventListener('click', function (e) {
+                    el.querySelector("#but_stx_" + currentId).addEventListener('click', function (e) {
                         e.preventDefault();
                         e.stopPropagation();
                         let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
