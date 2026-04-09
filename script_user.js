@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.212
+// @version      0.213
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -9636,7 +9636,7 @@ self.onmessage = function (e) {
 
         let iconHtml = '<div style="writing-mode: tb-rl; -webkit-writing-mode: vertical-rl; margin: 0 auto; text-align:center;">';
         if (GM_getValue("available_new_version") === "yes") {
-            iconHtml += '<img alt="" src="https://statsxente.com/MZ1/View/Images/alert.png" style="width:15px;height:15px;"/>';
+            iconHtml += '<img alt="" id="alert_stx_image" src="https://statsxente.com/MZ1/View/Images/alert.png" style="width:15px;height:15px;"/>';
         }
         iconHtml += '<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width:25px;height:25px;"/>';
         iconHtml += '</div>';
