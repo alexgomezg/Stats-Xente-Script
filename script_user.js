@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.211
+// @version      0.212
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -67,6 +67,7 @@
     let playersCache;
     let teamFinancesCache
     let isRunning = false;
+    let currencies;
     //let currentGeneration = 0;
     /*let observer = new MutationObserver(() => {
         observer.disconnect();
@@ -89,13 +90,13 @@
     /// FUNCTIONS MENU
     setTimeout(function () {
 
-        document.addEventListener('keydown', (e) => {
+        /*document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'l') {
                 e.preventDefault();
                 console.log("Disparado")
                 addTeamInfoMarket();
             }
-        });
+        });*/
 
 
 
@@ -1069,7 +1070,7 @@ self.onmessage = function (e) {
                         el.querySelector("#but_stx_" + currentId).addEventListener('click', function (e) {
                             e.preventDefault();
                             e.stopPropagation();
-                            let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                            let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                                 + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
                                 + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                             openWindow(link, 0.95, 1.25);
@@ -3872,6 +3873,7 @@ self.onmessage = function (e) {
 //Show league positions history on league page
     async function leaguesHistory(){
         getDeviceFormat()
+        let teamHistoryCache=[]
         let urlParams2 = new URLSearchParams(window.location.search);
         let type = urlParams2.get("type")
         let id_busq=""
@@ -3957,7 +3959,7 @@ self.onmessage = function (e) {
                 document.getElementById("ui-tabs-4").insertAdjacentHTML("afterend",txt)
                 GM_xmlhttpRequest({
                     method: "GET",
-                    url: "http://statsxente.com/MZ1/Functions/tamper_league_history.php?league_id="+league_id_search+"&type="+type+"&sport="+window.sport,
+                    url: "https://statsxente.com/MZ1/Functions/tamper_league_history.php?league_id="+league_id_search+"&type="+type+"&sport="+window.sport,
                     headers: {
                         "Content-Type": "application/json"
                     },
@@ -4037,8 +4039,8 @@ self.onmessage = function (e) {
                                     var loader="<div id='"+user_td_id+"_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase_loader + "' style='height:15px'></div></div></div>";
                                     document.getElementById(user_td_id).innerHTML = loader;
 
-                                    if (!teamCache[team_id_search]) {
-                                        teamCache[team_id_search] = new Promise((resolve, reject) => {
+                                    if (!teamHistoryCache[team_id_search]) {
+                                        teamHistoryCache[team_id_search] = new Promise((resolve, reject) => {
                                             GM_xmlhttpRequest({
                                                 method: "GET",
                                                 url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search,
@@ -4062,7 +4064,7 @@ self.onmessage = function (e) {
                                     }
 
                                     // Siempre usamos la promesa cacheada (nueva o existente)
-                                    teamCache[team_id_search]
+                                    teamHistoryCache[team_id_search]
                                         .then((resultado) => {
                                             let flag = clase + " " + resultado;
                                             document.getElementById(user_td_id).innerHTML += flag;
@@ -4127,7 +4129,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idLiga+"&categoria="+cats_stats[typeKey],
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idLiga+"&categoria="+cats_stats[typeKey],
             headers: {
                 "Content-Type": "application/json"
             },
@@ -5033,7 +5035,7 @@ self.onmessage = function (e) {
 
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "http://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idComp+"&categoria="+cats_stats[typeKey],
+                url: "https://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table="+statsKeys[typeKey+"_"+window.sport]+"&idLiga="+idComp+"&categoria="+cats_stats[typeKey],
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -5933,6 +5935,228 @@ self.onmessage = function (e) {
     }
 //Match page
     async function match() {
+        let tablas = document.querySelectorAll('table.hitlist.statsLite.marker');
+        let tablasJugadores = document.querySelectorAll('table.hitlist.statsLite.marker.tablesorter');
+        if(tablasJugadores.length>0){
+            getCurrencies()
+            let pids = new Set();
+            let limitPlayers=11;
+            if(window.sport=="hockey"){
+                limitPlayers=21;
+            }
+
+            let contPlayers=0;
+            tablasJugadores[0].querySelectorAll('a').forEach(a => {
+
+                const href = a.getAttribute('href');
+
+                if (href && href.includes('pid')) {
+                    const match = href.match(/pid=([0-9]+)/i);
+
+                    if (match) {
+                        if(contPlayers<limitPlayers){
+                            pids.add(match[1]);
+                            contPlayers++
+                        }
+                    }
+
+                }
+            });
+
+            let homePids = Array.from(pids);
+            pids = new Set();
+            contPlayers=0;
+
+            tablasJugadores[1].querySelectorAll('a').forEach(a => {
+
+                const href = a.getAttribute('href');
+
+                if (href && href.includes('pid')) {
+                    const match = href.match(/pid=([0-9]+)/i);
+
+                    if (match) {
+                        if(contPlayers<limitPlayers){
+                            pids.add(match[1]);
+                            contPlayers++
+                        }
+                    }
+                }
+            });
+            let awayPids = Array.from(pids);
+            let tablaOriginal=tablas[1]
+
+            let contenedor = document.getElementById('match-info-wrapper');
+            let links = contenedor.querySelectorAll('a');
+            let cont = 0;
+            let teamIds = [];
+
+            links.forEach(link => {
+                if (link.href.includes('tid=') && cont < 2) {
+
+                    let urlParams = new URLSearchParams(new URL(link.href).search);
+                    let team_id = urlParams.get("tid");
+
+                    if (team_id) {
+                        teamIds.push(team_id);
+                        cont++;
+                    }
+                }
+            });
+            let [homeStats, awayStats] = await Promise.all([
+                getTeamMatchStats(teamIds[0], homePids),
+                getTeamMatchStats(teamIds[1], awayPids)
+            ]);
+
+
+            let index=0;
+            if(window.sport=="hockey"){
+                index=1;
+            }
+
+            insertDataOnStatsTable(getRowClass(index),tablaOriginal,"Value",new Intl.NumberFormat(window.userLocal).format(Math.round(homeStats['value'])),
+                new Intl.NumberFormat(window.userLocal).format(Math.round(awayStats['value'])))
+            index++;
+            insertDataOnStatsTable(getRowClass(index),tablaOriginal,"Salary",new Intl.NumberFormat(window.userLocal).format(Math.round(homeStats['salary'])),
+                new Intl.NumberFormat(window.userLocal).format(Math.round(awayStats['salary'])))
+            index++;
+            insertDataOnStatsTable(getRowClass(index),tablaOriginal,"Age",new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(homeStats["age"]),
+                new Intl.NumberFormat(window.userLocal, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(awayStats["age"]))
+            index++;
+
+            let nat=homeStats['nat']
+            let noNat=homeStats['noNat']
+            let total = nat + noNat;
+            let natPercent = total ? (nat / total) * 100 : 0;
+            let noNatPercent = total ? (noNat / total) * 100 : 0;
+
+
+
+            /*let te = `
+               <div style="border-radius: 5px; width:4em; height:10px; display:flex; border:1px solid #ccc;">
+                 <div style="width:${natPercent}%; background:#4caf50;"></div>
+                 <div style="width:${noNatPercent}%; background:#f44336;"></div>
+               </div>
+               <div style="font-size:11px; margin-top:2px;">
+                 ${nat} / ${noNat}
+               </div>
+             `;*/
+
+
+            let te = `
+  <div style="
+    position: relative;
+    border-radius: 5px;
+    width: 6em;
+    height: 1em;
+    display: flex;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    font-size: 0.9em;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 0 2px black;
+  ">
+    <div style="width:${natPercent}%; background:#4caf50;"></div>
+    <div style="width:${noNatPercent}%; background:#f44336;"></div>
+
+    <div style="
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    ">
+      ${nat}/${noNat}
+    </div>
+  </div>
+`;
+
+
+            nat=awayStats['nat']
+            noNat=awayStats['noNat']
+            total = nat + noNat;
+            natPercent = total ? (nat / total) * 100 : 0;
+            noNatPercent = total ? (noNat / total) * 100 : 0;
+
+
+
+            /* let te1 = `
+                <div style="border-radius: 5px; width:4em; height:10px; display:flex; border:1px solid #ccc;">
+                  <div style="width:${natPercent}%; background:#4caf50;"></div>
+                  <div style="width:${noNatPercent}%; background:#f44336;"></div>
+                </div>
+                <div style="font-size:11px; margin-top:2px;">
+                  ${nat} / ${noNat}
+                </div>
+              `;*/
+
+            let te1 = `
+  <div style="
+    position: relative;
+    border-radius: 5px;
+    width: 6em;
+    height: 1em;
+    display: flex;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    font-size: 0.9em;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 0 2px black;
+  ">
+    <div style="width:${natPercent}%; background:#4caf50;"></div>
+    <div style="width:${noNatPercent}%; background:#f44336;"></div>
+
+    <div style="
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    ">
+      ${nat}/${noNat}
+    </div>
+  </div>
+`;
+
+
+            insertDataOnStatsTable(getRowClass(index),tablaOriginal,"Nat/For",te,te1)
+
+        }
+
+        // añadir la nueva fila al final
+
+
+        /*console.log(tablaOriginal)
+        if (tablaOriginal) {
+            let tablaClon = tablaOriginal.cloneNode(true);
+            tablaClon.id="stx_stats_match"
+            tablaOriginal.parentNode.insertBefore(tablaClon, tablaOriginal);
+
+             const filas = tablaClon.getElementsByTagName('tr');
+
+            if (filas.length > 0) {
+                const primerTr = filas[0];
+
+                const celdas = primerTr.getElementsByTagName('td');
+
+                if (celdas.length >= 3) {
+                    celdas[0].textContent = 'a';
+                    celdas[1].textContent = 'b';
+                    celdas[2].textContent = 'c';
+                }
+            }
+
+
+        }*/
 
 
 
@@ -6263,7 +6487,7 @@ self.onmessage = function (e) {
                     contIds++;
                 }
 
-                let link = "http://statsxente.com/MZ1/Functions/tamper_check_stats_player.php?sport=" + window.sport + linkIds
+                let link = "https://statsxente.com/MZ1/Functions/tamper_check_stats_player.php?sport=" + window.sport + linkIds
                 teams_[x]["inserted"] = await fetchExistPlayers(link);
 
             }
@@ -6315,7 +6539,7 @@ self.onmessage = function (e) {
                             (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                                 document.getElementById("but" + currentId).addEventListener('click', function () {
 
-                                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                                    let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                                         + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
                                         "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                                     openWindow(link, 0.95, 1.25);
@@ -6334,6 +6558,109 @@ self.onmessage = function (e) {
         }
 
 
+    }
+    function insertDataOnStatsTable(class_,tablaOriginal,title,home,away){
+        let filas = tablaOriginal.getElementsByTagName('tr');
+
+        if (filas.length > 0) {
+            // clonar la última fila
+
+            let ultimaFila = filas[filas.length - 1];
+            let nuevaFila = ultimaFila.cloneNode(true);
+            nuevaFila.className = "";
+            nuevaFila.classList.add(class_);
+            let celdas = nuevaFila.getElementsByTagName('td');
+            if (celdas.length >= 3) {
+                celdas[0].innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="width:15px;height:15px;"> '+title;
+                celdas[1].innerHTML = home;
+                celdas[2].innerHTML = away;
+            }
+            let tbody = tablaOriginal.querySelector('tbody');
+            (tbody || tablaOriginal).appendChild(nuevaFila);
+
+
+
+
+        }
+
+
+    }
+    function getTeamMatchStats(team_id,pids) {
+        return new Promise((resolve, reject) => {
+
+            let cont = 0;
+            let value = 0, salary = 0, age = 0;
+            let nat = 0;
+            let noNat = 0;
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+team_id,
+                headers: {
+                    "Content-Type": "application/xml"
+                },
+
+                onload: function (response) {
+                    try {
+
+                        let parser = new DOMParser();
+                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+
+                        let teamData = xmlDoc.getElementsByTagName("TeamPlayers");
+                        let teamCurrency = teamData[0].getAttribute("teamCurrency");
+                        let teamCountry = teamData[0].getAttribute("countryShortname");
+
+                        let players = xmlDoc.getElementsByTagName("Player");
+
+                        for (let i = 0; i < players.length; i++) {
+
+                            if (pids.includes(players[i].getAttribute("id"))) {
+
+                                value += convertCurrency(
+                                    players[i].getAttribute("value"),
+                                    GM_getValue("currency"),
+                                    teamCurrency
+                                );
+
+                                salary += convertCurrency(
+                                    players[i].getAttribute("salary"),
+                                    GM_getValue("currency"),
+                                    teamCurrency
+                                );
+
+                                age += parseInt(players[i].getAttribute("age"));
+
+                                if (teamCountry == players[i].getAttribute("countryShortname")) {
+                                    nat++;
+                                } else {
+                                    noNat++;
+                                }
+
+                                cont++;
+                            }
+                        }
+
+                        const toRet = {
+                            value,
+                            salary,
+                            age: cont ? age / cont : 0,
+                            nat,
+                            noNat
+                        };
+
+                        resolve(toRet);
+
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+
+                onerror: function (err) {
+                    reject(err);
+                }
+            });
+
+        });
     }
 //Players page
     async function playersPage() {
@@ -6460,7 +6787,7 @@ self.onmessage = function (e) {
 
                 (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                     document.getElementById("but" + currentId).addEventListener('click', function () {
-                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                        let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                             + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
                             "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                         openWindow(link, 0.95, 1.25);
@@ -6681,7 +7008,7 @@ self.onmessage = function (e) {
         elementos_[index].innerHTML += txt;
         (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
             document.getElementById("but" + currentId).addEventListener('click', function () {
-                let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                     + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
                     "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                 openWindow(link, 0.95, 1.25);
@@ -6890,7 +7217,7 @@ self.onmessage = function (e) {
 
                     GM_xmlhttpRequest({
                         method: "GET",
-                        url: "http://www.managerzone.com/xml/team_matchlist.php?sport_id=" + window.sport_id + "&team_id=" + team_id + "&match_status=2&limit=100",
+                        url: "https://www.managerzone.com/xml/team_matchlist.php?sport_id=" + window.sport_id + "&team_id=" + team_id + "&match_status=2&limit=100",
                         headers: {
                             "Content-Type": "application/json"
                         },
@@ -7832,6 +8159,11 @@ self.onmessage = function (e) {
         let totalPlayers = 0;
         let totalSkillsSUM=0;
 
+
+        let totalPlayersNoGK = 0;
+        let totalSkillsNoGK=Array(11).fill(0);
+        let totalSkillsSUMNoGK=0;
+
         let processedPlayers=[];
 
         ["#n1", "#n2","#n3","#n4","#p1","#p2","#b1","#b2","#goalkeeper"].forEach((selector, lineIndex) => {
@@ -7846,9 +8178,16 @@ self.onmessage = function (e) {
                         totalPlayers++;
                     }
                 }
+
+                if (!["#p1", "#p2", "#b1", "#b2","#goalkeeper"].includes(selector)) {
+                    if (!processedPlayers.includes(id)) {
+                        totalPlayersNoGK++;
+                    }
+                }
                 skills.forEach((val, i) => {
                     line[i] += val;
                     if (i > 0) lineTotal += val;
+
                     if (!["#p1", "#p2", "#b1", "#b2"].includes(selector)) {
                         if (!processedPlayers.includes(id)) {
                             totalSkills[i] += val;
@@ -7857,6 +8196,17 @@ self.onmessage = function (e) {
 
 
                     }
+
+                    if (!["#p1", "#p2", "#b1", "#b2","#goalkeeper"].includes(selector)) {
+                        if (!processedPlayers.includes(id)) {
+                            totalSkillsNoGK[i] += val;
+                            if (i > 0) totalSkillsSUMNoGK += val;
+                        }
+
+
+                    }
+
+
 
                 });
                 processedPlayers.push(id);
@@ -7877,7 +8227,9 @@ self.onmessage = function (e) {
         let html = "<div id='skillsTable'>"
         html+='<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
         html+="<div id='sep' "+styleSep+"></br></div>"
-        html+="</br><center><table id='tableSkills' style='display:"+styleTable+"; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
+        html+="<center><div id='tableSkills' style='display:"+styleTable+";'>"
+        html+='<center><label class="stx-checkitem" style="display:inline-flex;"><input type="checkbox" id="show_power_box" style="display:block;"> Show Power/Box</label></center>'
+        html+="<table id='tableSkills_data' style='border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
         html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>Line</td>`;
         sSkillNames.forEach(val => {
             html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>${val}</td>`;
@@ -7890,7 +8242,8 @@ self.onmessage = function (e) {
             playersNum=5
             if(lineIndex==8){playersNum=1}
             if(line[0]>0){
-                html += "<tr>";
+                let hiddenStyle = (lineIndex >= 4 && lineIndex <= 7) ? "display: none;" : "";
+                html += `<tr style='${hiddenStyle}'>`;
                 html += `<td style='padding: 5px 7px;'>${linesName[lineIndex]}</td>`;
                 line.forEach(val => {
                     html += `<td style='padding: 5px 7px;'>${Math.round((val / playersNum) * 100) / 100}</td>`;
@@ -7899,6 +8252,17 @@ self.onmessage = function (e) {
             }
         });
 
+
+        html += "<tr>";
+        html += `<td style='padding: 5px 7px;'>Total (-GK)</td>`;
+        totalSkillsNoGK.forEach(val => {
+            html += `<td style='padding: 5px 7px;'>${Math.round((val / totalPlayersNoGK) * 100) / 100}</td>`;
+        });
+        html += `<td style='padding: 5px 7px;'>${Math.round((totalSkillsSUMNoGK / totalPlayersNoGK) * 100) / 100}</td>`;
+        html += "</tr>";
+
+
+
         html += "<tr>";
         html += `<td style='padding: 5px 7px;'>Total</td>`;
         totalSkills.forEach(val => {
@@ -7906,7 +8270,11 @@ self.onmessage = function (e) {
         });
         html += `<td style='padding: 5px 7px;'>${Math.round((totalSkillsSUM / totalPlayers) * 100) / 100}</td>`;
         html += "</tr>";
-        html += "</tbody></table></center></div>";
+
+
+
+
+        html += "</tbody></table></div></center></div>";
         //document.getElementById("formation-container").innerHTML+=html
         document.getElementById("formation-container").insertAdjacentHTML('beforeend', html);
         document.getElementById("moreInfo").addEventListener('click', function () {
@@ -7939,6 +8307,22 @@ self.onmessage = function (e) {
             document.getElementById("line1").style.transform = 'rotateZ(180deg)';
             document.getElementById("moreInfo").style.transform = 'rotateZ(0deg)';
         }
+
+
+
+        document.getElementById("show_power_box").addEventListener("change", function() {
+            const table = document.getElementById("tableSkills_data");
+            const rowsToToggle = [5, 6, 7, 8];
+
+            rowsToToggle.forEach(index => {
+                const row = table.rows[index];
+                if (row) {
+                    row.style.display = this.checked ? "" : "none";
+                }
+            });
+        });
+
+
 
     }
     function tactisSkillsResume(playersMap,sSkillNames){
@@ -8757,6 +9141,38 @@ self.onmessage = function (e) {
             });
         });
     }
+    function getCurrencies(){
+
+        if(GM_getValue("currencies")== undefined){
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/Functions/tamper_currencies.php",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onerror: function() {
+                    notifySnackBarError("Detailed Teams");
+                },
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    GM_setValue("currencies",jsonResponse)
+                    currencies=jsonResponse
+                }
+            });
+
+        }else{
+            currencies=GM_getValue("currencies");
+        }
+
+
+    }
+
+
+
+
+
+
+
 
 //UTILS FUNCTIONS
     function deleteCols(tabla,numColumnas) {
@@ -9064,7 +9480,17 @@ self.onmessage = function (e) {
         });
 
     }
+
+
+
     function createModalMenu() {
+
+        let lightedColor = lightenColor(GM_getValue("bg_native"), 50);
+        let lightedColor1 = lightenColor(GM_getValue("bg_native"), 40);
+        let darkedColor = darkenColor(GM_getValue("bg_native"), 25);
+
+        let bgNative = GM_getValue("bg_native").replace("#", "%23");
+
         const style = document.createElement('style');
         style.textContent = `
         #stx-overlay {
@@ -9079,11 +9505,11 @@ self.onmessage = function (e) {
             overflow-y: auto; font-family: system-ui, sans-serif;
         }
         .stx-header {
-            background: #f5c800; padding: 12px 16px;
+            background: ${GM_getValue("bg_native")}; padding: 12px 16px;
             display: flex; align-items: center; justify-content: space-between;
             position: sticky; top: 0; z-index: 1;
         }
-        .stx-header span { font-size: 15px; font-weight: 600; color: #3a2e00; }
+        .stx-header span { font-size: 15px; font-weight: 600; color: ${GM_getValue("color_native")}; }
         .stx-close {
             width: 28px; height: 28px; border-radius: 50%;
             background: #fff; border: none; cursor: pointer;
@@ -9112,19 +9538,35 @@ self.onmessage = function (e) {
             display: flex; align-items: center; justify-content: center;
             transition: background .12s, border-color .12s;
         }
-        .stx-toggle.on .stx-dot { background: #f5c800; border-color: #c9a400; }
+        .stx-toggle.on .stx-dot { background:${GM_getValue("bg_native")}; border-color: #c9a400; }
         .stx-toggle.on .stx-dot::after {
             content: ''; display: block;
             width: 6px; height: 6px; border-radius: 1px; background: #3a2e00;
         }
         .stx-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+
+        .stx-row-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.stx-group-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 180px;
+}
+
+
         .stx-row label { font-size: 12px; color: #888; }
         .stx-checkrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
         .stx-checkitem { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #1a1a1a; cursor: pointer; }
-        .stx-checkitem input { accent-color: #f5c800; width: 14px; height: 14px; cursor: pointer; }
+        .stx-checkitem input { accent-color: ${GM_getValue("bg_native")}; width: 14px; height: 14px; cursor: pointer; }
         .stx-slider-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
         .stx-slider-row label { font-size: 12px; color: #888; white-space: nowrap; }
-        .stx-slider-row input[type=range] { flex: 1; accent-color: #f5c800; }
+        .stx-slider-row input[type=range] { flex: 1; accent-color:${GM_getValue("bg_native")}; }
         .stx-slider-val { font-size: 12px; color: #555; min-width: 28px; }
         .stx-two-col { display: flex; gap: 32px; flex-wrap: wrap; }
         .stx-paypal { text-align: center; padding: 10px 0 4px; }
@@ -9139,8 +9581,8 @@ self.onmessage = function (e) {
         .stx-btn-orange { background: #ff9800; color: #fff; }
         .stx-btn-red    { background: #f44336; color: #fff; }
         .stx-update-banner {
-            background: #fff3cd; border-left: 3px solid #f5c800;
-            padding: 8px 16px; font-size: 13px; color: #856404;
+            background: ${lightedColor}; border-left: 3px solid ${lightedColor};
+            padding: 8px 16px; font-size: 13px; color: ${GM_getValue("bg_color")};
         }
 
 
@@ -9148,26 +9590,25 @@ self.onmessage = function (e) {
     font-size: 12px;
     padding: 5px 8px;
     border-radius: 7px;
-    border: 0.5px solid #c9a400;
-    background: #fffbe6;
-    color: #3a2e00;
+    border: 0.5px solid ${GM_getValue("bg_native")};
+    background: ${lightedColor1};
+    color: ${GM_getValue("color_native")};
     font-weight: 500;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23c9a400'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='${bgNative}'/%3E%3C/svg%3E");    background-repeat: no-repeat;
     background-position: right 8px center;
     padding-right: 24px;
     transition: border-color .12s, background .12s;
 }
 .stx-select:hover {
-    border-color: #f5c800;
-    background-color: #fff8d6;
+    border-color: ${GM_getValue("bg_native")};
+    background-color:${darkedColor};
 }
 .stx-select:focus {
     outline: none;
-    border-color: #f5c800;
+    border-color: ${GM_getValue("bg_native")};
     box-shadow: 0 0 0 2px rgba(245,200,0,0.25);
 }
     `;
@@ -9255,12 +9696,26 @@ self.onmessage = function (e) {
         html += '</div></div>';
 
         // Leagues config
-        html += '<div class="stx-section"><div class="stx-section-title">Leagues config</div>';
+        /*html += '<div class="stx-section"><div class="stx-section-title">Leagues config</div>';
         html += '<div class="stx-row">';
         ['senior', 'u23', 'u21', 'u18'].forEach(cat => {
             html += `<label>${cat.toUpperCase()}</label>${generateValuesSelect(cat)}`;
         });
+        html += '</div>';*/
+        html += '<div class="stx-section"><div class="stx-section-title">Leagues config</div>';
+        html += '<div class="stx-row-select">';
+        ['senior', 'u23', 'u21', 'u18'].forEach(cat => {
+            html += `
+        <div class="stx-group-select">
+            <label style="min-width:4em;">${cat.toUpperCase()}</label>
+            ${generateValuesSelect(cat)}
+        </div>
+    `;
+        });
         html += '</div>';
+
+
+
         html += '<div class="stx-checkrow" style="margin-bottom:8px;">';
         html += `<label class="stx-checkitem"><input type="checkbox" id="league_graph_check" ${chk('league_graph_button')}> Progress</label>`;
         html += `<label class="stx-checkitem"><input type="checkbox" id="league_report_check" ${chk('league_report_button')}> Graph</label>`;
@@ -9901,6 +10356,22 @@ self.onmessage = function (e) {
 
         celdas[a].innerHTML = icon + celdas[a].innerHTML;
     }
+    function lightenColor(rgb, percent) {
+        let result = rgb.match(/\d+/g);
+
+        let r = parseInt(result[0]);
+        let g = parseInt(result[1]);
+        let b = parseInt(result[2]);
+
+        r = Math.floor(r + (255 - r) * (percent / 100));
+        g = Math.floor(g + (255 - g) * (percent / 100));
+        b = Math.floor(b + (255 - b) * (percent / 100));
+
+        return "#" + [r, g, b].map(x => {
+            const hex = x.toString(16);
+            return hex.length === 1 ? "0" + hex : hex;
+        }).join("");
+    }
     function darkenColor(rgb, percent) {
         let result = rgb.match(/\d+/g);
 
@@ -9923,6 +10394,9 @@ self.onmessage = function (e) {
             const hex = x.toString(16);
             return hex.length === 1 ? "0" + hex : hex;
         }).join("");
+    }
+    function getRowClass(index) {
+        return index % 2 === 0 ? "odd" : "even";
     }
     function hoverStarsTM(el){
         let stars = el.parentNode.querySelectorAll("img");
@@ -9987,7 +10461,7 @@ self.onmessage = function (e) {
 
             (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                 document.getElementById("but" + currentId).addEventListener('click', function () {
-                    let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                    let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                         + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
                         "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                     openWindow(link, 0.95, 1.25);
@@ -10075,7 +10549,9 @@ self.onmessage = function (e) {
         }
 
     }
-
+    function convertCurrency(amount, from, to) {
+        return amount * (currencies[to] / currencies[from]);
+    }
     function getFinanceColor(rating) {
         const financesColors = {
             A: '#2ecc71',
@@ -10797,6 +11273,9 @@ cursor:pointer;
     #profit-card .pc-warning { color: #b45309 !important; }
     #profit-card .pc-danger  { color: #dc2626 !important; }
     #profit-card .pc-success { color: #059669 !important; }
+
+    .statsxente { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
+
 `;
 
         }
@@ -10997,7 +11476,7 @@ cursor:pointer;
             for (let i = 0; i < ids_.length; i++) {
                 (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                     document.getElementById("but" + currentId).addEventListener('click', function () {
-                        let link = "http://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
+                        let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
                             + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
                             "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
                         openWindow(link, 0.95, 1.25);
