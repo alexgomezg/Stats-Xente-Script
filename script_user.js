@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.213
+// @version      0.214
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -9485,11 +9485,11 @@ self.onmessage = function (e) {
 
     function createModalMenu() {
 
-        let lightedColor = lightenColor(GM_getValue("bg_native"), 50);
-        let lightedColor1 = lightenColor(GM_getValue("bg_native"), 40);
-        let darkedColor = darkenColor(GM_getValue("bg_native"), 25);
+        let lightedColor = lightenColor(GM_getValue("bg_native","#efb52f"), 50);
+        let lightedColor1 = lightenColor(GM_getValue("bg_native","#efb52f"), 40);
+        let darkedColor = darkenColor(GM_getValue("bg_native","#efb52f"), 25);
 
-        let bgNative = GM_getValue("bg_native").replace("#", "%23");
+        let bgNative = GM_getValue("bg_native","#efb52f").replace("#", "%23");
 
         const style = document.createElement('style');
         style.textContent = `
