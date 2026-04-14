@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.216
+// @version      0.217
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1521,7 +1521,7 @@ self.onmessage = function (e) {
 
             },
         });
-        
+
 
     }
 //Tactics resume
@@ -6968,7 +6968,7 @@ self.onmessage = function (e) {
             return { id: playerId, age, skills, tactics };
         });
         let skillsNames = Array.from(document.querySelectorAll('.player_skills .clippable')).map(el => el.textContent.trim()).filter((value, index, self) => self.indexOf(value) === index);
-        if(skillsNames===0){
+        if(skillsNames.length===0){
             skillsNames = Array.from(document.querySelectorAll('.skill_name'))
                 .map(el => el.querySelector("span")?.textContent.trim())
                 .filter(Boolean)
