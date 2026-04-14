@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.219
+// @version      0.220
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -105,13 +105,7 @@
             waitToDOMById(topScorersTableEventListener,"league_tab_top_scorers",5000)
 
             document.getElementById("league_tab_schedule").addEventListener("click", function() {
-                setTimeout(() => {
-
-                    calendarEloChange("regular")
-
-
-                }, 2000);
-
+                waitToDOM(()=>calendarEloChange("regular"),".mainContent",0,5000);
             });
 
         }
@@ -197,14 +191,7 @@
             waitToDOMById(topScorersTableEventListener,"ui-id-4",5000)
 
             document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
-
-                setTimeout(() => {
-
-                    calendarEloChange("regular")
-
-
-                }, 2000);
-
+                waitToDOM(()=>calendarEloChange("regular"),".mainContent",0,5000);
             });
 
 
@@ -706,12 +693,14 @@
 
         document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
 
-            setTimeout(() => {
+            waitToDOMById(()=>calendarEloChange("cup_matches"),"cup_match_schedule_hitlist",5000);
+
+            /*setTimeout(() => {
 
                 calendarEloChange("cup_matches")
 
 
-            }, 2000);
+            }, 2000);*/
 
         });
 
@@ -4243,6 +4232,7 @@ self.onmessage = function (e) {
 
         }
 
+        let marginLeft="-2px";
         if(type==="cup_matches"){
 
             enlaces = document.querySelectorAll('a[href*="p=match"]');
@@ -4253,6 +4243,8 @@ self.onmessage = function (e) {
                     /\b\d+\s*-\s*\d+\b/.test(tdSiguiente.textContent) &&
                     !a.querySelector("img");
             });
+
+            marginLeft="0px"
 
         }
 
@@ -4274,7 +4266,7 @@ self.onmessage = function (e) {
             getDeviceFormat()
             let fontSize="inherit"
             if(window.stx_device==="mobile"){
-                fontSize="x-small"
+                fontSize="small"
             }
             GM_xmlhttpRequest({
                 method: "GET",
@@ -4289,33 +4281,35 @@ self.onmessage = function (e) {
                     let changes=JSON.parse(response.responseText);
 
                     for (const [mid, a] of mapa) {
+                        if(!document.getElementById("elo_"+mid)){
+                            let change="-"
 
-                        let change="-"
+                            if(changes[mid]){
 
-                        if(changes[mid]){
-
-                            change = new Intl.NumberFormat(window.userLocal, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            }).format(Number.parseFloat(changes[mid]))
-                        }
+                                change = new Intl.NumberFormat(window.userLocal, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                }).format(Number.parseFloat(changes[mid]))
+                            }
 
 
 
-                        let txt=`<div style="align-items: center; float:right; margin-left: 5px;">
+                            let txt=`<div id='elo_${mid}' style="align-items: center; float:right; margin-left: 5px;">
+    <b style="margin-left: ${marginLeft}; margin-right:2px; font-size: ${fontSize}; font-weight: bold;">${change}</b>`
 
-    <b style="margin-left: -2px; margin-right:2px; font-size: ${fontSize}; font-weight: bold;">${change}</b>`
-
-                        if(change!=="-"){
-                            txt+='<img width="10px" height="10px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png" alt="">';
-                        }
-                        txt+='</div>'
-                        a.closest("td").nextElementSibling.insertAdjacentHTML("beforeend",txt)
-                        if(type==="cup_matches"){
-                            a.closest("td").nextElementSibling.style.display="flex"
-                            a.closest("td").nextElementSibling.className="stx-elo-change"
+                            if(change!=="-"){
+                                txt+='<img width="10px" height="10px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png" alt="">';
+                            }
+                            txt+='</div>'
+                            a.closest("td").nextElementSibling.insertAdjacentHTML("beforeend",txt)
+                            if(type==="cup_matches"){
+                                a.closest("td").nextElementSibling.style.display="flex"
+                                a.closest("td").nextElementSibling.className="stx-elo-change"
+                            }
                         }
                     }
+
+
 
                     if(type==="cup_matches"){
                         const enlaces1 = document.querySelectorAll('a[href*="p=match"]');
@@ -4332,7 +4326,7 @@ self.onmessage = function (e) {
                     }
 
 
-                },
+                }
             });
 
         }
@@ -4345,12 +4339,8 @@ self.onmessage = function (e) {
 
 
 
-        setTimeout(() => {
+        calendarEloChange("regular")
 
-            calendarEloChange("regular")
-
-
-        }, 2000);
 
 
         let tablesSearch=document.getElementsByClassName("nice_table")
@@ -5252,15 +5242,7 @@ self.onmessage = function (e) {
     }
 //Cups and FL's page
     async function friendlyCupsAndLeagues() {
-
-        setTimeout(() => {
-            calendarEloChange("regular")
-
-
-        }, 2000);
-
-
-
+        calendarEloChange("regular")
         let urlParams = new URLSearchParams(window.location.search);
         let age_restriction
         let idComp="null"
