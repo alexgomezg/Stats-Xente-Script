@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.220
+// @version      0.221
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -5367,9 +5367,42 @@ self.onmessage = function (e) {
 
         values.set('elo_promedio', 'Average ELO');
 
+        if (window.sport === "soccer") {
+            values.set('idEquipo', 'Team ID');
+        }else{
+            values.set('idEquipo', 'Team ID');
+        }
+
+
         values.set('tmvalueSenior', 'LM Transfers Cost');
         values.set('tmvalueSUB23', 'U23 LM Transfers Cost');
         values.set('tmvalueSUB21', 'U21 LM Transfers Cost');
+        if (window.sport === "soccer") {
+            values.set('edadTop11', 'TOP 11 Age');
+            values.set('edadSUB23', 'U23 TOP 11 Age');
+        }else{
+            values.set('edadTop11', 'TOP 21 Age');
+            values.set('edadSUB23', 'U23 TOP 21 Age');
+        }
+
+        if (window.sport === "soccer") {
+            values.set('salario11', 'TOP 11 Salary');
+            values.set('salario11_23', 'U23 TOP 11 Salary');
+            values.set('salario11_21', 'U21 TOP 11 Salary');
+            values.set('edadSUB21', 'U21 TOP 11 Age');
+            values.set('edadSUB18', 'U18 TOP 11 Age');
+        }else{
+            values.set('salario11', 'TOP 21 Salary');
+            values.set('salario11_23', 'U23 TOP 21 Salary');
+            values.set('salario11_21', 'U21 TOP 21 Salary');
+            values.set('edadSUB21', 'U21 TOP 21 Age');
+            values.set('edadSUB18', 'U18 TOP 21 Age');
+        }
+
+        values.set('edadUPSenior', 'LM Age');
+        values.set('edadUPSUB23', 'U23 LM Age');
+        values.set('edadUPSUB21', 'U21 LM Age');
+        values.set('edadUPSUB18', 'U18 LM Age');
 
         let contenidoNuevo = '<div id="testClick" style="margin: 0 auto; text-align:center;">'
         getNativeTableStyles();
@@ -5436,12 +5469,20 @@ self.onmessage = function (e) {
 
 
             if (clave === "tmvalueSenior") {
-                contenidoNuevo += "<td></td>";
+                contenidoNuevo += "</tr><tr>";
             }
             if (clave === "tmvalueSenior") {
                 contenidoNuevo += "</tr><tr>";
             }
 
+            if (clave === "salario11") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
+
+            if (clave === "edadUPSenior") {
+                contenidoNuevo += "</tr><tr>";
+            }
             if (clave === initialValues[detected_cat]) {
                 contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" checked value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
             } else {
