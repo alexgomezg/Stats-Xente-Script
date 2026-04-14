@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.215
+// @version      0.216
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -24,7 +24,6 @@
 
 (function () {
     'use strict';
-
 
 
     /*let keys = GM_listValues();
@@ -52,10 +51,10 @@
     let teams_data = "";
     let teams_stats = "";
     let searchClassName = ""
-    let players = []
-    let lines = []
+    //let players = []
+    //let lines = []
     let gk_line = ""
-    let skills_names = []
+    //let skills_names = []
     let su_line = "unsetted";
     let fl_data=[]
     let langs = new Map();
@@ -83,8 +82,8 @@
     waitToDOMById(createModalEventListeners,"saveButton",5000)
     setLangSportCats()
     getUsernameData()
-    checkScriptVersion()
-    getSelects()
+    checkScriptVersion().then()
+    getSelects().then()
 
 
     /// FUNCTIONS MENU
@@ -104,6 +103,17 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
             waitToDOM(leagues, ".nice_table", 0,7000)
             waitToDOMById(topScorersTableEventListener,"league_tab_top_scorers",5000)
+
+            document.getElementById("league_tab_schedule").addEventListener("click", function() {
+                setTimeout(() => {
+
+                    calendarEloChange("regular")
+
+
+                }, 2000);
+
+            });
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
@@ -185,6 +195,19 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')&& (GM_getValue("flFlag"))){
             waitToDOMById(topScorersTableEventListener,"ui-id-4",5000)
+
+            document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
+
+                setTimeout(() => {
+
+                    calendarEloChange("regular")
+
+
+                }, 2000);
+
+            });
+
+
         }
 
 
@@ -281,6 +304,20 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams')&& (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage,"nt-tabs",5000)
+
+
+            document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
+
+                setTimeout(() => {
+
+                    eloNationalPage()
+
+
+                }, 2000);
+
+            });
+
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (GM_getValue("transfersFilterFlag"))) {
@@ -291,24 +328,9 @@
 
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
-
             teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_"+window.sport, "[]")));
-
-            /*const originalOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-                this._url = url;
-                if (url.includes('ajax.php?p=transfer&sub=transfer-search')) {
-                    this.addEventListener('load', function() {
-                        console.log("here")
-                        addTeamInfoMarket()
-                    });
-                }
-                return originalOpen.call(this, method, url, ...rest);
-            };*/
-
             resetCache(window.sport)
             getDeviceFormat();
-            //addTeamInfoMarket()
             const observer = new MutationObserver((mutations) => {
                 const changed = mutations.some((mutation) =>
                         mutation.addedNodes.length > 0 && (
@@ -326,13 +348,13 @@
                 );
                 if (changed && !document.getElementById("players_container_stx")) {
                     console.log("----Event----")
-                    addTeamInfoMarket();
+                    addTeamInfoMarket().then();
                 }
             });
             const el = document.getElementById("players_container");
             if (el) observer.observe(el, { childList: true, subtree: true });
             //});
-            addTeamInfoMarket()
+            addTeamInfoMarket().then()
         }
 
 
@@ -356,10 +378,21 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')&& (urlParams.has('u'))&& (GM_getValue("teamsFinancialMarket"))) {
             if(GM_getValue("onlySinglePages")){
                 teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_"+window.sport, "[]")))
-                insertFinancialData(document.getElementById("thePlayers_0"))
+                insertFinancialData(document.getElementById("thePlayers_0")).then()
             }
         }
     }, 1000);
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -437,25 +470,26 @@
         let tables=elems[0].getElementsByTagName("table");
         let segundoTr = tables[1].rows[0]
         let username = segundoTr.cells[1].innerText
-        var html='<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
+        let html='<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
         elems[0].insertAdjacentHTML("afterend",html);
 
         let divToInserT=document.getElementById("streakAndCupInfo")
         let clase="loader-"+window.sport
         divToInserT.innerHTML =
-            "</br>" +
-            "<center><div id='hp_loader'>" +
+            "<br>" +
+            "<div style='text-align:center;'>" +
+            "<div id='hp_loader' style='width:50%; margin:0 auto;'>" +
             "<div style='text-align:center;'><b>Loading...</b></div>" +
-            "<div id='loader' class='" + clase + "' style='height:25px; width:50%;'></div>" +
-            "</div></center>" +
-            divToInserT.innerHTML;
+            "<div id='loader' class='" + clase + "' style='height:25px;'></div>" +
+            "</div>" +
+            "</div>"+divToInserT.innerHTML;
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&username="+username,
             headers: {
                 "Content-Type": "application/json"
             },
-            onerror: function(err) {
+            onerror: function() {
                 notifySnackBarError("Detailed Teams");
             },
             onload: function (response) {
@@ -472,12 +506,10 @@
                 getDeviceFormat()
                 let teamTable='<div style="width:100%; display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
                 let style="max-width: 100%; overflow-x: auto; display: block; width:100%;"
-                let style2=""
                 if(window.stx_device==="computer"){
-                    style=""
-                    style2="<center>"
+                    style="margin: 0 auto; text-align: center;"
                 }
-                teamTable+=  style2+'<table class="matchValuesTable" style="'+style+'"><thead><tr>'
+                teamTable+= '<table class="matchValuesTable" style="'+style+'"><thead><tr>'
                 teamTable+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                 teamTable+='<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
                 teamTable+='<th >'+top+'</th><th>ELO</th>'
@@ -671,6 +703,18 @@
 
 
         });
+
+        document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
+
+            setTimeout(() => {
+
+                calendarEloChange("cup_matches")
+
+
+            }, 2000);
+
+        });
+
 
 
     }
@@ -927,7 +971,7 @@ self.onmessage = function (e) {
 `;
 
 //Seller info transfer market
-    async function processTMPlayer(el,generation) {
+    async function processTMPlayer(el) {
         try {
             ///CHECK DUPLICATES
             if (el.querySelector('[id*="hp_loader"]')?.innerHTML.trim()){
@@ -950,22 +994,17 @@ self.onmessage = function (e) {
             let names_ = el.querySelectorAll('.player_name');
             let player_name = names_[0].textContent.trim()
 
-
             let tasks = [];
-            //if (generation !== currentGeneration) return;
-            //tasks.push(!document.getElementById("card_" + player_id) ? getDataPlayerTM(player_id) : null);
             tasks.push(
                 (!document.getElementById("card_" + player_id) && GM_getValue("transfersTaxFlag"))
                     ? getDataPlayerTM(player_id)
                     : null
             );
-            //if (generation !== currentGeneration) return;
             tasks.push(
                 (!document.getElementById("team_data_" + player_id) && GM_getValue("transfersSellerFlag"))
                     ? getTeamInfo(tid)
                     : null
             );
-            //tasks.push(!document.getElementById("team_data_" + player_id) ? getTeamInfo(tid) : null);
             if (GM_getValue("transfersSellerFlag")) {
                 if (!document.getElementById("team_data_" + player_id)) {
                     divs_dark[0].style.height = "10em";
@@ -981,19 +1020,18 @@ self.onmessage = function (e) {
                 }
             }
 
-            let target=null
+            let target
             //if (generation !== currentGeneration) return;
             if (GM_getValue("transfersTaxFlag")) {
                 if (!document.getElementById("card_" + player_id)) {
                     let original = divs_dark[2];
                     target = original.cloneNode(true);
-                    let html = `<center>
-  <div id='hp_loader_card_${player_id}'>
+                    target.innerHTML = `<div style='text-align:center;'>
+  <div id='hp_loader_card_${player_id}' style='width:100%; margin:0 auto;'>
     <div style='text-align:center;'><b>Loading...</b></div>
-    <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%;'></div>
-  </div></center>
+    <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%; margin:0 auto;'></div>
+  </div></div>
 `;
-                    target.innerHTML = html;
                     target.style.height = "25%"
                     divs_dark[divs_dark.length - 1].after(target)
 
@@ -1004,7 +1042,7 @@ self.onmessage = function (e) {
                 tasks.push(insertFinancialData(el))
             }
 
-            const [player_data, jsonResponse,economic_flags] = await Promise.all(tasks);
+            const [player_data, jsonResponse] = await Promise.all(tasks);
 
 
 //DIVISION DATA
@@ -1027,7 +1065,7 @@ self.onmessage = function (e) {
                     tdsClone1[1].innerHTML = `
                 <div id="team_data_${player_id}" style="display:flex; align-items:center; gap:5px; font-weight:bold;">
                     <a href="/?p=profile&uid=${jsonResponse['user_id']}" target="_blank">${jsonResponse['username']}</a>
-                    <img src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
+                    <img alt='' src="nocache-952/img/flags/15/${jsonResponse['countryCode']}.png" width="15" height="15">
                 </div>
             `;
                     trs[2].before(clonedRow1);
@@ -1087,8 +1125,6 @@ self.onmessage = function (e) {
             if (GM_getValue("transfersTaxFlag")) {
                 //let original = divs_dark[2];
                 if (!document.getElementById("card_" + player_id)) {
-                    //let player_data=await getDataPlayerTM(player_id)
-                    //let target = original.cloneNode(true);
                     let rows2 = divs_dark[0].querySelectorAll('tr');
                     let targetRow = Array.from(rows2)
                         .slice(2)
@@ -1117,7 +1153,7 @@ self.onmessage = function (e) {
                     let venta = parseFloat(rows1[0].querySelectorAll('td')[1].textContent.replace(/\s/g, "").replace(GM_getValue("currency"), ""));
 
                     let tax_rate = 1
-                    if (player_data['price'] == 0) {
+                    if (player_data['price'] === 0) {
                         let age = player_data['age']
                         if (age <= 20) {
                             tax_rate = 0.20
@@ -1145,10 +1181,7 @@ self.onmessage = function (e) {
                     }
 
                     let compra=player_data['purchase_price']
-                    if(compra==0){compra=player_data['value']}
-                    /*let tax=(venta-compra)*tax_rate
-                    let profit=(venta-player_data['purchase_price'])-fee-tax
-                    let gross_profit=venta-tax-fee*/
+                    if(compra===0){compra=player_data['value']}
 
                     let tax = (venta - compra) * tax_rate
                     if(tax<0){tax=0}
@@ -1161,9 +1194,8 @@ self.onmessage = function (e) {
                     if (profit < 0) {
                         gross_profit = venta - fee
                     }
-                    let html = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit),
+                    target.innerHTML = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit),
                         tax_rate, Math.round(gross_profit),player_data['value']);
-                    target.innerHTML = html;
                 }
             }
 
@@ -1181,7 +1213,6 @@ self.onmessage = function (e) {
         if(document.querySelector(".player_loading_div")!==null){
             return;
         }
-        let myGeneration = 0
         console.log("START")
         ///CHECK DUPLICATES
         isRunning = false;
@@ -1191,7 +1222,7 @@ self.onmessage = function (e) {
         //if (myGeneration !== currentGeneration) return;
         let elements = document.getElementById("players_container").querySelectorAll('.playerContainer')
         if(document.getElementById("players_container_stx")){
-            document.querySelectorAll('[id^="team_data_"], [id^="card_"]').forEach(el => el.remove());
+            //document.querySelectorAll('[id^="team_data_"], [id^="card_"]').forEach(el => el.remove());
             elements = document.getElementById("players_container_stx").querySelectorAll('.playerContainer')
 
         }
@@ -1201,7 +1232,7 @@ self.onmessage = function (e) {
         for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
             const chunk = elements.slice(i, i + CHUNK_SIZE);
             await Promise.allSettled(
-                chunk.map(el => processTMPlayer(el,myGeneration).catch(err =>
+                chunk.map(el => processTMPlayer(el).catch(err =>
                     console.error("Error procesando jugador:", err)
                 ))
             );
@@ -1227,7 +1258,7 @@ self.onmessage = function (e) {
             "<div style='text-align:center;'><b>Loading...</b></div>" +
             "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
             "</div>";
-        var national_team=ntName.innerText;
+        let national_team=ntName.innerText;
         national_team=national_team.replace("U21", "").trim();
         GM_xmlhttpRequest({
             method: "GET",
@@ -1266,9 +1297,9 @@ self.onmessage = function (e) {
                 teamTable+='</tr></thead><tbody>'
 
                 let valor=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
-                let valorLM="-"
+                let valorLM
                 let valor11=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
-                let elo="-"
+                let elo
                 let edad=Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
                 let salario=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
                 let numJugs=new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
@@ -1386,6 +1417,113 @@ self.onmessage = function (e) {
         });
 
     }
+    function eloNationalPage(){
+        let select = document.getElementById("cid");
+        let national_team = select.options[select.selectedIndex].text;
+        let enlaces = document.querySelectorAll('a[href*="p=match"]');
+        let filtrados = Array.from(enlaces).filter(a =>
+            /\b\d+\s*-\s*\d+\b/.test(a.textContent) && !a.querySelector("img")
+        );
+
+
+
+        const mapa = new Map();
+        for (const a of filtrados) {
+            const url = new URL(a.href);
+            const mid = url.searchParams.get("mid");
+
+            if (mid) {
+                mapa.set(mid, a);
+
+            }
+        }
+
+        const mids = Array.from(mapa.keys()); // todos los mid
+        const query = mids.join(","); // "123,456,789"
+        let url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?type=${document.getElementById("type").value}&national_team=${encodeURIComponent(national_team)}&sport=${window.sport}&mids=${encodeURIComponent(query)}`;
+        if(mids.length>0){
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onerror: function() {
+                    notifySnackBarError("Teams");
+                },
+                onload: function (response) {
+                    let changes=JSON.parse(response.responseText);
+
+                    for (const [mid, a] of mapa) {
+
+
+                        let change = new Intl.NumberFormat(window.userLocal, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }).format(Number.parseFloat(changes[mid]))
+
+                        let symbol="";
+                        let status="down";
+                        if(Number.parseFloat(changes[mid])>0){
+                            symbol="+";
+                            status="up";
+                        }
+
+                        let txt="<div id='showELOChange' style='display: flex; align-items: center; justify-content: center;'>"+symbol+change+"<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/></div>";
+
+                        a.closest("dd").insertAdjacentHTML("beforeend",txt)
+
+                    }
+
+
+
+                },
+            });
+
+        }
+
+        url = `https://statsxente.com/MZ1/Functions/tamper_elo_values_nt.php?type=${document.getElementById("type").value}&sport=${window.sport}`;
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: url,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onerror: function() {
+                notifySnackBarError("Teams");
+            },
+            onload: function (response) {
+                let elos=JSON.parse(response.responseText);
+                let elementos = document.querySelectorAll(
+                    ".home-team-column.flex-grow-1, .away-team-column.flex-grow-1"
+                );
+                let lista = Array.from(elementos);
+                for (const el of lista) {
+                    let as_ = el.querySelectorAll('a[href*="p=team"]');
+                    let url = new URL(as_[0].href);
+                    let tid = url.searchParams.get("tid");
+                    let valor=0;
+                    if (elos[tid]) {
+                        valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(elos[tid]).toFixed(0))
+                    }
+
+                    if (el.classList.contains("home-team-column")) {
+                        el.innerHTML+="</br><span style='margin-right:5px;'>"+valor+"</span>";
+                    }else{
+                        el.innerHTML+="</br><span style='margin-left:5px;'>"+valor+"</span>";
+                    }
+
+                }
+
+
+
+
+
+            },
+        });
+        
+
+    }
 //Tactics resume
     function tactisResumeData(){
         tacticsMap.clear();
@@ -1422,11 +1560,7 @@ self.onmessage = function (e) {
                     }
 
                     if(changeDates===false){
-                        if(fechaComparar >= fechaInicio && fechaComparar <= fechaFin) {
-                            flagCount=true;
-                        } else {
-                            flagCount=false;
-                        }
+                        flagCount = fechaComparar >= fechaInicio && fechaComparar <= fechaFin;
                     }
 
                 }
@@ -1449,8 +1583,6 @@ self.onmessage = function (e) {
                     if (asHm[0].innerHTML.includes("<strong>")) {
                         isHome=true;
                     }
-
-                    let away=element0.querySelectorAll(".away-team-column.flex-grow-1");
                     let as= score[0].getElementsByTagName("a");
                     let [homeGoals, awayGoals] = (as[1].innerText.split(" - ").map(Number))
                     if(isHome){
@@ -1562,8 +1694,8 @@ self.onmessage = function (e) {
             styleIcon = " active"
             styleSep = "style='padding-top:5px;'";
         }
-        var txt=""
-        var insertEventListeners=false;
+        let txt=""
+        let insertEventListeners=false;
         if(!document.getElementById("moreInfo")){
 
             txt += '<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
@@ -1577,11 +1709,11 @@ self.onmessage = function (e) {
    <center>`*/
         if(!document.getElementById("selectDivTactic")){
             txt+="<div id='selectDivTactic' "+styleTable+">Tactics: <select id='changeTactic'>"
-            for (let [clave, valor] of tacticsMap) {
+            for (let [clave] of tacticsMap) {
                 txt+="<option value='"+clave+"'>"+clave+"</option>"
             }
             txt+=`</select> Initial date: <input id='initial_date_stx' type='date' value='${filter_initial_date}'> Final Date: <input id='final_date_stx' type='date' value='${filter_final_date}'>
- <button class="btn-save" style="width: 6.6em; height:1.5em; padding: 0 0; color:white; background-color:rgb(228, 200, 0); font-family: 'Roboto'; font-weight:bold; font-size:revert;"
+ <button class="btn-save" style="width: 6.6em; height:1.5em; padding: 0 0; color:white; background-color:rgb(228, 200, 0); font-family: 'Roboto',serif; font-weight:bold; font-size:revert;"
  id="filterStx"><i class="bi bi-funnel-fill" style="font-style:normal;"> Filter</i></button>`
         }
 
@@ -1690,14 +1822,14 @@ self.onmessage = function (e) {
         let iColor="white";
         let excluded=[]
         let fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
-        if(window.sport=="hockey"){
+        if(window.sport==="hockey"){
             fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12];
         }
         let table=document.querySelector(".hitlist.alt-view-table-mobile")
         let isMobile=true;
         if(window.stx_device==="computer"){
             iColor="#555";
-            if(window.sport=="soccer"){
+            if(window.sport==="soccer"){
                 excluded=[17,18]
                 fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
             }else{
@@ -1976,8 +2108,8 @@ self.onmessage = function (e) {
 
         document.getElementById("showData").parentNode.addEventListener('click', function () {
             let aElement = document.querySelector('a[href="#joined_cups"]')
-            var table_id=1;
-            var cols_default=4
+            let table_id=1;
+            let cols_default=4
             if (aElement) {
                 let parentLi = aElement.closest('li'); // Busca el li más cercano padre
                 if (parentLi && parentLi.classList.contains('ui-tabs-active')) {
@@ -2012,8 +2144,7 @@ self.onmessage = function (e) {
                     newCell.textContent = 'Team ID';
                 }else{
                     let team_data=extractTeamData(tds[3].getElementsByTagName("a"));
-                    let team_id_search=team_data[0]
-                    newCell.textContent = team_id_search;
+                    newCell.textContent = team_data[0];
                 }
                 row.appendChild(newCell);
                 cont++
@@ -2025,7 +2156,7 @@ self.onmessage = function (e) {
                 let tds = row.querySelectorAll('td');
 
                 let newCell = document.createElement('td'); // Crear una nueva celda
-                if(cont==0){
+                if(cont===0){
                     newCell.textContent = 'Country';
                 }else{
                     let team_data=extractTeamData(tds[3].getElementsByTagName("a"));
@@ -2033,11 +2164,7 @@ self.onmessage = function (e) {
                     let imgs=tds[3].querySelectorAll('img')
 
                     let clase = "loader-" + window.sport
-                    var loader="<div id='hp_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase + "' style='height:15px'></div></div></div>";
-
-
-                    newCell.innerHTML = loader;
-
+                    newCell.innerHTML="<div id='hp_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase + "' style='height:15px'></div></div></div>";
 
                     new Promise((resolve, reject) => {
                         GM_xmlhttpRequest({
@@ -2137,7 +2264,7 @@ self.onmessage = function (e) {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                onerror: function(err) {
+                onerror: function() {
                     notifySnackBarError("ELO Review");
                 },
                 onload: function (response) {
@@ -2146,16 +2273,14 @@ self.onmessage = function (e) {
                     let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
                     let table='<br><h3>ELO Review</h3>'
                     let style='max-width: 100%; overflow-x: auto; display: block; width:100%;'
-                    let style2=""
                     getDeviceFormat()
                     if(window.stx_device==="computer"){
-                        style="width:65%;"
-                        style2="<center>"
+                        style="width:65%; margin: 0 auto;"
                     }
                     table+='<div style="display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
 
-                    table+=style2+'<table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
-                    table+=' border: 0px; color: '+GM_getValue("color_native")+'; margin: 5px 0;"><thead><tr>'
+                    table+='<table id="eloReviewTable" class="matchValuesTable" style="'+style+' background-color: transparent;'
+                    table+=' border: 0px; color: '+GM_getValue("color_native")+';"><thead><tr>'
                     table+='<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                     table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Min</th><th "+thStyle+">Avg</th><th  "+thStyle+">Max</th>"
                     table+="<th  style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO</th>"
@@ -2169,8 +2294,8 @@ self.onmessage = function (e) {
 
                     let lista=["senior","U23","U21","U18"];
                     for (let i = 0; i < lista.length; i++) {
-                        var tmp_cat=lista[i]
-                        var bottomStyle=""
+                        let tmp_cat=lista[i]
+                        let bottomStyle=""
                         if(i===0){
                             table+="<th style='border-top-left-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'>Senior</th>"
                         }else{
@@ -2182,9 +2307,9 @@ self.onmessage = function (e) {
                             }
 
                         }
-                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['min']);+"</td>";
-                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['avg']);+"</td>";
-                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['max']);+"</td>";
+                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['min'])+"</td>";
+                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['avg'])+"</td>";
+                        table+="<td style='"+bottomStyle+";'>"+new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['max'])+"</td>";
 
                         table+="<td style='text-align: left; "+bottomStyle+"; font-weight: bold;'>"
                         table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['actual_elo'])+"</td>";
@@ -2274,7 +2399,7 @@ self.onmessage = function (e) {
         let params = new URLSearchParams(urlObj.search);
         let type = params.get('type');
         let tid = params.get('tid');
-        var link="https://statsxente.com/MZ1/Graficos/graficoHistoricoDivisiones.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid
+        let link="https://statsxente.com/MZ1/Graficos/graficoHistoricoDivisiones.php?idioma="+window.lang+"&category="+type+"&sport="+window.sport+"&team_id="+tid
 
         document.getElementById("showGrafStats").addEventListener("click", function() {
             openWindow(link, 0.95, 1.25);
@@ -2728,7 +2853,7 @@ self.onmessage = function (e) {
             headers: {
                 "Content-Type": "application/json"
             },
-            onerror: function (err) { notifySnackBarError("Teams")},
+            onerror: function () { notifySnackBarError("Teams")},
             onload: function (response) {
                 teams_data = JSON.parse(response.responseText);
                 const filas = document.querySelectorAll("#userRankTable tr");
@@ -2824,8 +2949,7 @@ self.onmessage = function (e) {
                     let type = params.get('type');
 
                     if(type===null){
-                        var flagInsert=true
-
+                        let flagInsert=true
                         if((params.get('p')==="cup")||(params.get('p')==="private_cup")){
 
 
@@ -3445,7 +3569,7 @@ self.onmessage = function (e) {
 
 
 
-                let contenidoNuevo = "</br></br><table class='hitlist challenges-list' style='width:45%; margin: 0 auto; table-layout:unset; border-collapse:collapse; margin: 0 auto; padding: 7px;'><thead><tr>"
+                let contenidoNuevo = "</br></br><table class='hitlist challenges-list' style='width:45%; margin: 0 auto; table-layout:unset; border-collapse:collapse; padding: 7px;'><thead><tr>"
                 contenidoNuevo+="<th style='border-top-left-radius: 5px; padding: 5px; font-weight: bold;'>Clash Compare</td>"
                 contenidoNuevo+="<th style='border-top-right-radius: 5px; padding: 5px; font-weight: bold;'>Clash Matcher</td></tr>"
                 contenidoNuevo+="</thead><tr><td style='border-bottom-left-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashCompare src='https://www.statsxente.com/MZ1/View/Images/clash_compare.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
@@ -3598,7 +3722,7 @@ self.onmessage = function (e) {
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    onerror: function(err) {
+                    onerror: function() {
                         notifySnackBarError("Tamper Teams");
                     },
                     onload: function (response) {
@@ -3776,9 +3900,9 @@ self.onmessage = function (e) {
                             }
                         }
                         let tds = row.querySelectorAll("td");
-                        var buttonData='<div style="text-align: center;"><img alt="" id="stx_pl_'+jsonResponse[cont]["idJugador"]+'" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="cursor:pointer; width: 17px; height: 17px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;"></div>'
-                        var keyTable=4;
-                        var keyTable1=3;
+                        let buttonData='<div style="text-align: center;"><img alt="" id="stx_pl_'+jsonResponse[cont]["idJugador"]+'" src="https://statsxente.com/MZ1/View/Images/main_icon.png" style="cursor:pointer; width: 17px; height: 17px; border: none; vertical-align: middle; padding: 0 4px 0 0; margin: 0;"></div>'
+                        let keyTable=4;
+                        let keyTable1=3;
                         if(flag){
                             row.insertCell(3).innerHTML = "<img alt='' src='https://statsxente.com/MZ1/View/Images/"+jsonResponse[cont]["img"]+".png' width='10px' height='10px'/> "+jsonResponse[cont]["posicion"];
                             row.insertCell(6).innerHTML=buttonData
@@ -3825,12 +3949,11 @@ self.onmessage = function (e) {
                         //Played Matches
                         tds[keyTable1].innerHTML=jsonResponse[cont]["numPartidos"]
 
-                        if(valor=="pos/numPartidos"){
+                        if(valor==="pos/numPartidos"){
                             let parsedValue=jsonResponse[cont][valor]
                             const minutos = Math.floor(parsedValue / 60);
                             const restoSegundos = parsedValue % 60;
-                            const posesion = `${String(minutos).padStart(2, '0')}:${String(restoSegundos).padStart(2, '0')}`;
-                            tds[keyTable].innerHTML=posesion
+                            tds[keyTable].innerHTML=`${String(minutos).padStart(2, '0')}:${String(restoSegundos).padStart(2, '0')}`
                         }else{
 
                             if(valor.includes("mins")){
@@ -3876,8 +3999,8 @@ self.onmessage = function (e) {
         let teamHistoryCache=[]
         let urlParams2 = new URLSearchParams(window.location.search);
         let type = urlParams2.get("type")
-        let id_busq=""
-        if(type=="senior"){
+        let id_busq
+        if(type==="senior"){
             id_busq="league_tab_pre_qual"
             if(!document.getElementById(id_busq)){
                 id_busq="league_tab_qualification"
@@ -3897,8 +4020,8 @@ self.onmessage = function (e) {
         if(!document.getElementById("league_history")){
             let a=document.getElementById(id_busq).parentElement
             let copia = a.cloneNode(true);
-            if(type=="senior"){
-                if(id_busq=="league_tab_pre_qual"){
+            if(type==="senior"){
+                if(id_busq==="league_tab_pre_qual"){
                     let texto=document.getElementById(id_busq).innerHTML;
                     let season = texto.match(/S../g)
                     document.getElementById(id_busq).innerHTML=season+" Play-Off"
@@ -3988,7 +4111,7 @@ self.onmessage = function (e) {
 
 
                         document.querySelectorAll('[id^="season_"]').forEach(el => {
-                            document.getElementById(el.id).addEventListener("click", function(e) {
+                            document.getElementById(el.id).addEventListener("click", function() {
                                 let season = el.id.replace('season_', '');
                                 let link="https://statsxente.com/MZ1/Functions/showLeagueHistory.php?idLiga="+league_id_search+"&l="+window.lang+"&season="+season+"&type="+type+"&sport="+window.sport
                                 openWindow(link, 0.95, 0.8);
@@ -3998,7 +4121,7 @@ self.onmessage = function (e) {
 
 
 
-                        document.getElementById("show_teams_history").addEventListener("click", function(e) {
+                        document.getElementById("show_teams_history").addEventListener("click", function() {
 
                             let elementos1 = document.querySelectorAll('[id^="stx_user_id_"]');
                             elementos1.forEach(el1 => {
@@ -4017,7 +4140,7 @@ self.onmessage = function (e) {
 
 
 
-                        document.getElementById("show_users_history").addEventListener("click", function(e) {
+                        document.getElementById("show_users_history").addEventListener("click", function() {
 
 
 
@@ -4036,11 +4159,10 @@ self.onmessage = function (e) {
 
                                     let clase= document.getElementById(user_td_id).innerHTML
                                     let clase_loader = "loader-" + window.sport
-                                    var loader="<div id='"+user_td_id+"_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase_loader + "' style='height:15px'></div></div></div>";
-                                    document.getElementById(user_td_id).innerHTML = loader;
+                                    document.getElementById(user_td_id).innerHTML ="<div id='"+user_td_id+"_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase_loader + "' style='height:15px'></div></div></div>";
 
                                     if (!teamHistoryCache[team_id_search]) {
-                                        teamHistoryCache[team_id_search] = new Promise((resolve, reject) => {
+                                        teamHistoryCache[team_id_search] = new Promise((resolve) => {
                                             GM_xmlhttpRequest({
                                                 method: "GET",
                                                 url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search,
@@ -4108,9 +4230,114 @@ self.onmessage = function (e) {
 
         }
     }
+// Show elo changes con calendars
+    function calendarEloChange(type){
+        let enlaces=[],filtrados=[]
+        if(type==="regular"){
+
+            enlaces = document.querySelectorAll('a[href*="p=match"]');
+            filtrados = Array.from(enlaces).filter(a =>
+                /\b\d+\s*-\s*\d+\b/.test(a.textContent) && !a.querySelector("img")
+            );
+
+        }
+
+        if(type==="cup_matches"){
+
+            enlaces = document.querySelectorAll('a[href*="p=match"]');
+            filtrados = Array.from(enlaces).filter(a => {
+                let tdSiguiente = a.closest("td")?.nextElementSibling;
+
+                return tdSiguiente &&
+                    /\b\d+\s*-\s*\d+\b/.test(tdSiguiente.textContent) &&
+                    !a.querySelector("img");
+            });
+
+        }
+
+        const mapa = new Map();
+        for (const a of filtrados) {
+            const url = new URL(a.href);
+            const mid = url.searchParams.get("mid");
+
+            if (mid) {
+                mapa.set(mid, a);
+
+            }
+        }
+
+        const mids = Array.from(mapa.keys()); // todos los mid
+        const query = mids.join(","); // "123,456,789"
+        const url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?sport=${window.sport}&mids=${encodeURIComponent(query)}`;
+        if(mids.length>0){
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onerror: function() {
+                    notifySnackBarError("Teams");
+                },
+                onload: function (response) {
+                    let changes=JSON.parse(response.responseText);
+
+                    for (const [mid, a] of mapa) {
+
+
+                        let change = new Intl.NumberFormat(window.userLocal, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }).format(Number.parseFloat(changes[mid]))
+
+                        let txt=`<div style="align-items: center; float:right; margin-left: 5px;">
+
+    <b style="margin-left: -2px; font-size: inherit; font-weight: bold;">${change}</b>
+    <img width="10px" height="10px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png" alt="">
+  </div>`
+                        a.closest("td").nextElementSibling.insertAdjacentHTML("beforeend",txt)
+                        if(type==="cup_matches"){
+                            a.closest("td").nextElementSibling.style.display="flex"
+                            a.closest("td").nextElementSibling.className="stx-elo-change"
+                        }
+                    }
+
+                    if(type==="cup_matches"){
+                        const enlaces1 = document.querySelectorAll('a[href*="p=match"]');
+                        const filtrados1 = Array.from(enlaces1).filter(a =>
+                            !a.querySelector("img")
+                        );
+                        for (const id of filtrados1) {
+                            if((id.href.includes("mid"))&&(id.closest("td").nextElementSibling.className!=="stx-elo-change")){
+                                id.closest("td").nextElementSibling.textContent=id.closest("td").nextElementSibling.textContent.trim();
+                                id.closest("td").nextElementSibling.style.display="flex"
+                            }
+
+                        }
+                    }
+
+
+                },
+            });
+
+        }
+    }
+
+
 //Leagues page
     async function leagues() {
         leaguesHistory()
+
+
+
+        setTimeout(() => {
+
+            calendarEloChange("regular")
+
+
+        }, 2000);
+
+
         let tablesSearch=document.getElementsByClassName("nice_table")
         let clear = tablesSearch[0].previousElementSibling;
         let selectsDiv=clear.querySelectorAll('select');
@@ -4334,7 +4561,7 @@ self.onmessage = function (e) {
         contenidoNuevo += "</td><td></td></tr>";
         contenidoNuevo += "<tr><td colspan='5' id='separatorTd'" + styleSep + "></td></tr>";
         contenidoNuevo += "</table></center>";
-        contenidoNuevo += '<table  border="0"  id=show3' + styleTable + '><tr><td><label>';
+        contenidoNuevo += '<table id=show3' + styleTable + '><tr><td><label>';
 
         if ((urlParams.get('type') === 'senior') || (urlParams.get('type') === 'world')) {
             if ("valor" === initialValues[urlParams.get('type')]) {
@@ -4504,7 +4731,7 @@ self.onmessage = function (e) {
 
                         let parsedValue=evaluarExpresion(document.getElementById("statsSelect").value,teams_stats[id])
                         valor = new Intl.NumberFormat(window.userLocal).format(Number.parseFloat(parsedValue).toFixed(2))
-                        if(document.getElementById("statsSelect").value=="pos/numPartidos"){
+                        if(document.getElementById("statsSelect").value==="pos/numPartidos"){
                             const minutos = Math.floor(parsedValue / 60);
                             const restoSegundos = parsedValue % 60;
                             valor=`${String(minutos).padStart(2, '0')}:${String(restoSegundos).padStart(2, '0')}`;
@@ -5010,6 +5237,14 @@ self.onmessage = function (e) {
     }
 //Cups and FL's page
     async function friendlyCupsAndLeagues() {
+
+        setTimeout(() => {
+            calendarEloChange("regular")
+
+
+        }, 2000);
+
+
 
         let urlParams = new URLSearchParams(window.location.search);
         let age_restriction
@@ -5900,11 +6135,11 @@ self.onmessage = function (e) {
                                     ",height=" + ventanaAlto +
                                     ",left=" + ventanaIzquierda +
                                     ",top=" + ventanaArriba;
-                                var link="https://statsxente.com/MZ1/View/heatMapHockey.php"
+                                let link="https://statsxente.com/MZ1/View/heatMapHockey.php"
                                 if(window.sport==="soccer"){
                                     link="https://statsxente.com/MZ1/View/heatMapSoccer.php"
                                 }
-                                var newWin = window.open(link, '_blank',opcionesVentana);
+                                let newWin = window.open(link, '_blank',opcionesVentana);
                                 let mapa = {};
                                 for (let team of MyGame.prototype.mzlive.m_match.m_teams) {
                                     for (let player of team.m_players) {
@@ -5941,7 +6176,7 @@ self.onmessage = function (e) {
             getCurrencies()
             let pids = new Set();
             let limitPlayers=11;
-            if(window.sport=="hockey"){
+            if(window.sport==="hockey"){
                 limitPlayers=21;
             }
 
@@ -6009,7 +6244,7 @@ self.onmessage = function (e) {
 
 
             let index=0;
-            if(window.sport=="hockey"){
+            if(window.sport==="hockey"){
                 index=1;
             }
 
@@ -6167,7 +6402,7 @@ self.onmessage = function (e) {
         }
         let teams_ = []
         let urlParams = new URLSearchParams(window.location.search);
-        var match_id=urlParams.get("mid")
+        let match_id=urlParams.get("mid")
         let cats_temp=["SENIOR","U23","U21","U18"];
         let cats_elo = {}
         cats_elo["senior"] = "SENIOR";
@@ -6192,8 +6427,8 @@ self.onmessage = function (e) {
                     "Content-Type": "application/json"
                 },
                 onload: function (response) {
-                    var elo_data= JSON.parse(response.responseText);
-                    var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+                    let elo_data= JSON.parse(response.responseText);
+                    let newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
                     newT+=elo_data['elo_variation'].toFixed(2)+'</i></div></br></br>'
                     newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
                     newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
@@ -6290,8 +6525,7 @@ self.onmessage = function (e) {
 
         }else{
 
-
-            var newT = '</br><div style="text-align: center;"><div style="width: 4.5em; display:none;" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
+            let newT = '</br><div style="text-align: center;"><div style="width: 4.5em; display:none;" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
             newT+='0</i></div>'
             newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
             newT+='; font-family: Roboto; font-weight: bold; font-size: revert;">'
@@ -6368,7 +6602,7 @@ self.onmessage = function (e) {
             onload: function (response) {
 
                 let jsonResponse = JSON.parse(response.responseText);
-                const divs = document.querySelectorAll('div'); // Selecciona todos los divs
+                const divs = document.querySelectorAll('div');
                 const divsConAltura15px = Array.from(divs).filter(div => {
                     const computedStyle = window.getComputedStyle(div);
                     return computedStyle.height === '15px' && div.innerHTML === "";
@@ -6630,7 +6864,7 @@ self.onmessage = function (e) {
 
                                 age += parseInt(players[i].getAttribute("age"));
 
-                                if (teamCountry == players[i].getAttribute("countryShortname")) {
+                                if (teamCountry === players[i].getAttribute("countryShortname")) {
                                     nat++;
                                 } else {
                                     noNat++;
@@ -6733,7 +6967,13 @@ self.onmessage = function (e) {
 
             return { id: playerId, age, skills, tactics };
         });
-        const skillsNames = Array.from(document.querySelectorAll('.player_skills .clippable')).map(el => el.textContent.trim()).filter((value, index, self) => self.indexOf(value) === index);
+        let skillsNames = Array.from(document.querySelectorAll('.player_skills .clippable')).map(el => el.textContent.trim()).filter((value, index, self) => self.indexOf(value) === index);
+        if(skillsNames===0){
+            skillsNames = Array.from(document.querySelectorAll('.skill_name'))
+                .map(el => el.querySelector("span")?.textContent.trim())
+                .filter(Boolean)
+                .filter((value, index, self) => self.indexOf(value) === index);
+        }
         let flagStats = true
         let urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('tid')) {
@@ -6868,8 +7108,11 @@ self.onmessage = function (e) {
             let improvementDiv=elementosConBall[i].getElementsByClassName("improvementLabel")
             let trainedSkill=elementosConBall[i].getElementsByClassName("clippable")
             let skills=elementosConBall[i].parentNode.parentNode.parentNode.parentNode.getElementsByClassName("player_skills player_skills_responsive")
-            let elementosConHola = Array.from(skills[0].getElementsByClassName("clippable")).filter(el => el.innerText.includes(trainedSkill[0].innerText));
-            let currentTd = elementosConHola[0].closest('td');
+            let elementosConSpan = Array.from(skills[0].getElementsByClassName("clippable")).filter(el => el.innerText.includes(trainedSkill[0].innerText));
+            if(elementosConSpan.length===0){
+                elementosConSpan = Array.from(skills[0].getElementsByClassName("skill_name")).filter(el => el.innerText.includes(trainedSkill[0].innerText));
+            }
+            let currentTd = elementosConSpan[0].closest('td');
             if(currentTd.nextElementSibling?.nextElementSibling?.nextElementSibling?.nextElementSibling?.nextElementSibling.innerHTML.includes("maxed")){
                 improvementDiv[0].style.backgroundColor="#db5d5d"
             }
@@ -7381,14 +7624,14 @@ self.onmessage = function (e) {
         let fontSize="small"
         let txt='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#scout_report_filter\').slideToggle();">Scout Report Filter</div>';
 
-        txt +="<div id='scout_report_filter'><table border='0'><tr>"
+        txt +="<div id='scout_report_filter'><table><tr>"
         txt +="<td>"
 //HP
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>High Potential</span></td>";
-        txt += "<td id='hp_stars' data-selected='0' style='white-space: nowrap;'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
+        txt += "<td id='hp_stars' data-selected='0' style='white-space: nowrap;'><img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
         txt +="</td>"
 
 
@@ -7421,10 +7664,10 @@ self.onmessage = function (e) {
 //LP
         txt +="<td>"
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>Low Potential</span></td>";
-        txt += "<td id='lp_stars' data-selected='0' style='white-space: nowrap;'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
+        txt += "<td id='lp_stars' data-selected='0' style='white-space: nowrap;'><img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
         txt +="</td>"
 
 
@@ -7453,10 +7696,10 @@ self.onmessage = function (e) {
         txt +="<tr><td>"
 //HP
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>Speed</span></td>";
-        txt += "<td id='sp_stars' data-selected='0' style='white-space: nowrap;'><img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
-        txt += "<img src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
+        txt += "<td id='sp_stars' data-selected='0' style='white-space: nowrap;'><img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='1'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='2'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
+        txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
         txt +="</td></tr></table></div>"
 
         txt+='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#retired_filter\').slideToggle();">Retiring Filter</div>';
@@ -7468,7 +7711,7 @@ self.onmessage = function (e) {
 
         let txt1='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
         txt1+='; font-family: \'Roboto\'; font-weight:bold; font-size:small; padding: 3px 0px;" id="searchScoutReport">'
-        txt1+='<img src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15px" height="15px"/> Search</button>'
+        txt1+='<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15px" height="15px"/> Search</button>'
 
         let tdr = document.getElementById("tdr");
         let copia = tdr.cloneNode(true);
@@ -7535,7 +7778,7 @@ self.onmessage = function (e) {
         if(document.getElementById("lp1_select").value!=="any"){lp_skills.push(document.getElementById("lp1_select").value)}
         if(document.getElementById("lp2_select").value!=="any"){lp_skills.push(document.getElementById("lp2_select").value)}
 
-        if((min_hp_stars==0)&&(min_lp_stars==0)&&(min_sp_stars==0)&&(hp_skills.length==0)&&(lp_skills.length==0)
+        if((parseInt(min_hp_stars)===0)&&(parseInt(min_lp_stars)===0)&&(parseInt(min_sp_stars)===0)&&(hp_skills.length===0)&&(lp_skills.length===0)
             &&(!document.getElementById("retiring_players").checked)&&(!document.getElementById("non_retiring_players").checked)){
             document.getElementById("searchb").click()
             return;
@@ -7594,7 +7837,7 @@ self.onmessage = function (e) {
                 s10a: document.querySelector('[name="s10a"]').value,
                 s10b: document.querySelector('[name="s10b"]').value,
             }
-            if(window.sport=="soccer"){
+            if(window.sport==="soccer"){
                 commonParams["s11a"]=document.querySelector('[name="s11a"]').value
                 commonParams["s11b"]=document.querySelector('[name="s11b"]').value
                 commonParams["s12a"]=document.querySelector('[name="s12a"]').value
@@ -7603,24 +7846,17 @@ self.onmessage = function (e) {
             let params = new URLSearchParams(commonParams);
             let query = params.toString();
             let base=`https://www.managerzone.com/ajax.php?p=transfer&sub=transfer-search&sport=${window.sport}&issearch=true&${query}&o=`
-            let i=0;
-            let doc=""
             let container=""
-            let jsonResponse=""
-
-
             container = document.createElement("div");
             container.innerHTML = "";
-
             let color="#2C81DB"
-
             if(window.sport==="soccer"){color="#4CAF50"}
 
             let progress= `
     <div id="loading_bar"></br><br><br><div style="background:#f0f0f0;padding:10px;border-radius:5px;z-index:99999;color:black;min-width:200px">
         <div style="margin-bottom:5px; font-size: small; font-weight: bolder;">Loading... <span id="mz_progress_text">0%</span></div>
         <div style="background:#555;border-radius:3px;height:10px">
-            <div id="mz_progress_bar" style="background:${color};height:10px;border-radius:3px;width:0%;transition:width 0.3s"></div>
+            <div id="mz_progress_bar" style="background:${color};height:10px;border-radius:3px;width:0;transition:width 0.3s"></div>
         </div>
     </div></div>
 `;
@@ -7708,14 +7944,14 @@ self.onmessage = function (e) {
                                             if(spans.length>1){
 
                                                 //HP
-                                                if(spans[1].textContent=="1"){
+                                                if(spans[1].textContent==="1"){
                                                     if(hp_skills.includes(spans[0].textContent)){
                                                         hp_matches++;
                                                     }
                                                 }
 
                                                 //LP
-                                                if(spans[1].textContent=="2"){
+                                                if(spans[1].textContent==="2"){
                                                     if(lp_skills.includes(spans[0].textContent)){
                                                         lp_matches++;
                                                     }
@@ -7726,7 +7962,7 @@ self.onmessage = function (e) {
                                         }); //Aqui acaba skills
 
 
-                                        if((hp_skills.length==hp_matches)&&(lp_skills.length==lp_matches)){
+                                        if((hp_skills.length===hp_matches)&&(lp_skills.length===lp_matches)){
                                             if(contShowed<20){
                                                 container.appendChild(p.cloneNode(true));
                                             }
@@ -7769,7 +8005,7 @@ self.onmessage = function (e) {
 
 
                 if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
-                if(document.getElementById("stx_colorize_skills_mobile")){document.getElementById("stx_colorize_skills_mobile").click()}
+                if(document.getElementById("stxc_colorize_skills_mobile")){document.getElementById("stxc_colorize_skills_mobile").click()}
                 percent=100;
                 document.getElementById("mz_progress_bar").style.width = percent + "%";
                 document.getElementById("mz_progress_text").textContent = percent + "%";
@@ -7783,26 +8019,25 @@ self.onmessage = function (e) {
                     search_divs[1].id="search_div_bottom"
                     search_divs[1].style.display="none"
 
-
                     let search_menu_top= `
-    <center><div id="search_menu_top_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
+    <div id="search_menu_top_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center;margin:0 auto;text-align:center;">
         <button id="mz_first_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
         <button id="mz_prev_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
         <span id="mz_page_info_top" style="min-width:80px;text-align:center">Page 1 / ?</span>
         <button id="mz_next_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">▶</button>
         <button id="mz_last_top" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏭</button>
-    </div></center>
+    </div>
 `;
 
 
                     let search_menu_bottom= `
-    <center><div id="search_menu_bottom_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center">
+        <div id="search_menu_bottom_stx" style="width: 75%; background:transparent;padding:10px;border-radius:5px;z-index:99999;color:black;display:block;gap:8px;align-items:center;margin:0 auto;text-align:center;">
         <button id="mz_first_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏮</button>
         <button id="mz_prev_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">◀</button>
         <span id="mz_page_info_bottom" style="min-width:80px;text-align:center">Page 1 / ?</span>
         <button id="mz_next_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">▶</button>
         <button id="mz_last_bottom" style="background:${GM_getValue("bg_native")};color:white;border:none;padding:5px 10px;border-radius:3px;cursor:pointer">⏭</button>
-    </div></center>
+    </div>
 `;
 
                     document.getElementById("search_div_top").insertAdjacentHTML("beforebegin",search_menu_top)
@@ -7851,13 +8086,13 @@ self.onmessage = function (e) {
             all_taxes_=fee_
         }
 
-        if(venta_==0){
+        if(venta_===0){
             disp="none"
         }
 
 
         let dispg="";
-        if(compra_==0){
+        if(compra_===0){
             dispg="none"
         }
 
@@ -7888,7 +8123,7 @@ self.onmessage = function (e) {
 
         let txt="Purchase Price"
         let compra_val=compra
-        if(compra_==0){
+        if(compra_===0){
             txt="Value"
             compra_val=value
         }
@@ -7900,7 +8135,7 @@ self.onmessage = function (e) {
 
         if(GM_getValue("transfer_grid_4")){
             html = `
-        <center><div id="profit-card">
+        <div id="profit-card" style='margin:0 auto; text-align:center;'>
             <div class="pc-header" style="display:none;">
                 <div class="pc-header-left">
                     <div class="pc-avatar" id="pc-avatar">??</div>
@@ -7957,12 +8192,14 @@ self.onmessage = function (e) {
                     <span class="pc-total-value ${class_}" id="pc-neto">${profit}</span>
                 </div>
             </div>
-        </div> </center>
+        </div>
     `;
+
+
         }else{
 
             html = `
-    <center><div id="profit-card">
+   <div id="profit-card" style='margin:0 auto; text-align:center;'>
         <div class="pc-grid">
             <div class="pc-metric">
                 <div class="pc-metric-label">Purchase</div>
@@ -8005,7 +8242,7 @@ self.onmessage = function (e) {
                 <span class="pc-total-value ${class_}">${profit}</span>
             </div>
         </div>
-    </div></center>
+    </div>
 `;
 
         }
@@ -8029,14 +8266,8 @@ self.onmessage = function (e) {
                 }
                 let player_data= await getDataPlayerTM(pid)
 
-                document.getElementById('startbid').addEventListener('keyup', function(e) {
+                document.getElementById('startbid').addEventListener('keyup', function() {
                     let form = document.getElementById('sellPlayer');
-                    let action = form?.getAttribute('action');
-                    let pid = null;
-                    if (action) {
-                        let url = new URL(action, window.location.origin);
-                        pid = url.searchParams.get('pid');
-                    }
                     let table = form?.querySelector('table');
                     let rows = table.querySelectorAll('tr');
                     let fifthRow = rows[4];
@@ -8047,7 +8278,7 @@ self.onmessage = function (e) {
                     tax_rate=tax_rate/100
                     let venta=parseFloat(document.getElementById('startbid').value)
                     let compra=player_data['purchase_price']
-                    if(compra==0){compra=player_data['value']}
+                    if(compra===0){compra=player_data['value']}
                     let tax=(venta-compra)*tax_rate
                     if(tax<0){tax=0}
                     let profit=(venta-player_data['purchase_price'])-fee-tax
@@ -8080,11 +8311,11 @@ self.onmessage = function (e) {
             skills.push(parseInt(player["@attributes"].age))
             let cont1=0;
             player.Skills.forEach(skill => {
-                if(window.sport=="hockey"){
+                if(window.sport==="hockey"){
                     if(cont1>0){
                         skills.push(parseInt(skill["@attributes"].value))
                     }
-                    if(cont==0){
+                    if(cont===0){
                         if(cont1>0){
                             sSkillNames.push(mz.translations[skill["@attributes"].name+"_short"])
                         }
@@ -8094,7 +8325,7 @@ self.onmessage = function (e) {
                     if(cont1<11){
                         skills.push(parseInt(skill["@attributes"].value))
                     }
-                    if(cont==0){
+                    if(cont===0){
                         if(cont1<11){
                             sSkillNames.push(mz.translations[skill["@attributes"].name+"_short"])
                         }
@@ -8108,11 +8339,11 @@ self.onmessage = function (e) {
         });
 
 
-        if(window.sport=="hockey"){
+        if(window.sport==="hockey"){
             tacticsSkillsResumeHockey(playersMap,sSkillNames)
             let target = document.getElementById("lineups");
             let observer = new MutationObserver((mutations) => {
-                mutations.forEach(m => {
+                mutations.forEach( ()=> {
                     tacticsSkillsResumeHockey(playersMap,sSkillNames)
                 });
             });
@@ -8128,7 +8359,7 @@ self.onmessage = function (e) {
             tactisSkillsResume(playersMap,sSkillNames)
             let target = document.getElementById("pitch-wrapper");
             let observer = new MutationObserver((mutations) => {
-                mutations.forEach(m => {
+                mutations.forEach(() => {
                     tactisSkillsResume(playersMap,sSkillNames)
                 });
             });
@@ -8227,9 +8458,9 @@ self.onmessage = function (e) {
         let html = "<div id='skillsTable'>"
         html+='<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
         html+="<div id='sep' "+styleSep+"></br></div>"
-        html+="<center><div id='tableSkills' style='display:"+styleTable+";'>"
-        html+='<center><label class="stx-checkitem" style="display:inline-flex;"><input type="checkbox" id="show_power_box" style="display:block;"> Show Power/Box</label></center>'
-        html+="<table id='tableSkills_data' style='border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
+        html+="<div id='tableSkills' style='margin: 0 auto; display:"+styleTable+";'>"
+        html += '<div style="text-align:center;"><label class="stx-checkitem" style="display:inline-flex;"><input type="checkbox" id="show_power_box" style="display:block;"> Show Power/Box</label></div>'
+        html+="<table id='tableSkills_data' style='margin: 0 auto; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
         html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>Line</td>`;
         sSkillNames.forEach(val => {
             html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>${val}</td>`;
@@ -8240,7 +8471,7 @@ self.onmessage = function (e) {
 
         [l1, l2, l3, l4,p1,p2,b1,b2,gk].forEach((line, lineIndex) => {
             playersNum=5
-            if(lineIndex==8){playersNum=1}
+            if(lineIndex===8){playersNum=1}
             if(line[0]>0){
                 let hiddenStyle = (lineIndex >= 4 && lineIndex <= 7) ? "display: none;" : "";
                 html += `<tr style='${hiddenStyle}'>`;
@@ -8367,7 +8598,7 @@ self.onmessage = function (e) {
         let html = "<div id='skillsTable'>"
         html+='<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
         html+="<div id='sep' "+styleSep+"></br></div>"
-        html+="<center><table id='tableSkills' style='display:"+styleTable+"; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
+        html+="<table id='tableSkills' style='margin: 0 auto; display:"+styleTable+"; border-collapse:collapse;font-size: 1.2em;'><thead style='margin: 0 auto; background-color: "+GM_getValue("bg_native") +";'><tr>";
 
         html += `<td style='padding: 5px 7px; color: white; font-weight: bold;'>Pos</td>`;
         sSkillNames.forEach(val => {
@@ -8440,7 +8671,7 @@ self.onmessage = function (e) {
             const url = new URL(link.href);
             const tid = url.searchParams.get("tid");
             let flag=false
-            if(cont==0){
+            if(cont===0){
                 flag=link.parentNode.querySelector("[id^='economyRating']")!== null
             }else{
                 flag=link.closest(".clippable").querySelector("[id^='economyRating']") !== null
@@ -8451,7 +8682,7 @@ self.onmessage = function (e) {
                 let color=getFinanceColor(rating)
                 let styl="style='border: 1px solid black; background-color: "+color+"; display: inline-block; width: 1.5em; height: 1.2em; border-radius: 3px; font-size: 0.9em; font-weight: bold; color: white; text-align: center; line-height: 1.2em;'"
 
-                if(cont==0){
+                if(cont===0){
                     link.insertAdjacentHTML("beforebegin", "<span "+styl+" id='economyRating'>"+rating+"</span> ");
 
                 }else{
@@ -8935,25 +9166,6 @@ self.onmessage = function (e) {
             });
         });
     }
-    function fetchExistTeam(url) {
-        return new Promise((resolve, reject) => {
-
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: url,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                onload: function (response) {
-                    let jsonResponse = JSON.parse(response.responseText);
-                    resolve(jsonResponse['inserted'])
-                },
-                onerror: function () {
-                    reject("no");
-                }
-            });
-        });
-    }
     function fetchExistPlayers(url) {
         return new Promise((resolve, reject) => {
 
@@ -8975,6 +9187,7 @@ self.onmessage = function (e) {
     }
     function fetchAndProcessPlayerData(link,skill,toChange,device) {
         return new Promise((resolve, reject) => {
+                console.log(link)
 
                 GM_xmlhttpRequest({
                     method: 'GET',
@@ -8991,9 +9204,17 @@ self.onmessage = function (e) {
 
                             let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
                             let maxs = element.getElementsByClassName("maxed")
-
                             let clips = previousTd.getElementsByClassName("clippable")
-                            if((clips[0].innerText.trim()===skill.trim())&&(maxs.length>0)){
+                            let skill_name
+
+                            if(clips.length===0){
+                                let skills_ = previousTd.getElementsByClassName("skill_name")
+                                skill_name=skills_[0].innerText.trim()
+                            }else{
+                                skill_name=clips[0].innerText.trim()
+                            }
+
+                            if((skill_name===skill.trim())&&(maxs.length>0)){
 
                                 if(device!=="computer"){
                                     toChange.style.padding="3px"
@@ -9091,8 +9312,8 @@ self.onmessage = function (e) {
 
 
                     let fechaStr = tds[0].textContent.trim();
-                    let [dia, mes, año] = fechaStr.split('-');
-                    let fecha = new Date(año, mes - 1, dia);
+                    let [dia, mes, anho] = fechaStr.split('-');
+                    let fecha = new Date(anho, mes - 1, dia);
                     let hoy = new Date();
                     let diff = hoy - fecha;
                     let days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -9143,7 +9364,7 @@ self.onmessage = function (e) {
     }
     function getCurrencies(){
 
-        if(GM_getValue("currencies")== undefined){
+        if(GM_getValue("currencies")===undefined){
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://statsxente.com/MZ1/Functions/tamper_currencies.php",
@@ -9207,21 +9428,6 @@ self.onmessage = function (e) {
                 clearInterval(interval);
                 clearTimeout(timeout);
                 function_to_execute();
-            }
-        }, 100);
-
-
-        let timeout = setTimeout(function () {
-            clearInterval(interval);
-        }, miliseconds);
-    }
-    function waitToDOMByIdArgs(function_to_execute, idToSearch,miliseconds,...args) {
-        let interval = setInterval(function () {
-            let element = document.getElementById(idToSearch);
-            if (element) {
-                clearInterval(interval);
-                clearTimeout(timeout);
-                function_to_execute(...args);
             }
         }, 100);
 
@@ -9305,8 +9511,7 @@ self.onmessage = function (e) {
 
         let lang = window.userLocal.slice(0,2);
         rows.sort(function (a, b) {
-            var aNum,bNum;
-
+            let aNum,bNum;
             if((lang==="fr")||(lang==="ru")){
                 aNum = parseNumberToOrder(a.cells[col].textContent);
                 bNum = parseNumberToOrder(b.cells[col].textContent);
@@ -9480,9 +9685,6 @@ self.onmessage = function (e) {
         });
 
     }
-
-
-
     function createModalMenu() {
         if(GM_getValue("bg_native")===undefined){
             GM_setValue("bg_native","rgb(228, 200, 0)")
@@ -9760,7 +9962,7 @@ self.onmessage = function (e) {
 
         // PayPal
         html += '<div class="stx-paypal"><p>Support the project</p>';
-        html += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank"><img src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="50" height="50"/></a></div>';
+        html += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="50" height="50"/></a></div>';
 
         // Footer buttons
         html += '<div class="stx-footer">';
@@ -9892,7 +10094,7 @@ self.onmessage = function (e) {
     }
     function getDeviceFormat(){
         if(!document.getElementById("deviceFormatStx")){
-            var script = document.createElement('script');
+            let script = document.createElement('script');
             script.textContent = `
         var newElemenDeviceSTX = document.createElement("input");
         newElemenDeviceSTX.id= "deviceFormatStx";
@@ -10295,7 +10497,7 @@ self.onmessage = function (e) {
             txt+="<button type='button' id='button-snackbar-update'><i class='bi bi-eye-fill' style='font-style:normal;'>&nbsp;DETAILS&nbsp;</i></button></a>"
             txt+="</br></br>"
             txt += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank">'
-            txt += '<img src=" https://statsxente.com/MZ1/View/Images/paypal_script.png" width="45em" height="45em"/></a>'
+            txt += '<img alt="" src=" https://statsxente.com/MZ1/View/Images/paypal_script.png" width="45em" height="45em"/></a>'
 
             x.innerHTML = txt;
             x.className = "showSnackBar_stx";
@@ -10421,8 +10623,7 @@ self.onmessage = function (e) {
         });
     }
     function selectStarsTM(el){
-        let idx = parseInt(el.dataset.index);
-        el.parentNode.dataset.selected = idx;
+        el.parentNode.dataset.selected = parseInt(el.dataset.index);
         resetStarsTM(el);
     }
     function updatePageInfoTM(){
@@ -10442,8 +10643,10 @@ self.onmessage = function (e) {
             document.getElementById("players_container_stx").appendChild(searchResults[i]);
         }
         if(document.getElementById("gw_run")){document.getElementById("gw_run").click()}
-        if(document.getElementById("stx_colorize_skills_mobile")){document.getElementById("stx_colorize_skills_mobile").click()}
-        addTeamInfoMarket()
+        if(document.getElementById("stxc_colorize_skills_mobile")){document.getElementById("stxc_colorize_skills_mobile").click()}
+        setTimeout(() => {
+            addTeamInfoMarket().then()
+        }, 500);
     }
     function playersPageStatsAll(){
         let params = new URLSearchParams(window.location.search)
@@ -10477,8 +10680,7 @@ self.onmessage = function (e) {
     }
     function getSize(key) {
         let data = GM_getValue(key, "[]");
-        let bytes = new Blob([data]).size;
-        return bytes;
+        return new Blob([data]).size;
     }
     function resetCache(sport){
 
@@ -11151,7 +11353,7 @@ cursor:pointer;
 
     }
     function insertTaxCss(){
-        let css=""
+        let css
         if(GM_getValue("transfer_grid_2")){
 
 
@@ -11290,420 +11492,4 @@ cursor:pointer;
         document.head.appendChild(style);
 
     }
-    async function playersPage1() {
-        setTimeout(function () {
-            let player_images
-            let elementos = document.getElementsByClassName('playerContainer');
-
-            let player_values = {}
-            let tactics_list = []
-
-            let urlParams = new URLSearchParams(window.location.search);
-            let flagStats = true
-            if (urlParams.has('tid')) {
-                flagStats = false
-            }
-
-            if (flagStats) {
-                let habil_container = elementos[0].getElementsByClassName("player_skills")
-                let habil = habil_container[0].getElementsByClassName("clippable")
-
-                if (window.sport === "hockey") {
-                    for (let q = 1; q < habil.length; q++) {
-                        skills_names.push(habil[q].textContent)
-                    }
-                } else {
-
-                    for (let q = 0; q < habil.length - 1; q++) {
-                        skills_names.push(habil[q].textContent)
-                    }
-                    player_images = document.getElementsByClassName("player-image soccer")
-                }
-            }
-
-            let ids_ = []
-
-            for (let i = 0; i < elementos.length; i++) {
-                let ids = elementos[i].getElementsByClassName('player_id_span');
-
-                let elementos_ = elementos[i].getElementsByClassName('p_sublinks');
-
-                let subheaders = elementos[i].getElementsByClassName('subheader clearfix');
-
-
-                let enlace = subheaders[0].querySelector('.subheader a');
-                let playerName = enlace.querySelector('.player_name').textContent
-
-                ids_.push({ "id": ids[0].textContent, "name": playerName });
-
-
-                let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
-                txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
-                txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
-                txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
-
-                let index=0
-                if(window.stx_device!=="computer"){index=1}
-                elementos_[index].innerHTML += txt;
-
-                if (flagStats) {
-                    let flag_gk = false;
-                    let age_div = elementos[i].getElementsByClassName('dg_playerview_info');
-                    let age_table = age_div[0].getElementsByTagName('table')[0];
-
-                    let ini_age = age_table.getElementsByTagName('td')[0].textContent.indexOf(":")
-                    let age = age_table.getElementsByTagName('td')[0].textContent.substring(ini_age + 2, ini_age + 4);
-
-
-                    if ((window.sport === "soccer") && (player_images[i].innerHTML.includes("gk=1"))) {
-                        flag_gk = true
-                    }
-
-                    let tactics = elementos[i].getElementsByClassName('player_tactic gradientSunriseIcon');
-
-                    player_values = {
-                        "id": ids[0].textContent,
-                        "skills": [],
-                        "lines": [],
-                        "tactics-position": {},
-                        "tactics": [],
-                        "age": parseInt(age)
-                    }
-
-                    for (let j = 0; j < tactics.length; j++) {
-                        let fin = 0;
-                        let line = ""
-                        let ini = tactics[j].textContent.indexOf('(');
-                        let tactic = tactics[j].textContent.substring(0, ini - 1);
-
-                        if (window.sport === "hockey") {
-
-                            if (!tactics[j].textContent.includes(":")) {
-                                ini = tactics[j].textContent.indexOf('(');
-                                fin = tactics[j].textContent.indexOf(')');
-                                line = tactics[j].textContent.substring(ini + 2, fin - 1);
-                                gk_line = line;
-                            } else {
-                                ini = tactics[j].textContent.indexOf('(');
-                                fin = tactics[j].textContent.indexOf(':');
-                                line = tactics[j].textContent.substring(ini + 2, fin);
-                            }
-
-                        } else {
-                            ini = tactics[j].textContent.indexOf('(');
-                            fin = tactics[j].textContent.indexOf(')');
-                            line = tactics[j].textContent.substring(ini + 2, fin - 1);
-                            if (flag_gk) {
-                                gk_line = line;
-                            }
-                            if (tactics[j].textContent.includes(",")) {
-                                ini = tactics[j].textContent.indexOf('(');
-                                fin = tactics[j].textContent.indexOf(',');
-                                su_line = tactics[j].textContent.substring(ini + 2, fin);
-                            }
-                        }
-
-                        if (!player_values['lines'].includes(line)) {
-                            player_values['lines'].push(line);
-                        }
-                        if (!player_values['tactics'].includes(tactic)) {
-                            player_values['tactics'].push(tactic);
-                        }
-
-                        player_values['tactics-position'][tactic] = line
-
-                        if ((!lines.includes(line))) {
-                            lines.push(line);
-                        }
-
-                        if (!tactics_list.includes(tactic)) {
-                            tactics_list.push(tactic);
-                        }
-
-
-                    }
-                    let skills_container=elementos[i].getElementsByClassName('skills-container floatLeft clearfix')
-                    let skills = skills_container[0].getElementsByClassName('skillval');
-
-                    if (window.sport === "hockey") {
-
-                        for (let j = 1; j < skills.length; j++) {
-                            let cleanedText = skills[j].textContent.replace(')', '');
-                            cleanedText = cleanedText.replace('(', '');
-                            let number = parseInt(cleanedText, 10);
-                            player_values['skills'].push(number);
-                        }
-
-                    } else {
-                        for (let j = 0; j < skills.length - 1; j++) {
-
-                            let cleanedText = skills[j].textContent.replace(')', '');
-                            cleanedText = cleanedText.replace('(', '');
-                            let number = parseInt(cleanedText, 10);
-                            player_values['skills'].push(number);
-                        }
-                    }
-                    players.push(player_values)
-                }
-            }
-            if (flagStats) {
-                const container = document.getElementById("squad-search-toggle")
-                let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>"
-                contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>"
-                contenidoNuevo += "<option value='All Team'>All Team</option>"
-                for (let x = 0; x < tactics_list.length; x++) {
-                    let selected = ""
-                    if (x === 0) {
-                        selected = "selected=''";
-                    }
-                    contenidoNuevo += "<option " + selected + " value='" + tactics_list[x] + "'>" + tactics_list[x] + "</option>"
-                }
-                contenidoNuevo += "</select></div></br><div id=divMenu></div></center></div>"
-                container.innerHTML = contenidoNuevo + container.innerHTML;
-                skillDistrib(tactics_list[0]);
-                document.getElementById("tactics_select").addEventListener('change', function () {
-                    let select = document.getElementById('tactics_select');
-                    let valorSeleccionado = select.value;
-                    document.getElementById("divMenu").innerHTML = ""
-                    skillDistrib(valorSeleccionado)
-                });
-            }
-
-            let team_id
-            if(window.sport==="soccer"){
-                team_id=GM_getValue("soccer_team_id")
-            }else{
-                team_id=GM_getValue("hockey_team_id")
-            }
-
-
-            for (let i = 0; i < ids_.length; i++) {
-                (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
-                    document.getElementById("but" + currentId).addEventListener('click', function () {
-                        let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
-                            + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") +
-                            "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                        openWindow(link, 0.95, 1.25);
-                    });
-                })(ids_[i]['id'], team_id, window.sport, window.lang, "[undefined]", ids_[i]['name']);
-            }
-
-        }, 1000);
-    }
-    function skillDistrib1(tactic) {
-        let t = tactic
-        let l=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        if (window.sport === "hockey") {
-            l = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        }
-
-        let li_t = {}
-        for (let i = 0; i < lines.length; i++) {
-            li_t[lines[i]] = [...l];
-        }
-
-        let no_gk_line = "Tactic -(" + gk_line + ")"
-        li_t["Team"] = [...l];
-        li_t["U23"] = [...l];
-        li_t["U21"] = [...l];
-        li_t["U18"] = [...l];
-        li_t["Tactic"] = [...l];
-        li_t[no_gk_line] = [...l];
-
-        let i,j
-        for (i = 0; i < players.length; i++) {
-            if (players[i]['tactics'].includes(t)) {
-                for (j = 0; j < players[i]['skills'].length; j++) {
-                    li_t[players[i]['tactics-position'][t]][j] += players[i]['skills'][j]
-                    li_t['Tactic'][j] += players[i]['skills'][j]
-                    if (players[i]['tactics-position'][t] !== "Po") {
-                        li_t[no_gk_line][j] += players[i]['skills'][j]
-                    }
-                }
-                li_t[players[i]['tactics-position'][t]][j] += 1
-                li_t['Tactic'][j] += 1
-                if (players[i]['tactics-position'][t] !== "Po") {
-                    li_t[no_gk_line][j] += 1
-                }
-            } else {
-
-                for (let j = 0; j < players[i]['skills'].length; j++) {
-                    if (players[i]['age'] <= 23) {
-                        li_t['U23'][j] += players[i]['skills'][j]
-                    }
-                    if (players[i]['age'] <= 23) {
-                        li_t['U21'][j] += players[i]['skills'][j]
-                    }
-                    if (players[i]['age'] <= 23) {
-                        li_t['U18'][j] += players[i]['skills'][j]
-                    }
-                    li_t['Team'][j] += players[i]['skills'][j]
-                }
-
-                if (players[i]['age'] <= 23) {
-                    li_t['U23'][li_t["U23"].length - 1] += 1
-                }
-
-                if (players[i]['age'] <= 21) {
-                    li_t['U21'][li_t["U21"].length - 1] += 1
-                }
-                if (players[i]['age'] <= 18) {
-                    li_t['U18'][li_t["U18"].length - 1] += 1
-                }
-                li_t['Team'][li_t["Team"].length - 1] += 1
-            }
-        }
-
-        const container = document.getElementById("divMenu")
-        let contenidoNuevo = "<table id=showMenu style='width:95%;font-size:13px; margin: 0 auto; text-align:center;'><thead style='background-color:" + GM_getValue("bg_native") + "; color:" + GM_getValue("color_native") + ";'><tr>";
-        contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;">Line</th>'
-        for (let q = 0; q < skills_names.length; q++) {
-            contenidoNuevo += '<th style="padding:4px; margin: 0 auto; text-align:center;">' + skills_names[q] + '</th>'
-        }
-        contenidoNuevo += '</tr></thead>';
-        let l_aux = lines
-        l_aux = l_aux.filter(item => item !== gk_line);
-        l_aux.sort((a, b) => {
-            let numA = parseInt(a.substring(1), 10);
-            let numB = parseInt(b.substring(1), 10);
-            return numA - numB;
-        });
-
-        l_aux.unshift(gk_line);
-        l_aux.push("Tactic");
-        l_aux.push(no_gk_line);
-
-        if (window.sport === "hockey") {
-            if (li_t["L4"][10] === 0) {
-                let index = l_aux.indexOf('L4');
-                if (index !== -1) {
-                    l_aux.splice(index, 1);
-                }
-            }
-        }
-
-        if (t === "All Team") {
-            l_aux = ["Team", "U23", "U21", "U18"]
-        }
-
-        l_aux = l_aux.filter(item => !item.includes(su_line));
-
-        for (let w = 0; w < l_aux.length; w++) {
-            let key = l_aux[w]
-            if (li_t.hasOwnProperty(key)) {
-                contenidoNuevo += "<tr>";
-                contenidoNuevo += "<td style='padding:2px; margin: 0 auto; text-align:center;'><strong>" + key + "</strong></td>";
-                for (let x = 0; x < li_t[key].length - 1; x++) {
-                    contenidoNuevo += "<td style='padding:2px; margin: 0 auto; text-align:center;'>" + Math.round(li_t[key][x] / li_t[key][li_t[key].length - 1] * 100) / 100 + "</td>";
-                }
-                contenidoNuevo += "</tr>";
-
-            }
-        }
-        container.innerHTML += contenidoNuevo;
-    }
-    function getParsedValidDate(texto) {
-        let fecha = new Date(texto);
-        if (!isNaN(fecha.getTime())) {
-            return fecha.toISOString().split('T')[0];
-        } else {
-            let hoy = new Date();
-            hoy.setDate(hoy.getDate() - 5);
-            return hoy.toISOString().split('T')[0];
-        }
-    }
-    function ordenarTablaq(columna, byClassName, param) {
-        let tabla
-        if (byClassName) {
-            let elems = document.getElementsByClassName(param);
-            tabla = elems[0]
-        } else {
-            tabla = document.getElementById(param)
-        }
-        let filas, switching, i, x, y, debeCambiar, direccion, cambioRealizado;
-        switching = true;
-        direccion = document.getElementById("ord_table").value
-        while (switching) {
-            switching = false;
-            filas = tabla.rows;
-            for (i = 1; i < (filas.length - 1); i++) {
-                debeCambiar = false;
-                x = filas[i].getElementsByTagName("td")[columna];
-                y = filas[i + 1].getElementsByTagName("td")[columna];
-                let xValue = parseFloat(x.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
-                let yValue = parseFloat(y.innerHTML.replace(/\./g, "").replace(/[^0-9,-]+/g, "").replace(",", "."));
-                if (direccion === "ascendente") {
-                    if (isNaN(xValue)) {
-                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    } else {
-                        if (xValue > yValue) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    }
-                } else if (direccion === "descendente") {
-                    if (isNaN(xValue)) {
-                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    } else {
-                        if (xValue < yValue) {
-                            debeCambiar = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-
-
-            if (debeCambiar) {
-                filas[i].parentNode.insertBefore(filas[i + 1], filas[i]);
-                switching = true;
-                cambioRealizado = true;
-            } else {
-                if (!cambioRealizado && direccion === "descendente") {
-                    //direccion = "ascendente";
-                    switching = true;
-                }
-            }
-        }
-
-        if (document.getElementById("ord_table").value === "descendente") {
-            document.getElementById("ord_table").value = "ascendente";
-        } else {
-            document.getElementById("ord_table").value = "descendente";
-        }
-
-
-        filas = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
-        for (i = 0; i < filas.length; i++) {
-            let primerTd = filas[i].querySelector("td");
-            primerTd.innerHTML = (i + 1);
-        }
-    }
-    function parseNumber(numStr) {
-        if (/^\d{1,3}(,\d{3})*\.\d+$/.test(numStr)) {
-            return parseFloat(numStr.replace(/,/g, ''));
-        }
-
-
-        if (/^\d{1,3}(\.\d{3})*,\d+$/.test(numStr)) {
-            return parseFloat(numStr.replace(/\./g, '').replace(',', '.'));
-        }
-
-        if (/^\d{1,3}(,\d{3})+$/.test(numStr)) {
-            return parseFloat(numStr.replace(/,/g, ''));
-        }
-
-        if (/^\d{1,3}(\.\d{3})+$/.test(numStr)) {
-            return parseFloat(numStr.replace(/\./g, ''));
-        }
-        return parseFloat(numStr.replace(',', '.'));
-    }
-
 })();
