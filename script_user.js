@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.217
+// @version      0.218
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1469,7 +1469,7 @@ self.onmessage = function (e) {
                             status="up";
                         }
 
-                        let txt="<div id='showELOChange' style='display: flex; align-items: center; justify-content: center;'>"+symbol+change+"<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/></div>";
+                        let txt="</br><div id='showELOChange' style='display: flex; align-items: center; justify-content: center;'>"+symbol+change+"<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/></div>";
 
                         a.closest("dd").insertAdjacentHTML("beforeend",txt)
 
@@ -4232,6 +4232,7 @@ self.onmessage = function (e) {
     }
 // Show elo changes con calendars
     function calendarEloChange(type){
+        if(!GM_getValue("eloChangeCalendar")){return}
         let enlaces=[],filtrados=[]
         if(type==="regular"){
 
@@ -4269,7 +4270,13 @@ self.onmessage = function (e) {
         const mids = Array.from(mapa.keys()); // todos los mid
         const query = mids.join(","); // "123,456,789"
         const url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?sport=${window.sport}&mids=${encodeURIComponent(query)}`;
+        console.log(url)
         if(mids.length>0){
+            getDeviceFormat()
+            let fontSize="inherit"
+            if(window.stx_device==="mobile"){
+                fontSize="x-small"
+            }
             GM_xmlhttpRequest({
                 method: "GET",
                 url: url,
@@ -4284,17 +4291,26 @@ self.onmessage = function (e) {
 
                     for (const [mid, a] of mapa) {
 
+                        let change="-"
 
-                        let change = new Intl.NumberFormat(window.userLocal, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        }).format(Number.parseFloat(changes[mid]))
+                        if(changes[mid]){
+
+                            change = new Intl.NumberFormat(window.userLocal, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            }).format(Number.parseFloat(changes[mid]))
+                        }
+
+
 
                         let txt=`<div style="align-items: center; float:right; margin-left: 5px;">
 
-    <b style="margin-left: -2px; font-size: inherit; font-weight: bold;">${change}</b>
-    <img width="10px" height="10px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png" alt="">
-  </div>`
+    <b style="margin-left: -2px; margin-right:2px; font-size: ${fontSize}; font-weight: bold;">${change}</b>`
+
+                        if(change!=="-"){
+                            txt+='<img width="10px" height="10px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png" alt="">';
+                        }
+                        txt+='</div>'
                         a.closest("td").nextElementSibling.insertAdjacentHTML("beforeend",txt)
                         if(type==="cup_matches"){
                             a.closest("td").nextElementSibling.style.display="flex"
@@ -6973,6 +6989,7 @@ self.onmessage = function (e) {
                 .map(el => el.querySelector("span")?.textContent.trim())
                 .filter(Boolean)
                 .filter((value, index, self) => self.indexOf(value) === index);
+            console.log(skillsNames)
         }
         let flagStats = true
         let urlParams = new URLSearchParams(window.location.search);
@@ -9830,7 +9847,8 @@ self.onmessage = function (e) {
             league_calendar_button: "checked", windowsConfig: true,
             tabsConfig: false, show_league_selects: true,
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
-            transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,onlySinglePages:true
+            transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,
+            onlySinglePages:true,eloChangeCalendar:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -9881,7 +9899,8 @@ self.onmessage = function (e) {
             { key: 'transfersSellerFlag',        id: 'transfersSellerSelect',         label: 'Transfers seller' },
             { key: 'transfersTaxFlag',           id: 'transfersTaxSelect',            label: 'Transfers tax' },
             { key: 'tacticsSkillsResume',        id: 'tacticsSkillsResume',           label: 'Tactics skills resume' },
-            { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',           label: 'Teams financial data' },
+            { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
+            { key: 'eloChangeCalendar',          id: 'eloChangeCalendar',             label: 'Elo changes calendar' },
         ];
 
         let html = '<div class="stx-modal">';
