@@ -4270,7 +4270,6 @@ self.onmessage = function (e) {
         const mids = Array.from(mapa.keys()); // todos los mid
         const query = mids.join(","); // "123,456,789"
         const url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?sport=${window.sport}&mids=${encodeURIComponent(query)}`;
-        console.log(url)
         if(mids.length>0){
             getDeviceFormat()
             let fontSize="inherit"
@@ -6989,7 +6988,6 @@ self.onmessage = function (e) {
                 .map(el => el.querySelector("span")?.textContent.trim())
                 .filter(Boolean)
                 .filter((value, index, self) => self.indexOf(value) === index);
-            console.log(skillsNames)
         }
         let flagStats = true
         let urlParams = new URLSearchParams(window.location.search);
@@ -9204,8 +9202,6 @@ self.onmessage = function (e) {
     }
     function fetchAndProcessPlayerData(link,skill,toChange,device) {
         return new Promise((resolve, reject) => {
-                console.log(link)
-
                 GM_xmlhttpRequest({
                     method: 'GET',
                     url:link,
