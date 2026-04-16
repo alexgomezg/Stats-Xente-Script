@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.221
+// @version      0.222
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -9245,7 +9245,8 @@ self.onmessage = function (e) {
 
                             if(clips.length===0){
                                 let skills_ = previousTd.getElementsByClassName("skill_name")
-                                skill_name=skills_[0].innerText.trim()
+                                skill_name=skills_[0].querySelectorAll("span")[0].innerHTML.trim()
+                                //skill_name=skills_[0].innerText.trim()
                             }else{
                                 skill_name=clips[0].innerText.trim()
                             }
