@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.222
+// @version      0.223
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -281,7 +281,12 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
-            waitToDOMById(trainingReport,"training_report",5000)
+            // waitToDOMById(trainingReport,"training_report",5000)
+
+            setTimeout(() => {
+                waitToDOMById(trainingReport, "training_report", 5000);
+            }, 2000);
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'statistics')){
@@ -9237,12 +9242,10 @@ self.onmessage = function (e) {
 
                         let elements = player_cointainer.querySelectorAll('.skillval');
                         elements.forEach(element => {
-
                             let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
                             let maxs = element.getElementsByClassName("maxed")
                             let clips = previousTd.getElementsByClassName("clippable")
                             let skill_name
-
                             if(clips.length===0){
                                 let skills_ = previousTd.getElementsByClassName("skill_name")
                                 skill_name=skills_[0].querySelectorAll("span")[0].innerHTML.trim()
@@ -9250,20 +9253,16 @@ self.onmessage = function (e) {
                             }else{
                                 skill_name=clips[0].innerText.trim()
                             }
-
                             if((skill_name===skill.trim())&&(maxs.length>0)){
 
                                 if(device!=="computer"){
                                     toChange.style.padding="3px"
                                 }
-                                toChange.style.backgroundColor="#db5d5d"
+                                // toChange.style.backgroundColor="#db5d5d"
+                                toChange.style.setProperty('background-color', '#db5d5d', 'important');
                                 toChange.style.fontWeight="bold"
                                 toChange.style.borderRadius="5px"
-
-
                             }
-
-
                         });
                         resolve("Done")
                     },
