@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.223
+// @version      0.224
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -281,12 +281,7 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
-            // waitToDOMById(trainingReport,"training_report",5000)
-
-            setTimeout(() => {
-                waitToDOMById(trainingReport, "training_report", 5000);
-            }, 2000);
-
+            waitToDOM(trainingReport, ".clippable.player_link", 0,7000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'statistics')){
@@ -2492,18 +2487,48 @@ self.onmessage = function (e) {
             });
         });
     }
+
+
+    function getPreviousElement(elem,class_){
+        let el = elem.previousElementSibling
+        let maxIterations = 10; // límite
+        let i = 0;
+        while (el && i < maxIterations && !el.matches(class_)) {
+            el = el.previousElementSibling;
+            i++;
+        }
+        return el
+    }
+
+    function getPreviousElementByTag(elem, tag, class_) {
+        let el = elem.previousElementSibling;
+        let maxIterations = 10;
+        let i = 0;
+
+        while (
+            el &&
+            i < maxIterations &&
+            !el.querySelector(`${tag}.${class_}`)
+            ) {
+            el = el.previousElementSibling;
+            i++;
+        }
+
+        return el;
+    }
+
+
 //Training Report
     function trainingReport(){
         if(!document.getElementById("trainingDaysId")){
             let elem=document.getElementsByClassName("headerPanel")
             elem[0].id="trainingDaysId"
-
-
             document.getElementById("trainingDaysId").addEventListener('click', function () {
                 setTimeout(function () {
-                    waitToDOMById(trainingReport,"training_report",5000)
+                    if(document.getElementById("hp_loader")){return}
+                    waitToDOM(trainingReport, ".clippable.player_link", 0,7000)
+                    //waitToDOMById(trainingReport,"training_report",5000)
                 }, 500);
-
 
             });
         }
@@ -2515,9 +2540,12 @@ self.onmessage = function (e) {
         let promesas = [];
         let clase="loader-"+window.sport
         if(window.stx_device==="computer"){
-            let elements0 = document.querySelectorAll('.dailyReportRightColumn');
+            let elements0 = Array.from(document.querySelectorAll('td.dailyReportRightColumn'))
+                .filter(td => td.innerHTML.includes('bar_pos'));
             elements0.forEach(element0 => {
-                let previousTd = element0.previousElementSibling.previousElementSibling.previousElementSibling;
+                //let previousTd = element0.previousElementSibling.previousElementSibling.previousElementSibling;
+                let previousTd=getPreviousElement(element0,".skillColumn")
+
                 if((!previousTd.innerHTML.includes("training_graph_icon"))&&(previousTd.innerHTML.includes("<img"))){
                     let loaders=previousTd.getElementsByClassName("containerLoaderDiv")
                     if(loaders.length>0){
@@ -2528,12 +2556,13 @@ self.onmessage = function (e) {
                     }
                 }
                 if(element0.innerHTML.includes(key)){
-                    let skills = element0.previousElementSibling.previousElementSibling;
+                    //let skills = element0.previousElementSibling.previousElementSibling;
+                    let skills=getPreviousElementByTag(element0,"img","skillBallSeparator")
                     let number_skills=skills.getElementsByClassName("skillBallSeparator")
 
                     if(number_skills.length>3){
-
-                        let player_td = element0.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                        let player_td=getPreviousElement(element0,".playerColumn")
+                        //let player_td = element0.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
                         let player_as=player_td.getElementsByTagName("a")
                         let link=player_as[0].href
                         promesas.push(fetchAndProcessPlayerData(link,previousTd.innerText,previousTd,window.stx_device))
@@ -2551,12 +2580,9 @@ self.onmessage = function (e) {
                 newDL.className="hitlist-compact-list markers";
                 newDL.innerHTML='<div id="hp_loader" class="'+clase+'" style="display:inline-block; width:15%"></div>'
                 dl[0].appendChild(newDL)
-
                 if(element0.innerHTML.includes(key)){
                     let number_skills=element0.getElementsByClassName("skillBallSeparator")
-
                     if(number_skills.length>3){
-
                         let player_as=element0.getElementsByTagName("a")
                         let link=player_as[0].href
                         let toChange=element0.getElementsByClassName("responsive-show floatRight")
@@ -6862,36 +6888,59 @@ self.onmessage = function (e) {
 
 
     }
+
+
+
+
+    function getPlayerDataAPI(id) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/API/player.php?sport=" + window.sport + "&format=json&player_id=" + id,
+                headers: {
+                    "Content-Type": "application/xml"
+                },
+                onload: function (r) {
+                    try {
+                        let data = JSON.parse(r.responseText);
+                        resolve(data);
+                    } catch (e) {
+                        reject(e);
+                    }
+                },
+                onerror: reject
+            });
+        });
+    }
+
     function getTeamMatchStats(team_id,pids) {
         return new Promise((resolve, reject) => {
-
             let cont = 0;
             let value = 0, salary = 0, age = 0;
             let nat = 0;
             let noNat = 0;
-
+            let found=[]
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+team_id,
                 headers: {
                     "Content-Type": "application/xml"
                 },
-
-                onload: function (response) {
+                onload: async function (response) {
                     try {
-
                         let parser = new DOMParser();
                         let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
 
                         let teamData = xmlDoc.getElementsByTagName("TeamPlayers");
                         let teamCurrency = teamData[0].getAttribute("teamCurrency");
                         let teamCountry = teamData[0].getAttribute("countryShortname");
-
                         let players = xmlDoc.getElementsByTagName("Player");
 
                         for (let i = 0; i < players.length; i++) {
 
                             if (pids.includes(players[i].getAttribute("id"))) {
+
+                                found.push(players[i].getAttribute("id"))
 
                                 value += convertCurrency(
                                     players[i].getAttribute("value"),
@@ -6915,6 +6964,37 @@ self.onmessage = function (e) {
 
                                 cont++;
                             }
+                        }
+
+                        let notFound = pids.filter(x => !found.includes(x));
+                        let promises = notFound.map(id => getPlayerDataAPI(id));
+                        let results = await Promise.all(promises);
+
+                        for (let i = 0; i < results.length; i++) {
+
+                            value += convertCurrency(
+                                results[i]["valor"],
+                                GM_getValue("currency"),
+                                "EUR"
+                            );
+
+                            salary += convertCurrency(
+                                results[i]["salario"],
+                                GM_getValue("currency"),
+                                "EUR"
+                            );
+                            age += parseInt(results[i]["edad"]);
+
+                            if(teamCountry===""){ //National Teams case
+                                nat++;
+                            }else{
+                                if (teamCountry === results[i]["codPais"]) {
+                                    nat++;
+                                } else {
+                                    noNat++;
+                                }
+                            }
+                            cont++
                         }
 
                         const toRet = {
@@ -9242,14 +9322,14 @@ self.onmessage = function (e) {
 
                         let elements = player_cointainer.querySelectorAll('.skillval');
                         elements.forEach(element => {
-                            let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                            //let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                            let previousTd=getPreviousElementByTag(element,"span","skill_name")
                             let maxs = element.getElementsByClassName("maxed")
                             let clips = previousTd.getElementsByClassName("clippable")
                             let skill_name
                             if(clips.length===0){
                                 let skills_ = previousTd.getElementsByClassName("skill_name")
                                 skill_name=skills_[0].querySelectorAll("span")[0].innerHTML.trim()
-                                //skill_name=skills_[0].innerText.trim()
                             }else{
                                 skill_name=clips[0].innerText.trim()
                             }
@@ -9258,11 +9338,12 @@ self.onmessage = function (e) {
                                 if(device!=="computer"){
                                     toChange.style.padding="3px"
                                 }
-                                // toChange.style.backgroundColor="#db5d5d"
                                 toChange.style.setProperty('background-color', '#db5d5d', 'important');
                                 toChange.style.fontWeight="bold"
                                 toChange.style.borderRadius="5px"
                             }
+
+
                         });
                         resolve("Done")
                     },
@@ -9919,7 +10000,7 @@ self.onmessage = function (e) {
             { key: 'transfersTaxFlag',           id: 'transfersTaxSelect',            label: 'Transfers tax' },
             { key: 'tacticsSkillsResume',        id: 'tacticsSkillsResume',           label: 'Tactics skills resume' },
             { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
-            { key: 'eloChangeCalendar',          id: 'eloChangeCalendar',             label: 'Elo changes calendar' },
+            { key: 'eloChangeCalendar',          id: 'eloChangeCalendar',             label: 'ELO changes calendar' },
         ];
 
         let html = '<div class="stx-modal">';
