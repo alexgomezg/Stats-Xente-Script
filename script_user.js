@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.224
+// @version      0.226
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -101,11 +101,15 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
+            getDeviceFormat()
             waitToDOM(leagues, ".nice_table", 0,7000)
             waitToDOMById(topScorersTableEventListener,"league_tab_top_scorers",5000)
-
             document.getElementById("league_tab_schedule").addEventListener("click", function() {
-                waitToDOM(()=>calendarEloChange("regular"),".mainContent",0,5000);
+                let type="regular"
+                if(window.stx_device==="computer"){
+                    type="regular_calendar_league"
+                }
+                waitToDOM(()=>calendarEloChange(type),".mainContent",0,5000);
             });
 
         }
@@ -2597,15 +2601,17 @@ self.onmessage = function (e) {
 
         }
 
-        Promise.all(promesas)
-            .then(() => {
-                const elementos = document.querySelectorAll('.'+clase);
-                elementos.forEach(elemento => elemento.remove());
-            })
-            .catch(() => {
-                const elementos = document.querySelectorAll('.'+clase);
-                elementos.forEach(elemento => elemento.remove());
+        const borrarElementos = () => {
+            document.querySelectorAll('.' + clase).forEach(elemento => {
+                if (!elemento.id.includes('tr_')) {
+                    elemento.remove();
+                }
             });
+        };
+
+        Promise.all(promesas)
+            .then(borrarElementos)
+            .catch(borrarElementos);
 
 
 
@@ -4129,14 +4135,12 @@ self.onmessage = function (e) {
                             document.getElementById("league_history_table").style.width = "100%";
                         }
 
-
                         document.querySelectorAll('[id^="season_"]').forEach(el => {
-                            document.getElementById(el.id).addEventListener("click", function() {
+                            el.addEventListener("click", function() {
                                 let season = el.id.replace('season_', '');
                                 let link="https://statsxente.com/MZ1/Functions/showLeagueHistory.php?idLiga="+league_id_search+"&l="+window.lang+"&season="+season+"&type="+type+"&sport="+window.sport
                                 openWindow(link, 0.95, 0.8);
                             });
-
                         });
 
 
@@ -4254,7 +4258,7 @@ self.onmessage = function (e) {
     function calendarEloChange(type){
         if(!GM_getValue("eloChangeCalendar")){return}
         let enlaces=[],filtrados=[]
-        if(type==="regular"){
+        if((type==="regular")||(type==="regular_calendar_league")){
 
             enlaces = document.querySelectorAll('a[href*="p=match"]');
             filtrados = Array.from(enlaces).filter(a =>
@@ -4262,6 +4266,8 @@ self.onmessage = function (e) {
             );
 
         }
+
+
 
         let marginLeft="-2px";
         if(type==="cup_matches"){
@@ -4324,18 +4330,39 @@ self.onmessage = function (e) {
                             }
 
 
+                            let disp=""
+                            if(type==="regular_calendar_league"){
+                                disp="display:flex;"
+                            }
 
-                            let txt=`<div id='elo_${mid}' style="align-items: center; float:right; margin-left: 5px;">
-    <b style="margin-left: ${marginLeft}; margin-right:2px; font-size: ${fontSize}; font-weight: bold;">${change}</b>`
+
+                            let txt=`<div id='elo_${mid}' style="${disp} align-items: center; float:right; margin-left: 5px;">`
+                            txt+=`<b style="margin-left: ${marginLeft}; margin-right:2px; font-size: ${fontSize}; font-weight: bold;">${change}</b>`
 
                             if(change!=="-"){
                                 txt+='<img width="10px" height="10px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png" alt="">';
                             }
+
+
+
+
                             txt+='</div>'
-                            a.closest("td").nextElementSibling.insertAdjacentHTML("beforeend",txt)
+
+                            if(type==="regular_calendar_league"){
+                                a.closest("td").nextElementSibling.insertAdjacentHTML("afterend", `<td>${txt}</td>`);
+                            }else{
+                                a.closest("td").nextElementSibling.insertAdjacentHTML("beforeend",txt)
+                            }
+
+                            //a.closest("td").nextElementSibling.insertAdjacentHTML("afterend", `<td>${txt}</td>`);
                             if(type==="cup_matches"){
+
                                 a.closest("td").nextElementSibling.style.display="flex"
                                 a.closest("td").nextElementSibling.className="stx-elo-change"
+                            }else{
+
+
+
                             }
                         }
                     }
@@ -4367,12 +4394,7 @@ self.onmessage = function (e) {
 //Leagues page
     async function leagues() {
         leaguesHistory()
-
-
-
         calendarEloChange("regular")
-
-
 
         let tablesSearch=document.getElementsByClassName("nice_table")
         let clear = tablesSearch[0].previousElementSibling;
@@ -6242,6 +6264,16 @@ self.onmessage = function (e) {
         let tablas = document.querySelectorAll('table.hitlist.statsLite.marker');
         let tablasJugadores = document.querySelectorAll('table.hitlist.statsLite.marker.tablesorter');
         if(tablasJugadores.length>0){
+            let clase="loader-"+window.sport
+            let txtToInsert=
+                "<br>" +
+                "<div style='text-align:center;'>" +
+                "<div id='hp_loader' style='width:50%; margin:0 auto;'>" +
+                "<div style='text-align:center;'><b>Loading...</b></div>" +
+                "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                "</div>" +
+                "</div>";
+            tablas[1].insertAdjacentHTML("afterend",txtToInsert);
             getCurrencies()
             let pids = new Set();
             let limitPlayers=11;
@@ -6433,6 +6465,7 @@ self.onmessage = function (e) {
 
 
             insertDataOnStatsTable(getRowClass(index),tablaOriginal,"Nat/For",te,te1)
+            document.getElementById("hp_loader").remove()
 
         }
 
@@ -9824,7 +9857,7 @@ self.onmessage = function (e) {
         #stx-overlay.open { display: flex; }
         .stx-modal {
             background: #fff; border-radius: 12px; overflow: hidden;
-            width: 90%; max-width: 120vh; max-height: 90vh;
+            width: 90%; max-width: 120vh; max-height: 95vh;
             overflow-y: auto; font-family: system-ui, sans-serif;
         }
         .stx-header {
@@ -10081,7 +10114,11 @@ self.onmessage = function (e) {
 
         // PayPal
         html += '<div class="stx-paypal"><p>Support the project</p>';
-        html += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="50" height="50"/></a></div>';
+        html += '<div style="display: flex; align-items: center;gap: 10px;justify-content: center;">'
+        html += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="50" height="50"/></a>';
+        html += '<a href="https://buymeacoffee.com/statsxente" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/buy_me_a_coffee.svg" width="70" height="70"/></a>'
+        html += '</div>';
+        html += '</div>';
 
         // Footer buttons
         html += '<div class="stx-footer">';
@@ -11599,7 +11636,8 @@ cursor:pointer;
     #profit-card .pc-danger  { color: #dc2626 !important; }
     #profit-card .pc-success { color: #059669 !important; }
 
-    .statsxente { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
+    .statsxente  { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
+    .statsxente1 { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
 
 `;
 
