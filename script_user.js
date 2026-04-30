@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.226
+// @version      0.227
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -67,6 +67,7 @@
     let teamFinancesCache
     let isRunning = false;
     let currencies;
+    let skillIndex
     //let currentGeneration = 0;
     /*let observer = new MutationObserver(() => {
         observer.disconnect();
@@ -137,23 +138,25 @@
                 waitToDOM(match, ".hitlist.statsLite.marker", 0,7000)
             }, 2000);
         }
+
         //OWN PLAYERS PAGE
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))&&(!urlParams.has('tid'))
-            && (GM_getValue("playersFlag"))) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (!urlParams.has('pid'))&&(!urlParams.has('tid'))) {
             getDeviceFormat()
-            waitToDOM(taxOnSell, ".player_name", 0,7000)
-            waitToDOM(playersPage, ".playerContainer", 0,7000)
-            waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
-
-            teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
-            playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
-
+            if((GM_getValue("partialSkills"))&&((!GM_getValue("onlySinglePagesSkills")))){
+                playerPartialSkills()
+            }
+            if(GM_getValue("playersFlag")){
+                waitToDOM(taxOnSell, ".player_name", 0,7000)
+                waitToDOM(playersPage, ".playerContainer", 0,7000)
+                waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
+                teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
+                playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+            }
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
             getDeviceFormat()
             waitToDOM(playersPageStatsAll, ".player_name", 0,7000)
-
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
         }
 
@@ -163,10 +166,15 @@
             waitToDOM(playersPageStats, ".player_name", 0,7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
 
+            if((GM_getValue("partialSkills"))){
+                playerPartialSkills()
+            }
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+        }
 
-
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'youth_academy') && (urlParams.get('tab') === 'exchange') ) {
+            playerPartialSkills()
         }
 
 
@@ -288,6 +296,10 @@
             waitToDOM(trainingReport, ".clippable.player_link", 0,7000)
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingPercentages"))) {
+            waitToDOM(trainingReportPercentages, ".clippable.player_link", 0,7000)
+        }
+
         if ((urlParams.has('p')) && (urlParams.get('p') === 'statistics')){
             statsPage()
             statsPageEventListeners()
@@ -373,6 +385,16 @@
             }
         }
     }, 1000);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -963,6 +985,122 @@ self.onmessage = function (e) {
 };
 `;
 
+//Training percentages
+    async function trainingReportPercentages(){
+        skillIndex=await trainingSkillsIndex()
+        const tablas = document.querySelectorAll(
+            "table.tablesorter.hitlist.marker.trainingReportTable.hitlist-compact-list-included"
+        );
+        const primerasDos = Array.from(tablas).slice(0, 2);
+        let cont=0
+        for (const tabla of primerasDos) {
+            let key="green"
+            let bg_color="#5d7f13"
+            if(window.sport==="hockey"){bg_color="#217fc4"}
+            if(tabla.innerHTML.includes("bar_neg")){
+                key="red"
+                bg_color="#d04747"
+            }
+            cont++;
+            if((cont===2)&&(key==="green")){
+                return;
+            }
+            const elementos = [...tabla.querySelectorAll(".clippable.player_link")];
+            const chunks = [];
+            for (let i = 0; i < elementos.length; i += 5) {
+                chunks.push(elementos.slice(i, i + 5));
+            }
+            let clase = "loader-" + window.sport
+            for (let i = 0; i < elementos.length; i++) {
+                const href = elementos[i].href;
+                const url = new URL(href);
+                const pid = url.searchParams.get("pid");
+                elementos[i].insertAdjacentHTML("afterend", "<div id='hp_loader"+pid+"'><div style='width:50%;'><div id='loader' class='" + clase + "' style='height:1em;'></div></div></div>");
+                //elementos[i].insertAdjacentHTML("afterend", "<div>aa</div>");
+            }
+
+            for (const chunk of chunks) {
+                // Lanzar los 5 awaits en paralelo
+                const results = await Promise.all(chunk.map(async (el) => {
+                    const href = el.href;
+                    const url = new URL(href);
+                    const pid = url.searchParams.get("pid");
+                    return { el, data: await getTrainingHistory(pid) };
+                }));
+
+                // Procesar resultados ya resueltos
+                for (const { el, data } of results) {
+                    const href = el.href;
+                    const url = new URL(href);
+                    const pid = url.searchParams.get("pid");
+
+                    const td = el.closest("td");
+                    const siguienteTd = td.nextElementSibling.nextElementSibling;
+                    const span = siguienteTd.querySelector("span.clippable");
+                    const skill_name = span.textContent.trim();
+
+                    let percent = data.get(skill_name)[key]["tp"];
+                    let days = data.get(skill_name)[key]["td"];
+                    let days_pretty = Math.ceil(days);
+                    let percent_pretty = new Intl.NumberFormat(window.userLocal, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(Number.parseFloat(percent));
+
+                    let txt = `
+      <div class="progress-bar">
+        <span class="progress-label">${percent_pretty}% (${days_pretty})</span>
+        <div class="progress-fill" style="width: ${percent}%; background-color:${bg_color};"></div>
+      </div>
+    `;
+                    el.insertAdjacentHTML("afterend", txt);
+                    document.getElementById("hp_loader"+pid).remove()
+                }
+            }
+        }
+
+        document.querySelectorAll('[id*="hp_loader"]').forEach(el => {
+            el.remove();
+        });
+
+    }
+//Player partial skills
+    async function playerPartialSkills() {
+        skillIndex=await trainingSkillsIndex()
+        const players = document.querySelectorAll('.playerContainer');
+
+        let init_index=-1;
+        const results = [];
+        let chunkSize = 2
+        let initial_index=0,final_index=chunkSize;
+        let players_arr=Array.from(players)
+        for (let i = 0; i < players.length; i += chunkSize) {
+            const chunk = Array.from(players).slice(i, i + chunkSize);
+
+            const promises = chunk.map(async (player) => {
+                const playerId = player.querySelector('.player_id_span').textContent.trim();
+                return await getTrainingHistory(playerId);
+            });
+
+            const chunkResults = await Promise.all(promises);
+            results.push(...chunkResults);
+            if(final_index>results.length){
+                final_index=results.length
+            }
+            let contIndex=0;
+            for(let j=initial_index;j<final_index;j++){
+                let player=players_arr[j]
+                processPartialSkills(player,results[contIndex])
+                contIndex++;
+            }
+
+
+
+            initial_index+=chunkSize;
+            final_index+=chunkSize;
+
+        }
+    }
 //Seller info transfer market
     async function processTMPlayer(el) {
         try {
@@ -7778,9 +7916,9 @@ self.onmessage = function (e) {
             });
 
         let fontSize="small"
-        let txt='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#scout_report_filter\').slideToggle();">Scout Report Filter</div>';
+        let txt='<div class="transfer_header_text" style="display:none; cursor: pointer;" onclick="$(\'#scout_report_filter\').slideToggle();">Scout Report Filter</div>';
 
-        txt +="<div id='scout_report_filter'><table><tr>"
+        txt +="<div style='display:none;' id='scout_report_filter'><table><tr>"
         txt +="<td>"
 //HP
         txt += "<div style='display:flex; align-items:center;'><span style='margin-top: 0.25em; margin-right: 0.5em; font-size: "+fontSize+"; font-weight: bolder;'>High Potential</span></td>";
@@ -7992,6 +8130,14 @@ self.onmessage = function (e) {
                 s9b: document.querySelector('[name="s9b"]').value,
                 s10a: document.querySelector('[name="s10a"]').value,
                 s10b: document.querySelector('[name="s10b"]').value,
+                srsa_high:document.querySelector('[name="srsa_high"]').value,
+                srsb_high:document.querySelector('[name="srsb_high"]').value,
+                srsa_low:document.querySelector('[name="srsa_low"]').value,
+                srsb_low:document.querySelector('[name="srsb_low"]').value,
+                srsb_low:document.querySelector('[name="srsb_low"]').value,
+                srss_high:document.querySelector('[name="srss_high"]').value,
+                srss_low:document.querySelector('[name="srss_low"]').value,
+                srss_youth:document.querySelector('[name="srss_youth"]').value,
             }
             if(window.sport==="soccer"){
                 commonParams["s11a"]=document.querySelector('[name="s11a"]').value
@@ -9537,6 +9683,158 @@ self.onmessage = function (e) {
 
 
     }
+    async function getTeamInfo(tid) {
+        if (teamCache.has(tid)) {
+            return teamCache.get(tid);
+        }
+        const response = await gmTMPlayerRequest(
+            "https://statsxente.com/MZ1/Functions/tamper_tmuser.php?sport="+window.sport+"&team_id=" + tid
+        );
+        const jsonResponse = JSON.parse(response.responseText);
+        teamCache.set(tid, jsonResponse);
+        return jsonResponse;
+    }
+    function trainingSkillsIndex(){
+        return new Promise((resolve, reject) => {
+            var link="https://www.managerzone.com/ajax.php?p=trainingGraph&sub=getJsonTrainingSkills&sport="+window.sport
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: link,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let texto =response.responseText
+                    let jsonStr = texto.trim().slice(1, -1);
+                    let data=JSON.parse(jsonStr);
+
+                    let skillIndex=new Map();
+
+                    Object.entries(data).forEach(([key, skill]) => {
+                        skillIndex.set(skill.graphIndex,skill.name)
+
+                    });
+
+                    resolve(skillIndex)
+
+                }
+            });
+        });
+
+    }
+    function getTrainingHistory(player_id){
+        return new Promise((resolve, reject) => {
+            var link="https://www.managerzone.com/ajax.php?p=trainingGraph&sub=getJsonTrainingHistory&sport="+window.sport+"&player_id="+player_id
+            let skills=new Map()
+            for (let i = 1; i <= 12; i++) {
+                let obj=getEmptySkillsDistrib(0)
+                skills.set(skillIndex.get(i),obj)
+            }
+
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: link,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let texto =response.responseText
+                    if(texto===undefined){
+                        resolve(undefined)
+                        return;
+                    }
+                    let match = texto.match(/var\s+series\s*=\s*(\[[\s\S]*?\]);(?:\s*var|\s*$)/);
+                    let series=JSON.parse(match[1]);
+                    series.forEach((serie, index0) => {
+                        if(serie["showInNavigator"]==="true"){
+
+                            const dataArray = serie["data"];
+                            for (let i = 0; i < dataArray.length; i++) {
+                                const data = dataArray[i];
+                                //Gained
+                                if(data["marker"]["symbol"].includes("bar_pos")){
+                                    let texto = data["marker"]["symbol"];
+                                    let match = texto.match(/bar_pos_(\d+)/);
+                                    let numero = parseInt(match[1]);
+
+                                    let index=skillIndex.get(data["y"])
+                                    let aux=skills.get(index);
+                                    aux["green"]["sk"+numero]++;
+                                    aux["green"]["all_time_sum"]++;
+                                    skills.set(index,aux)
+                                }
+
+                                if(data["marker"]["symbol"].includes("gained")){
+                                    let aux=skills.get(data["name"]);
+                                    let aux1=getEmptySkillsDistrib(0)
+                                    aux1["green"]["all_time_sum"]=aux["green"]["all_time_sum"]
+                                    skills.set(data["name"],aux1)
+                                    i++;
+                                }
+
+                                //Lost
+                                if(data["marker"]["symbol"].includes("bar_neg")){
+                                    let texto = data["marker"]["symbol"];
+                                    let match = texto.match(/bar_neg_(\d+)/);
+                                    let numero = parseInt(match[1]);
+                                    let index=skillIndex.get(data["y"])
+                                    let aux=skills.get(index);
+                                    aux["green"]["all_time_sum"]=0;
+                                    aux["red"]["sk"+numero]++;
+                                    aux["red"]["all_time_sum"]++;
+                                    skills.set(index,aux)
+                                }
+
+                                if(data["marker"]["symbol"].includes("lost")){
+                                    let numero=1
+                                    let aux=skills.get(data["name"]);
+                                    skills.set(data["name"],getEmptySkillsDistrib(aux["red"]["all_time_sum"]))
+                                    let aux1=skills.get(data["name"]);
+                                    aux1["red"]["sk"+numero]++;
+                                    aux1["red"]["all_time_sum"]++;
+                                    skills.set(data["name"],aux1)
+                                }
+
+
+
+
+                            }
+
+                        }
+
+                    });
+
+
+                    skills.forEach((valor, clave) => {
+                        let tr_data=getTrainingPercentage(valor,"green")
+                        valor["green"]['td']=tr_data['td']
+                        valor["green"]['tp']=tr_data['tp']
+
+                        let tr_data_red=getTrainingPercentage(valor,"red")
+                        valor["red"]['td']=tr_data_red['td']
+                        valor["red"]['tp']=tr_data_red['tp']
+
+                        skills.set(clave,valor)
+                    });
+
+
+
+                    resolve(skills)
+
+
+
+                }
+
+            });
+
+
+        });
+        ///aqui
+
+
+
+    }
 
 
 
@@ -9872,10 +10170,10 @@ self.onmessage = function (e) {
             font-size: 14px; color: #555; display: flex;
             align-items: center; justify-content: center;
         }
-        .stx-section { padding: 12px 16px; border-bottom: 1px solid #e5e5e5; }
+        .stx-section { padding: 7px 11px; border-bottom: 1px solid #e5e5e5; }
         .stx-section-title {
             font-size: 10px; font-weight: 600; color: #999;
-            text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px;
+            text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px;
         }
         .stx-toggles {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 5px;
@@ -9883,7 +10181,7 @@ self.onmessage = function (e) {
         .stx-toggle {
             display: flex; align-items: center; gap: 7px;
             font-size: 12px; color: #1a1a1a; cursor: pointer;
-            padding: 5px 8px; border-radius: 7px;
+            padding: 2px 3px; border-radius: 7px;
             background: #f5f5f5; border: 0.5px solid #e0e0e0;
             user-select: none; transition: background .12s;
         }
@@ -9981,7 +10279,7 @@ self.onmessage = function (e) {
             tabsConfig: false, show_league_selects: true,
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
             transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,
-            onlySinglePages:true,eloChangeCalendar:true
+            onlySinglePages:true,eloChangeCalendar:true,trainingPercentages:true,partialSkills:true,onlySinglePagesSkills:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -10013,12 +10311,13 @@ self.onmessage = function (e) {
         const chk = key => GM_getValue(key) ? 'checked' : '';
         const tog = key => GM_getValue(key) ? 'on' : '';
 
-        const modules = [
-            { key: 'leagueFlag',                 id: 'leagueSelect',                   label: 'League' },
+        /*const modules = [
+            { key: 'leagueFlag',                 id: 'leagueSelect',                  label: 'League' },
             { key: 'federationFlag',             id: 'federationSelect',              label: 'Federation' },
             { key: 'matchFlag',                  id: 'matchSelect',                   label: 'Match' },
             { key: 'eloPlayedMatchesFlag',       id: 'eloPlayedSelect',               label: 'ELO changes' },
             { key: 'trainingReportFlag',         id: 'trainingReportSelect',          label: 'Training report' },
+            { key: 'trainingPercentages',        id: 'trainingPercentages',           label: 'Training Percentages' },
             { key: 'playersFlag',                id: 'playersSelect',                 label: 'Players' },
             { key: 'countryRankFlag',            id: 'countryRankSelect',             label: 'Country rank' },
             { key: 'teamPageFlag',               id: 'teamSelect',                    label: 'Team' },
@@ -10034,6 +10333,49 @@ self.onmessage = function (e) {
             { key: 'tacticsSkillsResume',        id: 'tacticsSkillsResume',           label: 'Tactics skills resume' },
             { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
             { key: 'eloChangeCalendar',          id: 'eloChangeCalendar',             label: 'ELO changes calendar' },
+            { key: 'partialSkills',              id: 'partialSkills',                 label: 'Partial Skills' },
+        ];*/
+
+        const modules = [
+            // Core competition structure
+            { key: 'leagueFlag',                 id: 'leagueSelect',                  label: 'League' },
+            { key: 'federationFlag',             id: 'federationSelect',              label: 'Federation' },
+            { key: 'cupFlag',                    id: 'cupFlagSelect',                 label: 'Cups' },
+            { key: 'flFlag',                     id: 'flFlagSelect',                  label: 'Friendly leagues' },
+
+            // Teams & players
+            { key: 'teamPageFlag',               id: 'teamSelect',                    label: 'Team' },
+            { key: 'playersFlag',                id: 'playersSelect',                 label: 'Players' },
+            { key: 'partialSkills',              id: 'partialSkills',                 label: 'Partial Skills' },
+            { key: 'nationalTeamFlag',           id: 'nationalTeamFlagSelect',        label: 'National team' },
+            { key: 'countryRankFlag',            id: 'countryRankSelect',             label: 'Country rank' },
+
+            // Matches
+            { key: 'matchFlag',                  id: 'matchSelect',                   label: 'Match' },
+
+
+            // ELO related
+            { key: 'eloPlayedMatchesFlag',       id: 'eloPlayedSelect',               label: 'ELO changes' },
+            { key: 'eloHiddenPlayedMatchesFlag', id: 'eloHiddenPlayedMatchesSelect',  label: 'ELO hidden matches' },
+            { key: 'eloNextMatchesFlag',         id: 'eloScheduledSelect',            label: 'ELO team scores' },
+            { key: 'eloChangeCalendar',          id: 'eloChangeCalendar',             label: 'ELO changes calendar' },
+
+            // Training
+            { key: 'trainingReportFlag',         id: 'trainingReportSelect',          label: 'Training report' },
+            { key: 'trainingPercentages',        id: 'trainingPercentages',           label: 'Training Percentages' },
+
+
+            // Tactics
+            { key: 'tacticsResultsFlag',         id: 'tacticsResultsFlagSelect',      label: 'Tactics results' },
+            { key: 'tacticsSkillsResume',        id: 'tacticsSkillsResume',           label: 'Tactics skills resume' },
+
+            // Transfers
+            { key: 'transfersFilterFlag',        id: 'transfersFilterFlagSelect',     label: 'Transfers filter' },
+            { key: 'transfersSellerFlag',        id: 'transfersSellerSelect',         label: 'Transfers seller' },
+            { key: 'transfersTaxFlag',           id: 'transfersTaxSelect',            label: 'Transfers tax' },
+
+            // Finance
+            { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
         ];
 
         let html = '<div class="stx-modal">';
@@ -10108,6 +10450,10 @@ self.onmessage = function (e) {
         html += `<label class="stx-checkitem"><input type="checkbox" id="onlySinglePages" ${chk('onlySinglePages')}> Only on single pages</label>`;
         html += '</div></div>'
 
+        html += '<div><div class="stx-section-title">Partial Skills</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="onlySinglePagesSkills" ${chk('onlySinglePagesSkills')}> Only on single pages</label>`;
+        html += '</div></div>'
+
         html +='</div>';
 
 
@@ -10177,10 +10523,11 @@ self.onmessage = function (e) {
             GM_setValue('show_tactic_filter',     document.getElementById('show_tactic_checkbox').checked);
             GM_setValue('windowsConfig',          document.getElementById('windowsConfig').checked);
             GM_setValue('tabsConfig',             document.getElementById('tabsConfig').checked);
-            GM_setValue('transfer_grid_2',          document.getElementById('transfer_grid_2').checked);
-            GM_setValue('transfer_grid_4',          document.getElementById('transfer_grid_4').checked);
-            GM_setValue('onlySinglePages',          document.getElementById('onlySinglePages').checked);
-            GM_setValue('showSkillsResume',          document.getElementById('showSkillsResume').checked);
+            GM_setValue('transfer_grid_2',        document.getElementById('transfer_grid_2').checked);
+            GM_setValue('transfer_grid_4',        document.getElementById('transfer_grid_4').checked);
+            GM_setValue('onlySinglePages',        document.getElementById('onlySinglePages').checked);
+            GM_setValue('onlySinglePagesSkills',  document.getElementById('onlySinglePagesSkills').checked);
+            GM_setValue('showSkillsResume',       document.getElementById('showSkillsResume').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
             window.location.reload();
         });
@@ -10926,16 +11273,102 @@ self.onmessage = function (e) {
         let level = rating?.charAt(0).toUpperCase();
         return financesColors[level] ?? '#ccc';
     }
-    async function getTeamInfo(tid) {
-        if (teamCache.has(tid)) {
-            return teamCache.get(tid);
+    function getTrainingPercentage(data_,type){
+        //BASED ON VANJOGE ORIGINAL IDEA
+        let data=data_[type]
+        let tp = data.sk1  * 0.645
+            + data.sk2  * 1.10
+            + data.sk3  * 2.10
+            + data.sk4  * 3.40
+            + data.sk5  * 4.80
+            + data.sk6  * 6.666
+            + data.sk7  * 9.10
+            + data.sk8  * 12.80
+            + data.sk9  * 18.18
+            + data.sk10 * 24.00;
+
+        if(tp===0){
+            tp=100
         }
-        const response = await gmTMPlayerRequest(
-            "https://statsxente.com/MZ1/Functions/tamper_tmuser.php?sport="+window.sport+"&team_id=" + tid
+
+        let avg=tp/(data.sk1+
+            data.sk2+
+            data.sk3+
+            data.sk4+
+            data.sk5+
+            data.sk6+
+            data.sk7+
+            data.sk8+
+            data.sk9+
+            data.sk10)
+        let days = (100-tp) / avg
+        return {"tp":tp,"td":days}
+    }
+    function processPartialSkills(player,result){
+        const playerId = player.querySelector('.player_id_span').textContent.trim();
+        const skills = player.querySelectorAll('.skill_exact_bar');
+        let partial = 0;
+        let cont = 0;
+
+        let trainingHistoryMap = result
+        let trainingHistoryArr=[]
+        if(trainingHistoryMap!==undefined){
+            trainingHistoryArr = Array.from(trainingHistoryMap);
+        }
+        let init_index=-1;
+        if(window.sport==="hockey"){init_index=0}
+        skills.forEach(skill => {
+            if ((cont > init_index) && (cont < 11)) {
+                if(trainingHistoryMap!==undefined){
+                    if(trainingHistoryArr[cont][1]["green"]["tp"]>=100){
+                        trainingHistoryArr[cont][1]["green"]["tp"]=0;
+                        trainingHistoryArr[cont][1]["green"]["all_time_sum"]=0;
+                    }
+                    if(trainingHistoryArr[cont][1]["green"]["all_time_sum"]===0){
+                        if(trainingHistoryArr[cont][1]["red"]["all_time_sum"]>0){
+                            partial-=(trainingHistoryArr[cont][1]["red"]["tp"]/100)
+                        }else{
+                            const width = skill.style.width;
+                            const widthNumber = parseFloat(width);
+                            partial += widthNumber * 0.125;
+                        }
+                    }else{
+                        partial+=(trainingHistoryArr[cont][1]["green"]["tp"]/100)
+                    }
+
+                }else{
+                    const width = skill.style.width;
+                    const widthNumber = parseFloat(width);
+                    partial += widthNumber * 0.125;
+                }
+            }
+            cont++;
+        });
+
+        const el = player.querySelector('.help_button_placeholder');
+        const td = el.closest('td');
+        const bolds = td.querySelectorAll('.bold');
+        const firstBold = bolds[0];
+
+        let count = parseFloat(firstBold.textContent.trim());
+        let finalValue = count + partial;
+
+        finalValue = new Intl.NumberFormat(window.userLocal, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(finalValue)
+
+        el.insertAdjacentHTML(
+            'beforebegin',
+            '| <span class="bold" style="color:red;">' + finalValue + '</span>&nbsp;'
         );
-        const jsonResponse = JSON.parse(response.responseText);
-        teamCache.set(tid, jsonResponse);
-        return jsonResponse;
+    }
+    function getEmptySkillsDistrib(all_time_sum){
+        let base_obj={"sk1":0,"sk2":0,"sk3":0,"sk4":0,"sk5":0,"sk6":0,"sk7":0,"sk8":0,"sk9":0,"sk10":0,"tp":0,"td":0,"all_time_sum":all_time_sum}
+        return {
+            green: { ...base_obj },
+            red: { ...base_obj }
+        };
     }
     function setCSSStyles(){
         let link = document.createElement('link');
@@ -11638,6 +12071,38 @@ cursor:pointer;
 
     .statsxente  { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
     .statsxente1 { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
+
+
+.progress-bar {
+ text-align: center;
+  margin-top:5px;
+  position: relative;
+  width: 70%;
+  height: 1.25em;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #5d7f13;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: #fff;
+  font-weight: bold;
+  z-index: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
 
 `;
 
