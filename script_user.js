@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.228
+// @version      0.229
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -11358,6 +11358,9 @@ self.onmessage = function (e) {
         let aux=player
         if(window.stx_device==="mobile"){
             aux=elSkills
+            if(urlParams.get("p")==="youth_academy"){
+                aux=player
+            }
         }
 
         const el = aux.querySelector('.help_button_placeholder');
