@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.227
+// @version      0.228
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -11306,7 +11306,18 @@ self.onmessage = function (e) {
     }
     function processPartialSkills(player,result){
         const playerId = player.querySelector('.player_id_span').textContent.trim();
-        const skills = player.querySelectorAll('.skill_exact_bar');
+        let clase='table[class*=player_skills_responsive]'
+        if(window.stx_device==="mobile"){
+            clase='div[class*="responsive-show"]'
+        }
+
+        let urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get("p")==="youth_academy"){
+            clase='div[class*="dg_playerview youth_exchange_"]'
+        }
+
+        const elSkills= player.querySelector(clase);
+        const skills = elSkills.querySelectorAll('.skill_exact_bar');
         let partial = 0;
         let cont = 0;
 
@@ -11345,7 +11356,12 @@ self.onmessage = function (e) {
             cont++;
         });
 
-        const el = player.querySelector('.help_button_placeholder');
+        let aux=player
+        if(window.stx_device==="mobile"){
+            aux=elSkills
+        }
+
+        const el = aux.querySelector('.help_button_placeholder');
         const td = el.closest('td');
         const bolds = td.querySelectorAll('.bold');
         const firstBold = bolds[0];
