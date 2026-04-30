@@ -8134,7 +8134,6 @@ self.onmessage = function (e) {
                 srsb_high:document.querySelector('[name="srsb_high"]').value,
                 srsa_low:document.querySelector('[name="srsa_low"]').value,
                 srsb_low:document.querySelector('[name="srsb_low"]').value,
-                srsb_low:document.querySelector('[name="srsb_low"]').value,
                 srss_high:document.querySelector('[name="srss_high"]').value,
                 srss_low:document.querySelector('[name="srss_low"]').value,
                 srss_youth:document.querySelector('[name="srss_youth"]').value,
