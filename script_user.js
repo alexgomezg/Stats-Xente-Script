@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.230
+// @version      0.231
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -11956,6 +11956,46 @@ cursor:pointer;
 @keyframes l14 {
   100% {left: calc(100% + 20px)}
 }
+
+
+.statsxente  { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
+    .statsxente1 { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
+
+
+.stx-progress-bar {
+ text-align: center;
+  margin-top:5px;
+  position: relative;
+  width: 70%;
+  height: 1.25em;
+  background-color: #e0e0e0 !important;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stx-progress-fill {
+  height: 100%;
+  background-color: #5d7f13 !important;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.stx-progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: #fff;
+  font-weight: bold;
+  z-index: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+
+
+
+
   `)
 
     }
@@ -12086,42 +12126,6 @@ cursor:pointer;
     #profit-card .pc-warning { color: #b45309 !important; }
     #profit-card .pc-danger  { color: #dc2626 !important; }
     #profit-card .pc-success { color: #059669 !important; }
-
-    .statsxente  { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
-    .statsxente1 { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
-
-
-.stx-progress-bar {
- text-align: center;
-  margin-top:5px;
-  position: relative;
-  width: 70%;
-  height: 1.25em;
-  background-color: #e0e0e0 !important;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.stx-progress-fill {
-  height: 100%;
-  background-color: #5d7f13 !important;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.stx-progress-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 10px;
-  color: #fff;
-  font-weight: bold;
-  z-index: 1;
-  white-space: nowrap;
-  text-shadow: 0 0 3px #000, 0 0 3px #000;
-}
-
 `;
 
         }
