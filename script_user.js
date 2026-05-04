@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.229
+// @version      0.230
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1048,9 +1048,9 @@ self.onmessage = function (e) {
                     }).format(Number.parseFloat(percent));
 
                     let txt = `
-      <div class="progress-bar">
-        <span class="progress-label">${percent_pretty}% (${days_pretty})</span>
-        <div class="progress-fill" style="width: ${percent}%; background-color:${bg_color};"></div>
+      <div class="stx-progress-bar">
+        <span class="stx-progress-label">${percent_pretty}% (${days_pretty})</span>
+        <div class="stx-progress-fill" style="width: ${percent}%; background-color:${bg_color} !important;"></div>
       </div>
     `;
                     el.insertAdjacentHTML("afterend", txt);
@@ -12091,25 +12091,25 @@ cursor:pointer;
     .statsxente1 { accent-color: ${GM_getValue("bg_native")}; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color:  ${GM_getValue("color_native")}; cursor: pointer; }
 
 
-.progress-bar {
+.stx-progress-bar {
  text-align: center;
   margin-top:5px;
   position: relative;
   width: 70%;
   height: 1.25em;
-  background-color: #e0e0e0;
+  background-color: #e0e0e0 !important;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.progress-fill {
+.stx-progress-fill {
   height: 100%;
-  background-color: #5d7f13;
+  background-color: #5d7f13 !important;
   border-radius: 4px;
   transition: width 0.3s ease;
 }
 
-.progress-label {
+.stx-progress-label {
   position: absolute;
   top: 50%;
   left: 50%;
