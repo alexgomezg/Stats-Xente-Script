@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.231
+// @version      0.232
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -68,6 +68,28 @@
     let isRunning = false;
     let currencies;
     let skillIndex
+
+    let playerPositions=new Map(JSON.parse(GM_getValue("playersPositions", "[]")));
+    let playerPosColors = new Map(
+        JSON.parse(
+            GM_getValue(
+                "playerPosColors",
+                JSON.stringify([
+                    ["Goalkeeper", "#a45408bf"],
+                    ["Defender", "#80a6ffbf"],
+                    ["Midfielder", "#65f465bf"],
+                    ["Striker", "#ff5555bf"],
+                    ["Wing", "#ff55fabf"],
+                    ["Goalkeeper_hockey", "#a45408bf"],
+                    ["Defender_hockey", "#80a6ffbf"],
+                    ["Center", "#65f465bf"],
+                    ["Wing_hockey", "#ff5555bf"],
+                    ["None", "#ff000000"],
+                ])
+            )
+        )
+    );
+
     //let currentGeneration = 0;
     /*let observer = new MutationObserver(() => {
         observer.disconnect();
@@ -297,6 +319,7 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingPercentages"))) {
+            getDeviceFormat()
             waitToDOM(trainingReportPercentages, ".clippable.player_link", 0,7000)
         }
 
@@ -917,6 +940,7 @@
             waitToDOM(playersPageStats, ".player_name", 0,7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
             waitToDOM(taxOnSell, ".player_name", 0,7000)
+            waitToDOM(playerPartialSkills, ".player_name", 0,7000)
         });
 
 
@@ -1015,7 +1039,12 @@ self.onmessage = function (e) {
                 const href = elementos[i].href;
                 const url = new URL(href);
                 const pid = url.searchParams.get("pid");
-                elementos[i].insertAdjacentHTML("afterend", "<div id='hp_loader"+pid+"'><div style='width:50%;'><div id='loader' class='" + clase + "' style='height:1em;'></div></div></div>");
+                const td1 = elementos[i].closest("td");
+                if(window.stx_device==="mobile"){
+                    elementos[i].insertAdjacentHTML("afterend", "<div id='hp_loader"+pid+"'><div style='width:50%;'><div id='loader' class='" + clase + "' style='height:1em;'></div></div></div>");
+                }else{
+                    td1.nextElementSibling.nextElementSibling.nextElementSibling.insertAdjacentHTML("beforeend", "<div id='hp_loader"+pid+"'><div style='width:50%;'><div id='loader' class='" + clase + "' style='height:1em;'></div></div></div>");
+                }
                 //elementos[i].insertAdjacentHTML("afterend", "<div>aa</div>");
             }
 
@@ -1037,6 +1066,7 @@ self.onmessage = function (e) {
                     const td = el.closest("td");
                     const siguienteTd = td.nextElementSibling.nextElementSibling;
                     const span = siguienteTd.querySelector("span.clippable");
+                    if(span===null){break;}
                     const skill_name = span.textContent.trim();
 
                     let percent = data.get(skill_name)[key]["tp"];
@@ -1053,7 +1083,11 @@ self.onmessage = function (e) {
         <div class="stx-progress-fill" style="width: ${percent}%; background-color:${bg_color} !important;"></div>
       </div>
     `;
-                    el.insertAdjacentHTML("afterend", txt);
+                    if(window.stx_device==="mobile"){
+                        el.insertAdjacentHTML("afterend", txt);
+                    }else{
+                        siguienteTd.nextElementSibling.insertAdjacentHTML("beforeend", txt);
+                    }
                     document.getElementById("hp_loader"+pid).remove()
                 }
             }
@@ -1953,13 +1987,16 @@ self.onmessage = function (e) {
         let iColor="white";
         let excluded=[]
         let fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+
         if(window.sport==="hockey"){
             fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12];
         }
         let table=document.querySelector(".hitlist.alt-view-table-mobile")
         let isMobile=true;
+        let nameIndex=0;
         if(window.stx_device==="computer"){
             iColor="#555";
+            nameIndex=1;
             if(window.sport==="soccer"){
                 excluded=[17,18]
                 fieldIndexes = [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
@@ -2031,9 +2068,16 @@ self.onmessage = function (e) {
                 startIndex=1;
             }
 
-
             table.querySelectorAll('tbody tr').forEach(row => {
                 const cells = row.querySelectorAll('td');
+                const a = cells[nameIndex].querySelector('a');
+                const href = a.getAttribute('href');
+                const params = new URLSearchParams(href.split('?')[1]);
+                const pid = params.get('pid');
+                let pos=playerPositions.get(pid);
+                cells[nameIndex].style.setProperty("background-color",playerPosColors.get(pos),"important");
+                cells[nameIndex].style.borderRadius="3px";
+
                 const sum = fieldIndexes
                     .slice(startIndex)
                     .reduce((acc, idx) => {
@@ -7313,9 +7357,64 @@ self.onmessage = function (e) {
                 txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
                 txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
+                const spanShare = elementos1[i].querySelector('span.player_icon_placeholder.player_share_skills');
+                let player_span=elementos1[i].querySelector('.player_name')
+                if((GM_getValue("positionsColors"))&&(spanShare!==null)){
+                    txt +='<span><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
+                    txt +='border-radius: 3px; width: 7em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
+                    txt +='<option>None</option>'
+
+                    let pos=playerPositions.get(ids[0].textContent);
+
+
+                    if(window.sport==="soccer"){
+                        txt += `<option value="Goalkeeper" ${pos === "Goalkeeper" ? "selected" : ""}>Goalkeeper</option>`;
+                        txt += `<option value="Defender" ${pos=== "Defender" ? "selected" : ""}>Defender</option>`;
+                        txt += `<option value="Midfielder" ${pos === "Midfielder" ? "selected" : ""}>Midfielder</option>`;
+                        txt += `<option value="Striker" ${pos === "Striker" ? "selected" : ""}>Striker</option>`;
+                        txt += `<option value="Wing" ${pos === "Wing" ? "selected" : ""}>Wing</option>`;
+                    }else{
+                        txt += `<option value="Goalkeeper_hockey" ${pos === "Goalkeeper_hockey" ? "selected" : ""}>Goalkeeper</option>`;
+                        txt += `<option value="Defender_hockey" ${pos=== "Defender_hockey" ? "selected" : ""}>Defender</option>`;
+                        txt += `<option value="Center" ${pos=== "Center" ? "selected" : ""}>Center</option>`;
+                        txt += `<option value="Wing_hockey" ${pos === "Wing_hockey" ? "selected" : ""}>Wing</option>`;
+                    }
+                    txt +='</span></select>'
+
+                    if(pos!==undefined){
+                        player_span.style.borderRadius="3px";
+                        player_span.style.backgroundColor=playerPosColors.get(pos);
+                        if(GM_getValue("positionsColorsBG")){
+                            let color = playerPosColors.get(pos);
+                            let alpha = parseInt(color.slice(7, 9), 16);
+                            alpha = Math.max(0, Math.floor(alpha * 0.75));
+                            let newAlpha = alpha.toString(16).padStart(2, '0');
+                            elementos1[i].style.backgroundColor = color.slice(0, 7) + newAlpha
+                        }
+                    }
+
+                }
+
+
+
                 let index=0
                 if(window.stx_device!=="computer"){index=1}
                 elementos_[index].innerHTML += txt;
+
+                if((GM_getValue("positionsColors"))&&(spanShare!==null)){
+                    document.getElementById("position_" + ids[0].textContent).addEventListener('change', (e) => {
+                        playerPositions.set(ids[0].textContent,e.target.value)
+                        player_span.style.backgroundColor=playerPosColors.get(e.target.value);
+                        if(GM_getValue("positionsColorsBG")){
+                            let color = playerPosColors.get(e.target.value);
+                            let alpha = parseInt(color.slice(7, 9), 16);
+                            alpha = Math.max(0, Math.floor(alpha * 0.75));
+                            let newAlpha = alpha.toString(16).padStart(2, '0');
+                            elementos1[i].style.backgroundColor = color.slice(0, 7) + newAlpha
+                        }
+                        GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+                    });
+                }
 
 
 
@@ -7538,11 +7637,70 @@ self.onmessage = function (e) {
         txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
         txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
+        const spanShare = element.querySelector('span.player_icon_placeholder.player_share_skills');
+        let player_span=enlace.querySelector('.player_name')
+        if((GM_getValue("positionsColors"))&&(spanShare!==null)){
+            txt +='<span><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
+            txt +='border-radius: 3px; width: 7em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
+            txt +='<option>None</option>'
+
+            let pos=playerPositions.get(ids[0].textContent);
+            if(window.sport==="soccer"){
+                txt += `<option value="Goalkeeper" ${pos === "Goalkeeper" ? "selected" : ""}>Goalkeeper</option>`;
+                txt += `<option value="Defender" ${pos=== "Defender" ? "selected" : ""}>Defender</option>`;
+                txt += `<option value="Midfielder" ${pos === "Midfielder" ? "selected" : ""}>Midfielder</option>`;
+                txt += `<option value="Striker" ${pos === "Striker" ? "selected" : ""}>Striker</option>`;
+                txt += `<option value="Wing" ${pos === "Wing" ? "selected" : ""}>Wing</option>`;
+            }else{
+                txt += `<option value="Goalkeeper_hockey" ${pos === "Goalkeeper_hockey" ? "selected" : ""}>Goalkeeper</option>`;
+                txt += `<option value="Defender_hockey" ${pos=== "Defender_hockey" ? "selected" : ""}>Defender</option>`;
+                txt += `<option value="Center" ${pos=== "Center" ? "selected" : ""}>Center</option>`;
+                txt += `<option value="Wing_hockey" ${pos === "Wing_hockey" ? "selected" : ""}>Wing</option>`;
+            }
+            txt +='</span></select>'
+            if(pos!==undefined){
+                player_span.style.backgroundColor=playerPosColors.get(pos); //GK
+                player_span.style.borderRadius="3px";
+
+                if(GM_getValue("positionsColorsBG")){
+                    let color = playerPosColors.get(pos);
+                    let alpha = parseInt(color.slice(7, 9), 16);
+                    alpha = Math.max(0, Math.floor(alpha * 0.75));
+                    let newAlpha = alpha.toString(16).padStart(2, '0');
+                    element.style.backgroundColor = color.slice(0, 7) + newAlpha
+                }
+
+            }
+
+        }
+
         let index=0
         if(window.stx_device!=="computer"){
             index=1
         }
         elementos_[index].innerHTML += txt;
+
+        if((GM_getValue("positionsColors"))&&(spanShare!==null)){
+            document.getElementById("position_" + ids[0].textContent).addEventListener('change', (e) => {
+                playerPositions.set(ids[0].textContent,e.target.value)
+                player_span.style.backgroundColor=playerPosColors.get(e.target.value);
+
+                if(GM_getValue("positionsColorsBG")){
+                    let color = playerPosColors.get(e.target.value);
+                    let alpha = parseInt(color.slice(7, 9), 16);
+                    alpha = Math.max(0, Math.floor(alpha * 0.75));
+                    let newAlpha = alpha.toString(16).padStart(2, '0');
+                    element.style.backgroundColor = color.slice(0, 7) + newAlpha
+                }
+
+
+                GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+            });
+        }
+
+
+
+
         (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
             document.getElementById("but" + currentId).addEventListener('click', function () {
                 let link = "https://statsxente.com/MZ1/Functions/tamper_player_stats.php?sport=" + currentSport
@@ -9759,17 +9917,20 @@ self.onmessage = function (e) {
 
                                     let index=skillIndex.get(data["y"])
                                     let aux=skills.get(index);
-                                    aux["green"]["sk"+numero]++;
-                                    aux["green"]["all_time_sum"]++;
-                                    skills.set(index,aux)
+                                    if(data["x"]>aux["green"]["last_time"]){
+                                        aux["green"]["sk"+numero]++;
+                                        aux["green"]["all_time_sum"]++;
+                                        skills.set(index,aux)
+                                    }
                                 }
 
                                 if(data["marker"]["symbol"].includes("gained")){
                                     let aux=skills.get(data["name"]);
                                     let aux1=getEmptySkillsDistrib(0)
                                     aux1["green"]["all_time_sum"]=aux["green"]["all_time_sum"]
+                                    aux1["green"]["last_time"]=data["x"]
                                     skills.set(data["name"],aux1)
-                                    i++;
+
                                 }
 
                                 //Lost
@@ -9779,10 +9940,12 @@ self.onmessage = function (e) {
                                     let numero = parseInt(match[1]);
                                     let index=skillIndex.get(data["y"])
                                     let aux=skills.get(index);
-                                    aux["green"]["all_time_sum"]=0;
-                                    aux["red"]["sk"+numero]++;
-                                    aux["red"]["all_time_sum"]++;
-                                    skills.set(index,aux)
+                                    if(data["x"]>aux["red"]["last_time"]){
+                                        aux["green"]["all_time_sum"]=0;
+                                        aux["red"]["sk"+numero]++;
+                                        aux["red"]["all_time_sum"]++;
+                                        skills.set(index,aux)
+                                    }
                                 }
 
                                 if(data["marker"]["symbol"].includes("lost")){
@@ -9792,6 +9955,7 @@ self.onmessage = function (e) {
                                     let aux1=skills.get(data["name"]);
                                     aux1["red"]["sk"+numero]++;
                                     aux1["red"]["all_time_sum"]++;
+                                    aux1["red"]["last_time"]=data["x"]
                                     skills.set(data["name"],aux1)
                                 }
 
@@ -9816,13 +9980,7 @@ self.onmessage = function (e) {
 
                         skills.set(clave,valor)
                     });
-
-
-
                     resolve(skills)
-
-
-
                 }
 
             });
@@ -10278,7 +10436,8 @@ self.onmessage = function (e) {
             tabsConfig: false, show_league_selects: true,
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
             transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,
-            onlySinglePages:true,eloChangeCalendar:true,trainingPercentages:true,partialSkills:true,onlySinglePagesSkills:true
+            onlySinglePages:true,eloChangeCalendar:true,trainingPercentages:true,partialSkills:true,onlySinglePagesSkills:true,
+            positionsColors:true,positionsColorsBG:false
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -10309,31 +10468,6 @@ self.onmessage = function (e) {
         overlay.id = 'stx-overlay';
         const chk = key => GM_getValue(key) ? 'checked' : '';
         const tog = key => GM_getValue(key) ? 'on' : '';
-
-        /*const modules = [
-            { key: 'leagueFlag',                 id: 'leagueSelect',                  label: 'League' },
-            { key: 'federationFlag',             id: 'federationSelect',              label: 'Federation' },
-            { key: 'matchFlag',                  id: 'matchSelect',                   label: 'Match' },
-            { key: 'eloPlayedMatchesFlag',       id: 'eloPlayedSelect',               label: 'ELO changes' },
-            { key: 'trainingReportFlag',         id: 'trainingReportSelect',          label: 'Training report' },
-            { key: 'trainingPercentages',        id: 'trainingPercentages',           label: 'Training Percentages' },
-            { key: 'playersFlag',                id: 'playersSelect',                 label: 'Players' },
-            { key: 'countryRankFlag',            id: 'countryRankSelect',             label: 'Country rank' },
-            { key: 'teamPageFlag',               id: 'teamSelect',                    label: 'Team' },
-            { key: 'eloNextMatchesFlag',         id: 'eloScheduledSelect',            label: 'ELO team scores' },
-            { key: 'cupFlag',                    id: 'cupFlagSelect',                 label: 'Cups' },
-            { key: 'eloHiddenPlayedMatchesFlag', id: 'eloHiddenPlayedMatchesSelect',  label: 'ELO hidden matches' },
-            { key: 'flFlag',                     id: 'flFlagSelect',                  label: 'Friendly leagues' },
-            { key: 'nationalTeamFlag',           id: 'nationalTeamFlagSelect',        label: 'National team' },
-            { key: 'tacticsResultsFlag',         id: 'tacticsResultsFlagSelect',      label: 'Tactics results' },
-            { key: 'transfersFilterFlag',        id: 'transfersFilterFlagSelect',     label: 'Transfers filter' },
-            { key: 'transfersSellerFlag',        id: 'transfersSellerSelect',         label: 'Transfers seller' },
-            { key: 'transfersTaxFlag',           id: 'transfersTaxSelect',            label: 'Transfers tax' },
-            { key: 'tacticsSkillsResume',        id: 'tacticsSkillsResume',           label: 'Tactics skills resume' },
-            { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
-            { key: 'eloChangeCalendar',          id: 'eloChangeCalendar',             label: 'ELO changes calendar' },
-            { key: 'partialSkills',              id: 'partialSkills',                 label: 'Partial Skills' },
-        ];*/
 
         const modules = [
             // Core competition structure
@@ -10375,6 +10509,7 @@ self.onmessage = function (e) {
 
             // Finance
             { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
+            { key: 'positionsColors',            id: 'positionsColors',               label: 'Positions colors' },
         ];
 
         let html = '<div class="stx-modal">';
@@ -10453,6 +10588,76 @@ self.onmessage = function (e) {
         html += `<label class="stx-checkitem"><input type="checkbox" id="onlySinglePagesSkills" ${chk('onlySinglePagesSkills')}> Only on single pages</label>`;
         html += '</div></div>'
 
+        html += '<div><div class="stx-section-title">Positions Color</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="positionsColorsBG" ${chk('positionsColorsBG')}> Background</label>`;
+        if(window.sport==="soccer"){
+            html += `<label>
+            <input type="color" class="pos-color" data-pos="Goalkeeper"
+           value="${playerPosColors.get('Goalkeeper').slice(0,7)}"/>
+             Goalkeeper
+           </label>`;
+
+            html += `<label>
+           <input type="color" class="pos-color" data-pos="Defender"
+           value="${playerPosColors.get('Defender').slice(0,7)}"/>
+            Defender
+             </label>`;
+
+            html += `<label>
+                  <input type="color" class="pos-color" data-pos="Midfielder"
+           value="${playerPosColors.get('Midfielder').slice(0,7)}"/>
+             Midfielder
+           </label>`;
+
+            html += `<label>
+            <input type="color" class="pos-color" data-pos="Striker"
+            value="${playerPosColors.get('Striker').slice(0,7)}"/>
+            Striker
+             </label>`;
+
+            html += `<label>
+            <input type="color" class="pos-color" data-pos="Wing"
+            value="${playerPosColors.get('Wing').slice(0,7)}"/>
+            Wing
+             </label>`;
+        }else{
+
+
+            html += `<label>
+            <input type="color" class="pos-color" data-pos="Goalkeeper_hockey"
+           value="${playerPosColors.get('Goalkeeper_hockey').slice(0,7)}"/>
+             Goalkeeper
+           </label>`;
+
+            html += `<label>
+           <input type="color" class="pos-color" data-pos="Defender_hockey"
+           value="${playerPosColors.get('Defender_hockey').slice(0,7)}"/>
+            Defender
+             </label>`;
+
+            html += `<label>
+                  <input type="color" class="pos-color" data-pos="Center"
+           value="${playerPosColors.get('Center').slice(0,7)}"/>
+             Center
+           </label>`;
+            html += `<label>
+            <input type="color" class="pos-color" data-pos="Wing_hockey"
+            value="${playerPosColors.get('Wing_hockey').slice(0,7)}"/>
+            Wing
+             </label>`;
+        }
+
+        html += '</div></div>';
+
+        /*playerPosColors.set("Goalkeeper","#a45408bf"); //GK
+   playerPosColors.set("Defender","#80a6ffbf"); //Defender
+   playerPosColors.set("Midfielder","#65f465bf"); //Midfielder
+   playerPosColors.set("Striker","#ff5555bf"); //Attacker
+   playerPosColors.set("Winger","#ff55fabf"); //Winge*/
+
+
+
+
         html +='</div>';
 
 
@@ -10476,6 +10681,24 @@ self.onmessage = function (e) {
 
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
+
+        //Colors:
+
+        document.querySelectorAll('.pos-color').forEach(input => {
+
+            input.addEventListener('change', function () {
+
+                const pos = this.dataset.pos;
+                const oldColor = playerPosColors.get(pos);
+                const alpha = oldColor.length === 9 ? oldColor.slice(7, 9) : "ff";
+                const newColor = this.value + alpha;
+                playerPosColors.set(pos, newColor);
+                GM_setValue(
+                    "playerPosColors",
+                    JSON.stringify([...playerPosColors])
+                );
+            });
+        });
 
 
         // Toggle modules
@@ -10526,6 +10749,7 @@ self.onmessage = function (e) {
             GM_setValue('transfer_grid_4',        document.getElementById('transfer_grid_4').checked);
             GM_setValue('onlySinglePages',        document.getElementById('onlySinglePages').checked);
             GM_setValue('onlySinglePagesSkills',  document.getElementById('onlySinglePagesSkills').checked);
+            GM_setValue('positionsColorsBG',      document.getElementById('positionsColorsBG').checked);
             GM_setValue('showSkillsResume',       document.getElementById('showSkillsResume').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
             window.location.reload();
@@ -11382,7 +11606,7 @@ self.onmessage = function (e) {
         );
     }
     function getEmptySkillsDistrib(all_time_sum){
-        let base_obj={"sk1":0,"sk2":0,"sk3":0,"sk4":0,"sk5":0,"sk6":0,"sk7":0,"sk8":0,"sk9":0,"sk10":0,"tp":0,"td":0,"all_time_sum":all_time_sum}
+        let base_obj={"sk1":0,"sk2":0,"sk3":0,"sk4":0,"sk5":0,"sk6":0,"sk7":0,"sk8":0,"sk9":0,"sk10":0,"tp":0,"td":0,"all_time_sum":all_time_sum,"last_time":0}
         return {
             green: { ...base_obj },
             red: { ...base_obj }
@@ -12126,7 +12350,23 @@ cursor:pointer;
     #profit-card .pc-warning { color: #b45309 !important; }
     #profit-card .pc-danger  { color: #dc2626 !important; }
     #profit-card .pc-success { color: #059669 !important; }
+
+
+  input[type="color"] {
+  width: 1.75em;
+  height: 1.75em;
+  padding: 1px 2px;
+  border-radius: 4px;
+  border:1px;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
 `;
+
+
+
 
         }
 
