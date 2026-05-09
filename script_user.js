@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.232
+// @version      0.233
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -101,9 +101,9 @@
 
     setCSSStyles()
     insertTaxCss()
+    setLangSportCats()
     createModalMenu()
     waitToDOMById(createModalEventListeners,"saveButton",5000)
-    setLangSportCats()
     getUsernameData()
     checkScriptVersion().then()
     getSelects().then()
@@ -11540,6 +11540,7 @@ self.onmessage = function (e) {
         }
 
         const elSkills= player.querySelector(clase);
+        if(elSkills===null){return;}
         const skills = elSkills.querySelectorAll('.skill_exact_bar');
         let partial = 0;
         let cont = 0;
@@ -12217,6 +12218,16 @@ cursor:pointer;
   text-shadow: 0 0 3px #000, 0 0 3px #000;
 }
 
+  input[type="color"] {
+  width: 1.75em;
+  height: 1.75em;
+  padding: 1px 2px;
+  border-radius: 4px;
+  border:1px solid ${GM_getValue("bg_native")};
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: 4px;
+}
 
 
 
@@ -12350,19 +12361,6 @@ cursor:pointer;
     #profit-card .pc-warning { color: #b45309 !important; }
     #profit-card .pc-danger  { color: #dc2626 !important; }
     #profit-card .pc-success { color: #059669 !important; }
-
-
-  input[type="color"] {
-  width: 1.75em;
-  height: 1.75em;
-  padding: 1px 2px;
-  border-radius: 4px;
-  border:1px;
-  cursor: pointer;
-  vertical-align: middle;
-  margin-right: 4px;
-}
-
 `;
 
 
