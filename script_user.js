@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.235
+// @version      0.236
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -111,6 +111,7 @@
 
     /// FUNCTIONS MENU
     setTimeout(function () {
+
         /*document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'l') {
                 e.preventDefault();
@@ -118,6 +119,9 @@
                 addTeamInfoMarket();
             }
         });*/
+
+
+
         const urlParams = new URLSearchParams(window.location.search);
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
             getDeviceFormat()
@@ -169,7 +173,17 @@
                 waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
                 teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
                 playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+
+                playersFilterEventListener()
             }
+
+
+
+
+
+
+
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid')) ) {
@@ -183,7 +197,6 @@
             waitToDOM(taxOnSell, ".player_name", 0,7000)
             waitToDOM(playersPageStats, ".player_name", 0,7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0,7000)
-
             if((GM_getValue("partialSkills"))){
                 playerPartialSkills()
             }
@@ -711,6 +724,28 @@
                 insertAvgRowAltTable()
             }, 1500);
         });
+    }
+
+    function playersFilterEventListener(){
+
+        document.getElementById("filterSubmit").addEventListener("click", function () {
+
+            setTimeout(function () {
+
+                if((GM_getValue("partialSkills"))&&((!GM_getValue("onlySinglePagesSkills")))){
+                    playerPartialSkills()
+                }
+                if(GM_getValue("playersFlag")){
+                    waitToDOM(taxOnSell, ".player_name", 0,7000)
+                    waitToDOM(playersPage, ".playerContainer", 0,7000)
+                    waitToDOM(scoutReportEventListeners, ".playerContainer", 0,7000)
+                    teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_"+window.sport, "[]")));
+                    playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
+                }
+
+            }, 4000);
+        });
+
     }
 
     function tableLeaguesEventListener(){
@@ -1980,8 +2015,8 @@ self.onmessage = function (e) {
     }
 //Alternative players
     function insertAvgRowAltTable(){
-        if(GM_getValue("positionsColors")){
-            let contenidoNuevo="<div style='margin: 0 auto; text-align: center;'>";
+        if((GM_getValue("positionsColors"))&&(!document.getElementById("positionsFilter"))){
+            let contenidoNuevo="<div id=positionsFilter style='margin: 0 auto; text-align: center;'>";
             contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>'
             if(window.sport==="soccer"){
                 contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>'
@@ -2066,6 +2101,23 @@ self.onmessage = function (e) {
         const lastTh = ths[fieldIndexes[fieldIndexes.length-1]+1];
         const hasCheckbox = lastTh?.querySelector('input[type="checkbox"]') !== null;
 
+
+        ///Positions colors
+        if(GM_getValue("positionsColors")){
+            table.querySelectorAll('tbody tr').forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const a = cells[nameIndex].querySelector('a');
+                const href = a.getAttribute('href');
+                const params = new URLSearchParams(href.split('?')[1]);
+                const pid = params.get('pid');
+                let pos=playerPositions.get(pid);
+                cells[nameIndex].style.setProperty("background-color",playerPosColors.get(pos),"important");
+                cells[nameIndex].style.borderRadius="3px";
+                cells[nameIndex].dataset.pos = pos;
+            });
+        }
+
+
         if(!hasCheckbox){ //Mazyar compatibility
             fieldIndexes.push(fieldIndexes[fieldIndexes.length-1]+1)
         }else{
@@ -2125,13 +2177,6 @@ self.onmessage = function (e) {
                 const href = a.getAttribute('href');
                 const params = new URLSearchParams(href.split('?')[1]);
                 const pid = params.get('pid');
-                let pos=playerPositions.get(pid);
-                if(GM_getValue("positionsColors")){
-                    cells[nameIndex].style.setProperty("background-color",playerPosColors.get(pos),"important");
-                    cells[nameIndex].style.borderRadius="3px";
-                    cells[nameIndex].dataset.pos = pos;
-                }
-
                 const sum = fieldIndexes
                     .slice(startIndex)
                     .reduce((acc, idx) => {
@@ -7521,28 +7566,28 @@ self.onmessage = function (e) {
             }
 
             const container = document.getElementById("squad-search-toggle");
-            let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>";
-            contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>";
-            contenidoNuevo += "<option value='All Team' selected>All Team</option>";
+            if(!document.getElementById("containerTactics")){
+                let contenidoNuevo = "<div id='containerTactics' style='background-color: #e3e3e3; margin: 0 auto; text-align:center;'></br>";
+                contenidoNuevo += "<div id=selectDiv>Choose Tactic: <select id=tactics_select>";
+                contenidoNuevo += "<option value='All Team' selected>All Team</option>";
+                for (let x = 0; x < tacticsList.length; x++) {
+                    let selected="";
+                    contenidoNuevo += `<option ${selected} value='${tacticsList[x]}'>${tacticsList[x]}</option>`;
+                }
+
+                contenidoNuevo += "</select></div></br><div id=divMenu></div></center></div>";
+                container.innerHTML = contenidoNuevo + container.innerHTML;
+
+                document.getElementById("tactics_select").addEventListener('change', function () {
+                    const selectedTactic = this.value;
+                    document.getElementById("divMenu").innerHTML = ""
+                    skillDistrib(selectedTactic, players, lines, skillsNames,gk_line,su_line);
+                });
+
+                skillDistrib("All Team", players, lines, skillsNames,gk_line,su_line);
 
 
-            for (let x = 0; x < tacticsList.length; x++) {
-                let selected="";
-                contenidoNuevo += `<option ${selected} value='${tacticsList[x]}'>${tacticsList[x]}</option>`;
             }
-
-            contenidoNuevo += "</select></div></br><div id=divMenu></div></center></div>";
-            container.innerHTML = contenidoNuevo + container.innerHTML;
-
-            document.getElementById("tactics_select").addEventListener('change', function () {
-                const selectedTactic = this.value;
-                document.getElementById("divMenu").innerHTML = ""
-                skillDistrib(selectedTactic, players, lines, skillsNames,gk_line,su_line);
-            });
-
-            skillDistrib("All Team", players, lines, skillsNames,gk_line,su_line);
-
-
             maximizationsPlayersPage()
 
 
