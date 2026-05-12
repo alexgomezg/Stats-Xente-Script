@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.234
+// @version      0.235
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -2046,7 +2046,7 @@ self.onmessage = function (e) {
                 const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
                 const isAll = e.target.id === "posAll";
                 const noneChecked = document.getElementById("posNone").checked;
-                document.querySelectorAll('#playerAltViewTable tr:not(#stx-avg-row)').forEach(tr => {
+                document.querySelectorAll('#squad_summary tr:not(#stx-avg-row)').forEach(tr => {
                     const pos = tr.cells[nameIndex]?.dataset.pos;
                     const show = isAll
                         || selected.includes(pos)
