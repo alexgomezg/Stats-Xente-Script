@@ -68,7 +68,7 @@
     let isRunning = false;
     let currencies;
     let skillIndex
-
+    let bg_transp=GM_getValue("bg_transp", "0.25");
     let playerPositions=new Map(JSON.parse(GM_getValue("playersPositions", "[]")));
     let playerPosColors = new Map(
         JSON.parse(
@@ -1984,6 +1984,31 @@ self.onmessage = function (e) {
     }
 //Alternative players
     function insertAvgRowAltTable(){
+        if(GM_getValue("positionsColors")){
+            let contenidoNuevo="<div style='margin: 0 auto; text-align: center;'>";
+            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>'
+            if(window.sport==="soccer"){
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender">Defender</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Midfielder">Midfielder</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos3" value="Striker">Striker</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing">Wing</label>'
+            }else{
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper_hockey">Goalkeeper</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender_hockey">Defender</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Center">Center</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing_hockey">Wing</label>'
+            }
+            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>'
+            contenidoNuevo+="</div>";
+            document.getElementById('squad-search-toggle')
+                .insertAdjacentHTML('beforebegin',contenidoNuevo);
+
+        }
+
+
+
+
         let iColor="white";
         let excluded=[]
         let fieldIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
@@ -2010,6 +2035,36 @@ self.onmessage = function (e) {
         }
 
         if(!table){return;}
+
+
+
+
+        if(GM_getValue("positionsColors")){
+            document.addEventListener('change', (e) => {
+                if (!e.target.classList.contains('statsxente')) return;
+                if (e.target.id === "posAll") {
+                    document.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
+                } else {
+                    document.getElementById("posAll").checked = false;
+                }
+                const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
+                const isAll = e.target.id === "posAll";
+                const noneChecked = document.getElementById("posNone").checked;
+                document.querySelectorAll('#playerAltViewTable tr:not(#stx-avg-row)').forEach(tr => {
+                    const pos = tr.cells[nameIndex]?.dataset.pos;
+                    const show = isAll
+                        || selected.includes(pos)
+                        || (noneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
+                    tr.style.display = show ? "table-row" : "none";
+                });
+            });
+        }
+
+
+
+
+
+
 
         const ths = table.querySelectorAll('thead tr th');
         const lastTh = ths[fieldIndexes[fieldIndexes.length-1]+1];
@@ -2075,8 +2130,11 @@ self.onmessage = function (e) {
                 const params = new URLSearchParams(href.split('?')[1]);
                 const pid = params.get('pid');
                 let pos=playerPositions.get(pid);
-                cells[nameIndex].style.setProperty("background-color",playerPosColors.get(pos),"important");
-                cells[nameIndex].style.borderRadius="3px";
+                if(GM_getValue("positionsColors")){
+                    cells[nameIndex].style.setProperty("background-color",playerPosColors.get(pos),"important");
+                    cells[nameIndex].style.borderRadius="3px";
+                    cells[nameIndex].dataset.pos = pos;
+                }
 
                 const sum = fieldIndexes
                     .slice(startIndex)
@@ -7384,10 +7442,11 @@ self.onmessage = function (e) {
                     if(pos!==undefined){
                         player_span.style.borderRadius="3px";
                         player_span.style.backgroundColor=playerPosColors.get(pos);
+                        player_span.dataset.pos = pos;
                         if(GM_getValue("positionsColorsBG")){
                             let color = playerPosColors.get(pos);
                             let alpha = parseInt(color.slice(7, 9), 16);
-                            alpha = Math.max(0, Math.floor(alpha * 0.75));
+                            alpha = Math.max(0, Math.floor(alpha * bg_transp));
                             let newAlpha = alpha.toString(16).padStart(2, '0');
                             elementos1[i].style.backgroundColor = color.slice(0, 7) + newAlpha
                         }
@@ -7408,7 +7467,7 @@ self.onmessage = function (e) {
                         if(GM_getValue("positionsColorsBG")){
                             let color = playerPosColors.get(e.target.value);
                             let alpha = parseInt(color.slice(7, 9), 16);
-                            alpha = Math.max(0, Math.floor(alpha * 0.75));
+                            alpha = Math.max(0, Math.floor(alpha * bg_transp));
                             let newAlpha = alpha.toString(16).padStart(2, '0');
                             elementos1[i].style.backgroundColor = color.slice(0, 7) + newAlpha
                         }
@@ -7619,7 +7678,55 @@ self.onmessage = function (e) {
                 contenidoNuevo += "</tr>";
             }
         }
+        contenidoNuevo+="</table>"
+        if(GM_getValue("positionsColors")){
+            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>'
+            if(window.sport==="soccer"){
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender">Defender</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Midfielder">Midfielder</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos3" value="Striker">Striker</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing">Wing</label>'
+            }else{
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper_hockey">Goalkeeper</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender_hockey">Defender</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Center">Center</label>'
+                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing_hockey">Wing</label>'
+            }
+            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>'
+        }
         container.innerHTML += contenidoNuevo;
+
+
+        if(GM_getValue("positionsColors")){
+            document.addEventListener('change', (e) => {
+
+
+                if(e.target.id==="posAll"){
+                    container.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
+                }else{
+                    document.getElementById("posAll").checked=false;
+                }
+
+                if (!e.target.classList.contains('statsxente')) return;
+                let selected=[]
+
+                selected = [...document.querySelectorAll('.statsxente:checked')]
+                    .map(el => el.value);
+
+
+                const players = document.querySelectorAll('.playerContainer');
+                players.forEach(player => {
+                    const pos = player.querySelector('.player_name')?.dataset.pos;
+                    const show = e.target.id === "posAll"
+                        || selected.includes(pos)
+                        || (document.getElementById("posNone").checked && (pos === "None" || pos === undefined || pos === "undefined"));
+                    player.style.display = show ? "block" : "none";
+                });
+            });
+        }
+
+
     }
 //Players links to stats
     async function playersPageStats() {
@@ -7665,7 +7772,7 @@ self.onmessage = function (e) {
                 if(GM_getValue("positionsColorsBG")){
                     let color = playerPosColors.get(pos);
                     let alpha = parseInt(color.slice(7, 9), 16);
-                    alpha = Math.max(0, Math.floor(alpha * 0.75));
+                    alpha = Math.max(0, Math.floor(alpha * bg_transp));
                     let newAlpha = alpha.toString(16).padStart(2, '0');
                     element.style.backgroundColor = color.slice(0, 7) + newAlpha
                 }
@@ -7688,7 +7795,7 @@ self.onmessage = function (e) {
                 if(GM_getValue("positionsColorsBG")){
                     let color = playerPosColors.get(e.target.value);
                     let alpha = parseInt(color.slice(7, 9), 16);
-                    alpha = Math.max(0, Math.floor(alpha * 0.75));
+                    alpha = Math.max(0, Math.floor(alpha * bg_transp));
                     let newAlpha = alpha.toString(16).padStart(2, '0');
                     element.style.backgroundColor = color.slice(0, 7) + newAlpha
                 }
@@ -10590,6 +10697,15 @@ self.onmessage = function (e) {
 
         html += '<div><div class="stx-section-title">Positions Color</div><div class="stx-checkrow">';
         html += `<label class="stx-checkitem"><input type="checkbox" id="positionsColorsBG" ${chk('positionsColorsBG')}> Background</label>`;
+        html += `<div class="stx-group-select" style="flex:0;">
+    <select class="stx-select" id="bg_transp">
+        <option value="0.10" ${bg_transp == "0.10" ? "selected" : ""}>10%</option>
+        <option value="0.25" ${bg_transp == "0.25" ? "selected" : ""}>25%</option>
+        <option value="0.50" ${bg_transp == "0.50" ? "selected" : ""}>50%</option>
+        <option value="0.75" ${bg_transp == "0.75" ? "selected" : ""}>75%</option>
+        <option value="0.80" ${bg_transp == "0.80" ? "selected" : ""}>80%</option>
+    </select>
+</div>`;
         if(window.sport==="soccer"){
             html += `<label>
             <input type="color" class="pos-color" data-pos="Goalkeeper"
@@ -10646,7 +10762,6 @@ self.onmessage = function (e) {
             Wing
              </label>`;
         }
-
         html += '</div></div>';
 
         /*playerPosColors.set("Goalkeeper","#a45408bf"); //GK
@@ -10701,6 +10816,11 @@ self.onmessage = function (e) {
         });
 
 
+        document.getElementById("bg_transp").addEventListener("change", function() {
+            GM_setValue("bg_transp", this.value)
+        });
+
+
         // Toggle modules
         overlay.querySelectorAll('.stx-toggle').forEach(label => {
             label.addEventListener('click', () => label.classList.toggle('on'));
@@ -10726,6 +10846,9 @@ self.onmessage = function (e) {
                 grid2.checked = false;
             }
         });
+
+
+
 
         // Open/close modal
         legendDiv.addEventListener('click', () => overlay.classList.toggle('open'));
