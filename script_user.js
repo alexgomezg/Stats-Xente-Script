@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.236
+// @version      0.237
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -69,6 +69,17 @@
     let currencies;
     let skillIndex
     let bg_transp=GM_getValue("bg_transp", "0.25");
+    const positionsAbrev = new Map();
+    positionsAbrev.set("Goalkeeper","Gk");
+    positionsAbrev.set("Defender", "De");
+    positionsAbrev.set("Midfielder","Md");
+    positionsAbrev.set("Striker","St");
+    positionsAbrev.set("Wing","Wg");
+    positionsAbrev.set("Goalkeeper_hockey","Gk");
+    positionsAbrev.set("Defender_hockey", "De");
+    positionsAbrev.set("Center","C");
+    positionsAbrev.set("Wing_hockey","Wg");
+
     let playerPositions=new Map(JSON.parse(GM_getValue("playersPositions", "[]")));
     let playerPosColors = new Map(
         JSON.parse(
@@ -1400,7 +1411,6 @@ self.onmessage = function (e) {
             el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
         } catch (error) {
             el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
-            console.error(error);
         }
 
 
@@ -2016,26 +2026,36 @@ self.onmessage = function (e) {
 //Alternative players
     function insertAvgRowAltTable(){
         if((GM_getValue("positionsColors"))&&(!document.getElementById("positionsFilter"))){
-            let contenidoNuevo="<div id=positionsFilter style='margin: 0 auto; text-align: center;'>";
-            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>'
-            if(window.sport==="soccer"){
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender">Defender</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Midfielder">Midfielder</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos3" value="Striker">Striker</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing">Wing</label>'
-            }else{
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper_hockey">Goalkeeper</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender_hockey">Defender</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Center">Center</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing_hockey">Wing</label>'
+
+
+
+            let contenidoNuevo = "<div id='positionsFilter'>";
+
+            contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>`;
+
+            if (window.sport === "soccer") {
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos1" value="Defender">Defender</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos2" value="Midfielder">Midfielder</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos3" value="Striker">Striker</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos4" value="Wing">Wing</label>`;
+            } else {
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper_hockey">Goalkeeper</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos1" value="Defender_hockey">Defender</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos2" value="Center">Center</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos4" value="Wing_hockey">Wing</label>`;
             }
-            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>'
-            contenidoNuevo+="</div>";
+
+            contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>`;
+            contenidoNuevo += "</div>";
+
+
             document.getElementById('squad-search-toggle')
                 .insertAdjacentHTML('beforebegin',contenidoNuevo);
 
         }
+
+
 
 
 
@@ -7333,8 +7353,17 @@ self.onmessage = function (e) {
 
         });
     }
+
+
+
+
+
 //Players page
     async function playersPage() {
+        let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
+        if(window.sport==="soccer"){
+            colors = ['Goalkeeper','Defender','Midfielder','Striker','Wing'];
+        }
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const workerURL = URL.createObjectURL(blob);
         const worker = new Worker(workerURL);
@@ -7459,26 +7488,38 @@ self.onmessage = function (e) {
                 const spanShare = elementos1[i].querySelector('span.player_icon_placeholder.player_share_skills');
                 let player_span=elementos1[i].querySelector('.player_name')
                 if((GM_getValue("positionsColors"))&&(spanShare!==null)){
-                    txt +='<span><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
-                    txt +='border-radius: 3px; width: 7em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
+                    let pos=playerPositions.get(ids[0].textContent);
+                    /*txt +='<span class="player_icon_placeholder"><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
+                    txt +='border-radius: 3px; width: 3em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
                     txt +='<option>None</option>'
 
                     let pos=playerPositions.get(ids[0].textContent);
 
 
                     if(window.sport==="soccer"){
-                        txt += `<option value="Goalkeeper" ${pos === "Goalkeeper" ? "selected" : ""}>Goalkeeper</option>`;
-                        txt += `<option value="Defender" ${pos=== "Defender" ? "selected" : ""}>Defender</option>`;
-                        txt += `<option value="Midfielder" ${pos === "Midfielder" ? "selected" : ""}>Midfielder</option>`;
-                        txt += `<option value="Striker" ${pos === "Striker" ? "selected" : ""}>Striker</option>`;
-                        txt += `<option value="Wing" ${pos === "Wing" ? "selected" : ""}>Wing</option>`;
+                        txt += `<option value="Goalkeeper" ${pos === "Goalkeeper" ? "selected" : ""}>Gk</option>`;
+                        txt += `<option value="Defender" ${pos=== "Defender" ? "selected" : ""}>De</option>`;
+                        txt += `<option value="Midfielder" ${pos === "Midfielder" ? "selected" : ""}>Md</option>`;
+                        txt += `<option value="Striker" ${pos === "Striker" ? "selected" : ""}>Sk</option>`;
+                        txt += `<option value="Wing" ${pos === "Wing" ? "selected" : ""}>Wg</option>`;
                     }else{
                         txt += `<option value="Goalkeeper_hockey" ${pos === "Goalkeeper_hockey" ? "selected" : ""}>Goalkeeper</option>`;
                         txt += `<option value="Defender_hockey" ${pos=== "Defender_hockey" ? "selected" : ""}>Defender</option>`;
                         txt += `<option value="Center" ${pos=== "Center" ? "selected" : ""}>Center</option>`;
                         txt += `<option value="Wing_hockey" ${pos === "Wing_hockey" ? "selected" : ""}>Wing</option>`;
                     }
-                    txt +='</span></select>'
+                    txt +='</span></select>'*/
+                    //let pos=playerPositions.get(ids[0].textContent);
+                    let c=playerPosColors.get(pos)
+                    let abv=positionsAbrev.get(pos)
+                    if((abv === "None" || abv === undefined || abv === "undefined")){
+                        c="grey"
+                        abv="No"
+                    }
+                    txt+=`<span class="player_icon_placeholder"><div id='csw' data-id="${ids[0].textContent}">
+  <div id="ctrigger"><div class="swatch" id="csel" style="background:${c};">${abv} <i class="bi bi-caret-down-fill"></i></div></div>
+  <div id="cdropdown"></div>
+</div><span>`
 
                     if(pos!==undefined){
                         player_span.style.borderRadius="3px";
@@ -7501,18 +7542,58 @@ self.onmessage = function (e) {
                 if(window.stx_device!=="computer"){index=1}
                 elementos_[index].innerHTML += txt;
 
+
+
+
+
+
                 if((GM_getValue("positionsColors"))&&(spanShare!==null)){
-                    document.getElementById("position_" + ids[0].textContent).addEventListener('change', (e) => {
-                        playerPositions.set(ids[0].textContent,e.target.value)
-                        player_span.style.backgroundColor=playerPosColors.get(e.target.value);
-                        if(GM_getValue("positionsColorsBG")){
-                            let color = playerPosColors.get(e.target.value);
-                            let alpha = parseInt(color.slice(7, 9), 16);
-                            alpha = Math.max(0, Math.floor(alpha * bg_transp));
-                            let newAlpha = alpha.toString(16).padStart(2, '0');
-                            elementos1[i].style.backgroundColor = color.slice(0, 7) + newAlpha
+                    let csw=document.querySelector('[data-id="'+ids[0].textContent+'"]');
+                    const dd = csw.querySelector('[id="cdropdown"]');
+                    const trigger = csw.querySelector('[id="ctrigger"]');
+                    const sel = csw.querySelector('.swatch');
+                    let current = sel.style.background;
+                    colors.forEach(c => {
+                        const el = document.createElement('div');
+                        el.className = 'coption' + (playerPosColors.get(c) === current ? ' selected' : '');
+                        el.style.background = playerPosColors.get(c);
+                        let abrev=""
+                        if((positionsAbrev.get(c) === "None" || positionsAbrev.get(c) === undefined || positionsAbrev.get(c) === "undefined")){
+                            abrev="X"
+                        }else{
+                            abrev=positionsAbrev.get(c)
                         }
-                        GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+                        el.textContent = abrev
+                        el.id=c;
+                        el.style.textAlign = "center";
+                        el.addEventListener('click', () => {
+                            let abv=positionsAbrev.get(c)
+                            current = playerPosColors.get(c);
+                            sel.style.background = playerPosColors.get(c);
+                            sel.innerHTML=abv+' <i class="bi bi-caret-down-fill"></i>'
+                            dd.querySelectorAll('.coption').forEach(o => o.classList.remove('selected'));
+                            el.classList.add('selected');
+                            dd.classList.remove('open');
+                            playerPositions.set(ids[0].textContent,el.id)
+                            player_span.style.backgroundColor=playerPosColors.get(el.id);
+                            if(GM_getValue("positionsColorsBG")){
+                                let color = playerPosColors.get(el.id);
+                                let alpha = parseInt(color.slice(7, 9), 16);
+                                alpha = Math.max(0, Math.floor(alpha * bg_transp));
+                                let newAlpha = alpha.toString(16).padStart(2, '0');
+                                elementos1[i].style.backgroundColor = color.slice(0, 7) + newAlpha
+                            }
+                            GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+                        });
+                        dd.appendChild(el);
+                    });
+
+                    trigger.addEventListener('click', e => {
+                        e.stopPropagation();
+                        document.querySelectorAll('.cdropdown').forEach(d => {
+                            if (d !== dd) d.classList.remove('open');
+                        });
+                        dd.classList.toggle('open');
                     });
                 }
 
@@ -7531,7 +7612,6 @@ self.onmessage = function (e) {
 
 
             }
-
 
         }
 
@@ -7721,56 +7801,129 @@ self.onmessage = function (e) {
         }
         contenidoNuevo+="</table>"
         if(GM_getValue("positionsColors")){
-            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>'
-            if(window.sport==="soccer"){
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender">Defender</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Midfielder">Midfielder</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos3" value="Striker">Striker</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing">Wing</label>'
-            }else{
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper_hockey">Goalkeeper</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos1" value="Defender_hockey">Defender</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos2" value="Center">Center</label>'
-                contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="pos4" value="Wing_hockey">Wing</label>'
+
+            contenidoNuevo += "<div id='positionsFilter'>";
+
+            contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posAll" value="All">All</label>`;
+
+            if (window.sport === "soccer") {
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper">Goalkeeper</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos1" value="Defender">Defender</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos2" value="Midfielder">Midfielder</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos3" value="Striker">Striker</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos4" value="Wing">Wing</label>`;
+            } else {
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos0" value="Goalkeeper_hockey">Goalkeeper</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos1" value="Defender_hockey">Defender</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos2" value="Center">Center</label>`;
+                contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="pos4" value="Wing_hockey">Wing</label>`;
             }
-            contenidoNuevo+='<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>'
+
+            contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>`;
+            contenidoNuevo += "</div>";
+
+            contenidoNuevo+='<input id="tag-input-box" type="text" placeholder="Write a tag an press Enter…" /><div id="tag-container"></div>'
+
+
         }
+
+
+
         container.innerHTML += contenidoNuevo;
 
 
+
+        document.getElementById('tag-input-box').addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const val = document.getElementById('tag-input-box').value.trim();
+            if (!val) return;
+            addTag(val);
+            document.getElementById('tag-input-box').value = '';
+        });
+
+        function addTag(text) {
+            const div = document.createElement('div');
+            div.className = 'tag';
+            div.innerHTML = `<span>${text}</span><button>✕</button>`;
+            div.querySelector('button').addEventListener('click', () => {
+                div.remove();
+                filterPlayers();
+            });
+            document.getElementById('tag-container').appendChild(div);
+            filterPlayers();
+        }
+
+        function filterPlayers() {
+            const tags = [...document.querySelectorAll('#tag-container .tag span')]
+                .map(span => span.textContent.trim().toLowerCase());
+
+            document.querySelectorAll('.playerContainer').forEach(player => {
+                const note = player.querySelector('.box_dark.player-note');
+                const noteText = note ? note.textContent.trim().toLowerCase() : '';
+                const showByTag = tags.length === 0 || tags.every(tag => noteText.includes(tag));
+
+                player._showByTag = showByTag;
+            });
+
+            applyFilters();
+        }
+
         if(GM_getValue("positionsColors")){
-            document.addEventListener('change', (e) => {
-
-
-                if(e.target.id==="posAll"){
-                    container.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
-                }else{
-                    document.getElementById("posAll").checked=false;
-                }
+            document.getElementById("positionsFilter").addEventListener('change', (e) => {
 
                 if (!e.target.classList.contains('statsxente')) return;
-                let selected=[]
+                filterPosition(e.target);
 
-                selected = [...document.querySelectorAll('.statsxente:checked')]
-                    .map(el => el.value);
-
-
-                const players = document.querySelectorAll('.playerContainer');
-                players.forEach(player => {
-                    const pos = player.querySelector('.player_name')?.dataset.pos;
-                    const show = e.target.id === "posAll"
-                        || selected.includes(pos)
-                        || (document.getElementById("posNone").checked && (pos === "None" || pos === undefined || pos === "undefined"));
-                    player.style.display = show ? "block" : "none";
-                });
             });
+
+
         }
 
 
     }
+
+
+    function applyFilters() {
+        document.querySelectorAll('.playerContainer').forEach(player => {
+            const byPos = player._showByPos !== false;
+            const byTag = player._showByTag !== false;
+            player.style.display = (byPos && byTag) ? "block" : "none";
+        });
+    }
+    function filterPosition(triggeredElement) {
+        const container = document.getElementById('positionsFilter');
+
+        if (triggeredElement && triggeredElement.id === "posAll") {
+            container.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
+        } else if (triggeredElement) {
+            document.getElementById("posAll").checked = false;
+        }
+
+        const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
+        const posAllChecked = document.getElementById("posAll")?.checked;
+        const posNoneChecked = document.getElementById("posNone")?.checked;
+
+        document.querySelectorAll('.playerContainer').forEach(player => {
+            const pos = player.querySelector('.player_name')?.dataset.pos;
+            const showByPos = posAllChecked
+                || selected.includes(pos)
+                || (posNoneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
+
+            player._showByPos = showByPos;
+        });
+
+        applyFilters();
+    }
+
+
+
 //Players links to stats
     async function playersPageStats() {
+        let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
+        if(window.sport==="soccer"){
+            colors = ['Goalkeeper','Defender','Midfielder','Striker','Wing'];
+        }
         let element = document.getElementById('thePlayers_0');
         let elementos_ = element.getElementsByClassName('p_sublinks');
         let subheaders = element.getElementsByClassName('subheader clearfix');
@@ -7788,24 +7941,25 @@ self.onmessage = function (e) {
         const spanShare = element.querySelector('span.player_icon_placeholder.player_share_skills');
         let player_span=enlace.querySelector('.player_name')
         if((GM_getValue("positionsColors"))&&(spanShare!==null)){
-            txt +='<span><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
+            /*txt +='<span class="player_icon_placeholder"><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
             txt +='border-radius: 3px; width: 7em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
-            txt +='<option>None</option>'
+            txt +='<option>None</option>'*/
 
             let pos=playerPositions.get(ids[0].textContent);
-            if(window.sport==="soccer"){
-                txt += `<option value="Goalkeeper" ${pos === "Goalkeeper" ? "selected" : ""}>Goalkeeper</option>`;
-                txt += `<option value="Defender" ${pos=== "Defender" ? "selected" : ""}>Defender</option>`;
-                txt += `<option value="Midfielder" ${pos === "Midfielder" ? "selected" : ""}>Midfielder</option>`;
-                txt += `<option value="Striker" ${pos === "Striker" ? "selected" : ""}>Striker</option>`;
-                txt += `<option value="Wing" ${pos === "Wing" ? "selected" : ""}>Wing</option>`;
-            }else{
-                txt += `<option value="Goalkeeper_hockey" ${pos === "Goalkeeper_hockey" ? "selected" : ""}>Goalkeeper</option>`;
-                txt += `<option value="Defender_hockey" ${pos=== "Defender_hockey" ? "selected" : ""}>Defender</option>`;
-                txt += `<option value="Center" ${pos=== "Center" ? "selected" : ""}>Center</option>`;
-                txt += `<option value="Wing_hockey" ${pos === "Wing_hockey" ? "selected" : ""}>Wing</option>`;
+
+            let c=playerPosColors.get(pos)
+            let abv=positionsAbrev.get(pos)
+            if((abv === "None" || abv === undefined || abv === "undefined")){
+                c="grey"
+                abv="No"
             }
-            txt +='</span></select>'
+            txt+=`<span class="player_icon_placeholder"><div id='csw' data-id="${ids[0].textContent}">
+  <div id="ctrigger"><div class="swatch" id="csel" style="background:${c};">${abv} <i class="bi bi-caret-down-fill"></i></div></div>
+  <div id="cdropdown"></div>
+</div><span>`
+
+
+
             if(pos!==undefined){
                 player_span.style.backgroundColor=playerPosColors.get(pos); //GK
                 player_span.style.borderRadius="3px";
@@ -7829,20 +7983,52 @@ self.onmessage = function (e) {
         elementos_[index].innerHTML += txt;
 
         if((GM_getValue("positionsColors"))&&(spanShare!==null)){
-            document.getElementById("position_" + ids[0].textContent).addEventListener('change', (e) => {
-                playerPositions.set(ids[0].textContent,e.target.value)
-                player_span.style.backgroundColor=playerPosColors.get(e.target.value);
-
-                if(GM_getValue("positionsColorsBG")){
-                    let color = playerPosColors.get(e.target.value);
-                    let alpha = parseInt(color.slice(7, 9), 16);
-                    alpha = Math.max(0, Math.floor(alpha * bg_transp));
-                    let newAlpha = alpha.toString(16).padStart(2, '0');
-                    element.style.backgroundColor = color.slice(0, 7) + newAlpha
+            let csw=document.querySelector('[data-id="'+ids[0].textContent+'"]');
+            const dd = csw.querySelector('[id="cdropdown"]');
+            const trigger = csw.querySelector('[id="ctrigger"]');
+            const sel = csw.querySelector('.swatch');
+            let current = sel.style.background;
+            colors.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'coption' + (playerPosColors.get(c) === current ? ' selected' : '');
+                el.style.background = playerPosColors.get(c);
+                let abrev=""
+                if((positionsAbrev.get(c) === "None" || positionsAbrev.get(c) === undefined || positionsAbrev.get(c) === "undefined")){
+                    abrev="X"
+                }else{
+                    abrev=positionsAbrev.get(c)
                 }
+                el.textContent = abrev
+                el.id=c;
+                el.style.textAlign = "center";
+                el.addEventListener('click', () => {
+                    let abv=positionsAbrev.get(c)
+                    current = playerPosColors.get(c);
+                    sel.style.background = playerPosColors.get(c);
+                    sel.innerHTML=abv+' <i class="bi bi-caret-down-fill"></i>'
+                    dd.querySelectorAll('.coption').forEach(o => o.classList.remove('selected'));
+                    el.classList.add('selected');
+                    dd.classList.remove('open');
+                    playerPositions.set(ids[0].textContent,el.id)
+                    player_span.style.backgroundColor=playerPosColors.get(el.id);
+                    if(GM_getValue("positionsColorsBG")){
+                        let color = playerPosColors.get(el.id);
+                        let alpha = parseInt(color.slice(7, 9), 16);
+                        alpha = Math.max(0, Math.floor(alpha * bg_transp));
+                        let newAlpha = alpha.toString(16).padStart(2, '0');
+                        element.style.backgroundColor = color.slice(0, 7) + newAlpha
+                    }
+                    GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+                });
+                dd.appendChild(el);
+            });
 
-
-                GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+            trigger.addEventListener('click', e => {
+                e.stopPropagation();
+                document.querySelectorAll('.cdropdown').forEach(d => {
+                    if (d !== dd) d.classList.remove('open');
+                });
+                dd.classList.toggle('open');
             });
         }
 
@@ -12393,6 +12579,132 @@ cursor:pointer;
   margin-right: 4px;
 }
 
+#positionsFilter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 8px;
+    margin: 0 auto;
+}
+
+#positionsFilter label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    #positionsFilter {
+        gap: 6px 10px;
+    }
+}
+
+#tag-input-box {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 15px;
+  border: 0.5px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+#tag-input-box:focus {
+  box-shadow: 0 0 0 2px #ccc;
+}
+
+#tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  min-height: 36px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #e6f1fb;
+  color: #185fa5;
+  border: 0.5px solid #85b7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tag button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;W
+  color: #185fa5;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.tag button:hover {
+  opacity: 1;
+}
+
+
+
+
+#csw { padding-left:2px; position: relative; display: inline-block; }
+#ctrigger {
+  width: auto;
+  height: 20px; cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+#ctrigger .swatch {
+  padding-left:2px;
+  border: 1px solid #000000;
+  width: 2.5em;
+  height:2em;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0px 0px 3px rgba(0,0,0,0.5);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+#cdropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
+  background: #e4e4e4;
+  border: 1px solid #4d4a4a;
+  border-radius: 8px;
+  padding: 6px; z-index: 999;
+  flex-wrap: wrap; gap: 6px;
+}
+#cdropdown.open { display: inline-flex; flex-wrap: nowrap;}
+.coption {
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0px 0px 3px rgba(0,0,0,0.5);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  width: 1.75em; height: 1.25em; border-radius: 4px; cursor: pointer;
+  border: 2px solid transparent; flex-shrink: 0;
+  transition: transform 0.1s;
+}
+.coption:hover { transform: scale(1.15); }
+.coption.selected { border-color: #333; }
 
 
   `)
