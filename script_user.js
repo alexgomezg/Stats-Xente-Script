@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.238
+// @version      0.239
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -6781,66 +6781,71 @@ self.onmessage = function (e) {
         }
 
         let elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
-        let agesData = new Map([...homeStats["playersData"], ...awayStats["playersData"]]);
-        let a = document.querySelector('.flex-grow-1.block a');
-        let urlForfeit="https://statsxente.com/MZ1/Functions/tamper_matches_forfeit.php?sport="+window.sport+"&match_id="+match_id
-        if(a!==null){
-            let url = new URL(a.href);
-            let cid = url.searchParams.get('cid');
-            if(cid!==null){urlForfeit+="&cid="+cid}
-            let fsid = url.searchParams.get('fsid');
-            if(fsid!==null){urlForfeit+="&cid="+fsid}
-        }
-        let age_res=50
-        let formMap
-        if(GM_getValue("matchForfeit")){
-            age_res=await getMatchAgeRestriction(urlForfeit);
-        }
-
-        if(GM_getValue("matchForm")){
-            let flagForm=false
-            for (let x = 0; x < 2; x++) {
-                if(teams_[x]['team_id']===GM_getValue(window.sport+"_team_id")){
-                    flagForm=true
-                }
+        let agesData = new Map()
+        if(elems.length>0){
+            agesData = new Map([...homeStats["playersData"], ...awayStats["playersData"]]);
+            let a = document.querySelector('.flex-grow-1.block a');
+            let urlForfeit="https://statsxente.com/MZ1/Functions/tamper_matches_forfeit.php?sport="+window.sport+"&match_id="+match_id
+            if(a!==null){
+                let url = new URL(a.href);
+                let cid = url.searchParams.get('cid');
+                if(cid!==null){urlForfeit+="&cid="+cid}
+                let fsid = url.searchParams.get('fsid');
+                if(fsid!==null){urlForfeit+="&cid="+fsid}
+            }
+            console.log(urlForfeit)
+            let age_res=50
+            let formMap
+            if(GM_getValue("matchForfeit")){
+                age_res=await getMatchAgeRestriction(urlForfeit);
             }
 
-            if(flagForm){
-                formMap=await getPlayersForm()
-            }
-        }
-        //Form data
-        for (let x = 0; x < 2; x++) {
-            let tabla = elems[x]
-            let filas = tabla.getElementsByTagName("tr");
-            for (let i = 2; i < filas.length - 1; i++) {
-                let fila = filas[i];
-                let tds=fila.querySelectorAll('td')
-                const a = tds[2].querySelector('a');
-                const url = new URL(a.href);
-                const pid = url.searchParams.get('pid');
-
-                if(GM_getValue("matchForfeit")){
-                    if(agesData.get(parseInt(pid))<=age_res){
-                        tds[2].innerHTML = '<img style="visibility: hidden;" alt="" src="https://statsxente.com/MZ1/View/Images/stop.png" width="10px" height="10px"> '+tds[2].innerHTML;
-                    }else{
-                        tds[2].innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/stop.png" width="10px" height="10px"> '+tds[2].innerHTML;
-                    }
-                }
-
-                if(GM_getValue("matchForm")){
+            if(GM_getValue("matchForm")){
+                let flagForm=false
+                for (let x = 0; x < 2; x++) {
                     if(teams_[x]['team_id']===GM_getValue(window.sport+"_team_id")){
-                        let icon="cir_verde";
-                        if(formMap.get(pid)=="ko"){
-                            icon="cir_rojo";
-                        }
-                        fila.querySelector('td').innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/'+icon+'.png" width="10px" height="10px"> '+fila.querySelector('td').innerHTML;
+                        flagForm=true
                     }
                 }
 
-
-
+                if(flagForm){
+                    formMap=await getPlayersForm()
+                }
             }
+            //Form data
+            for (let x = 0; x < 2; x++) {
+                let tabla = elems[x]
+                let filas = tabla.getElementsByTagName("tr");
+                for (let i = 2; i < filas.length - 1; i++) {
+                    let fila = filas[i];
+                    let tds=fila.querySelectorAll('td')
+                    const a = tds[2].querySelector('a');
+                    const url = new URL(a.href);
+                    const pid = url.searchParams.get('pid');
+
+                    if(GM_getValue("matchForfeit")){
+                        if(agesData.get(parseInt(pid))<=age_res){
+                            tds[2].innerHTML = '<img style="visibility: hidden;" alt="" src="https://statsxente.com/MZ1/View/Images/stop.png" width="10px" height="10px"> '+tds[2].innerHTML;
+                        }else{
+                            tds[2].innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/stop.png" width="10px" height="10px"> '+tds[2].innerHTML;
+                        }
+                    }
+
+                    if(GM_getValue("matchForm")){
+                        if(teams_[x]['team_id']===GM_getValue(window.sport+"_team_id")){
+                            let icon="cir_verde";
+                            if(formMap.get(pid)==="ko"){
+                                icon="cir_rojo";
+                            }
+                            fila.querySelector('td').innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/'+icon+'.png" width="10px" height="10px"> '+fila.querySelector('td').innerHTML;
+                        }
+                    }
+
+
+
+                }
+            }
+
         }
 
         let statsTable = Array.from(document.getElementsByClassName("hitlist statsLite marker")).filter(element => {
@@ -7453,7 +7458,7 @@ self.onmessage = function (e) {
                         const el = document.createElement('div');
                         el.className = 'coption' + (playerPosColors.get(c) === current ? ' selected' : '');
                         el.style.background = playerPosColors.get(c);
-                        let abrev=""
+                        let abrev
                         if((positionsAbrev.get(c) === "None" || positionsAbrev.get(c) === undefined || positionsAbrev.get(c) === "undefined")){
                             abrev="X"
                         }else{
@@ -7866,7 +7871,7 @@ self.onmessage = function (e) {
                 const el = document.createElement('div');
                 el.className = 'coption' + (playerPosColors.get(c) === current ? ' selected' : '');
                 el.style.background = playerPosColors.get(c);
-                let abrev=""
+                let abrev
                 if((positionsAbrev.get(c) === "None" || positionsAbrev.get(c) === undefined || positionsAbrev.get(c) === "undefined")){
                     abrev="X"
                 }else{
@@ -10991,11 +10996,11 @@ self.onmessage = function (e) {
         html += `<label class="stx-checkitem"><input type="checkbox" id="positionsColorsBG" ${chk('positionsColorsBG')}> Background</label>`;
         html += `<div class="stx-group-select" style="flex:0;">
     <select class="stx-select" id="bg_transp">
-        <option value="0.10" ${bg_transp == "0.10" ? "selected" : ""}>10%</option>
-        <option value="0.25" ${bg_transp == "0.25" ? "selected" : ""}>25%</option>
-        <option value="0.50" ${bg_transp == "0.50" ? "selected" : ""}>50%</option>
-        <option value="0.75" ${bg_transp == "0.75" ? "selected" : ""}>75%</option>
-        <option value="0.80" ${bg_transp == "0.80" ? "selected" : ""}>80%</option>
+        <option value="0.10" ${bg_transp === "0.10" ? "selected" : ""}>10%</option>
+        <option value="0.25" ${bg_transp === "0.25" ? "selected" : ""}>25%</option>
+        <option value="0.50" ${bg_transp === "0.50" ? "selected" : ""}>50%</option>
+        <option value="0.75" ${bg_transp === "0.75" ? "selected" : ""}>75%</option>
+        <option value="0.80" ${bg_transp === "0.80" ? "selected" : ""}>80%</option>
     </select>
 </div>`;
         if(window.sport==="soccer"){
