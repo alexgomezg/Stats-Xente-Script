@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.239
+// @version      0.240
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -70,6 +70,7 @@
     let skillIndex
     let bg_transp=GM_getValue("bg_transp", "0.25");
     const positionsAbrev = new Map();
+    positionsAbrev.set("None","No");
     positionsAbrev.set("Goalkeeper","Gk");
     positionsAbrev.set("Defender", "De");
     positionsAbrev.set("Midfielder","Md");
@@ -7261,9 +7262,9 @@ self.onmessage = function (e) {
     }
 //Players page
     async function playersPage() {
-        let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
+        let colors= ['None','Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
         if(window.sport==="soccer"){
-            colors = ['Goalkeeper','Defender','Midfielder','Striker','Wing'];
+            colors = ['None','Goalkeeper','Defender','Midfielder','Striker','Wing'];
         }
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const workerURL = URL.createObjectURL(blob);
@@ -7457,8 +7458,12 @@ self.onmessage = function (e) {
                     colors.forEach(c => {
                         const el = document.createElement('div');
                         el.className = 'coption' + (playerPosColors.get(c) === current ? ' selected' : '');
-                        el.style.background = playerPosColors.get(c);
-                        let abrev
+                        if(c==="None"){
+                            el.style.background="#878686"
+                        }else{
+                            el.style.background = playerPosColors.get(c);
+                        }
+                        let abrev=""
                         if((positionsAbrev.get(c) === "None" || positionsAbrev.get(c) === undefined || positionsAbrev.get(c) === "undefined")){
                             abrev="X"
                         }else{
@@ -7799,9 +7804,9 @@ self.onmessage = function (e) {
     }
 //Players links to stats
     async function playersPageStats() {
-        let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
+        let colors= ['None','Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
         if(window.sport==="soccer"){
-            colors = ['Goalkeeper','Defender','Midfielder','Striker','Wing'];
+            colors = ['None','Goalkeeper','Defender','Midfielder','Striker','Wing'];
         }
         let element = document.getElementById('thePlayers_0');
         let elementos_ = element.getElementsByClassName('p_sublinks');
@@ -7870,8 +7875,14 @@ self.onmessage = function (e) {
             colors.forEach(c => {
                 const el = document.createElement('div');
                 el.className = 'coption' + (playerPosColors.get(c) === current ? ' selected' : '');
-                el.style.background = playerPosColors.get(c);
-                let abrev
+                //el.style.background = playerPosColors.get(c);
+                if(c==="None"){
+                    el.style.background="#878686"
+                }else{
+                    el.style.background = playerPosColors.get(c);
+                }
+
+                let abrev=""
                 if((positionsAbrev.get(c) === "None" || positionsAbrev.get(c) === undefined || positionsAbrev.get(c) === "undefined")){
                     abrev="X"
                 }else{
@@ -12983,8 +12994,6 @@ cursor:pointer;
 
 
         }
-
-
         let style = document.createElement('style');
         style.textContent = css;
         document.head.appendChild(style);
