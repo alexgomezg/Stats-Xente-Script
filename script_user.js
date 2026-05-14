@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.237
+// @version      0.238
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -432,26 +432,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //BUTTONS EVENTS LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
     if ((urlParams.get('p') === 'friendlyseries')||(urlParams.get('p') === 'federations')){
@@ -520,7 +500,6 @@
                 });
             });
     }
-
     function profilePage(){
         let elems=document.getElementsByClassName("flex-wrap");
         let tables=elems[0].getElementsByTagName("table");
@@ -710,7 +689,6 @@
 
 
     }
-
     function statsPageEventListeners(){
 
         let mainDiv = document.querySelectorAll('.statsTabs');
@@ -727,7 +705,6 @@
         });
 
     }
-
     function altTableEventListener(){
         document.getElementById("filterSubmitContainer").addEventListener('click', function () {
             getDeviceFormat()
@@ -736,7 +713,6 @@
             }, 1500);
         });
     }
-
     function playersFilterEventListener(){
 
         document.getElementById("filterSubmit").addEventListener("click", function () {
@@ -758,7 +734,6 @@
         });
 
     }
-
     function tableLeaguesEventListener(){
         document.getElementById("league_tab_table").addEventListener('click', function () {
             if (document.getElementById("showMenu") === null) {
@@ -767,7 +742,6 @@
         });
 
     }
-
     function tableCupsEventListener(){
         document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
             if (document.getElementById("showMenu") === null) {
@@ -798,7 +772,6 @@
 
 
     }
-
     function viewButtonCupsEventListener(){
         document.addEventListener('click', function(event) {
             if ((event.target) &&((event.target.parentNode.id === 'view_btn')||(event.target.parentNode.parentNode.id === 'view_btn'))) {
@@ -815,7 +788,6 @@
         });
 
     }
-
     function tableFLAndClashEventListener(){
         document.getElementById("ui-id-2").parentNode.addEventListener('click', function () {
             if (document.getElementById("showMenu") === null) {
@@ -831,7 +803,6 @@
             }
         });
     }
-
     async function showTopScorersData(button_id_el){
 
         let flagShow = true
@@ -930,7 +901,6 @@
             });
         }
     }
-
     function topScorersTableEventListener() {
         if (!document.getElementById('showStats')) {
             let button_id_el="none"
@@ -947,7 +917,6 @@
         }
 
     }
-
     function cupsListEventListener(){
         document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
             if (document.getElementById("showMenu") === null) {
@@ -957,7 +926,6 @@
 
         });
     }
-
     function altTableEventListeners(table, indexes,isMobile) {
         table.querySelectorAll('.snapshot__check-player').forEach(chk => {
             chk.addEventListener('change', () => updateAltTable(table, indexes,isMobile));
@@ -972,7 +940,6 @@
             });
         }
     }
-
     function insertPlayersLinkEventListeners(){
         playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_"+window.sport, "[]")));
         document.addEventListener('click', (e) => {
@@ -1050,7 +1017,6 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
-
 //Training percentages
     async function trainingReportPercentages(){
         skillIndex=await trainingSkillsIndex()
@@ -1411,6 +1377,7 @@ self.onmessage = function (e) {
             el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
         } catch (error) {
             el.querySelectorAll('[id*="hp_loader"]').forEach(el => el.remove());
+            console.error(error);
         }
 
 
@@ -2792,37 +2759,6 @@ self.onmessage = function (e) {
             });
         });
     }
-
-
-    function getPreviousElement(elem,class_){
-        let el = elem.previousElementSibling
-        let maxIterations = 10; // límite
-        let i = 0;
-        while (el && i < maxIterations && !el.matches(class_)) {
-            el = el.previousElementSibling;
-            i++;
-        }
-        return el
-    }
-
-    function getPreviousElementByTag(elem, tag, class_) {
-        let el = elem.previousElementSibling;
-        let maxIterations = 10;
-        let i = 0;
-
-        while (
-            el &&
-            i < maxIterations &&
-            !el.querySelector(`${tag}.${class_}`)
-            ) {
-            el = el.previousElementSibling;
-            i++;
-        }
-
-        return el;
-    }
-
-
 //Training Report
     function trainingReport(){
         if(!document.getElementById("trainingDaysId")){
@@ -4690,8 +4626,6 @@ self.onmessage = function (e) {
 
         }
     }
-
-
 //Leagues page
     async function leagues() {
         leaguesHistory()
@@ -4893,6 +4827,7 @@ self.onmessage = function (e) {
         contenidoNuevo +='<th  style="text-align:center; margin: 0 auto; padding:4px;">Graph</th>';
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>History</th>";
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>Top Players</th></tr></thead>";
+
         contenidoNuevo += "<tr>";
         contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + "; width:" + widthTable + ";'><img alt='' id='detailDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/detail.png width=25 height=25/></td>";
         contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width:" + widthTable + ";  width:" + widthTable + ";'><img alt='' id='graphDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/report.png width=31 height=25/></td>";
@@ -5366,7 +5301,7 @@ self.onmessage = function (e) {
                         if (jsonResponse[id]["elo21"] > 0) { flagSub21 = 1 }
                         if (jsonResponse[id]["elo18"] > 0) { flagSub18 = 1 }
 
-                        let buttonDisplay = "display:block;";
+                        /*let buttonDisplay = "display:block;";
                         nuevaColumna = document.createElement("td");
                         nuevaColumna.style.margin = '0 auto';
                         nuevaColumna.style.textAlign = 'center';
@@ -5394,7 +5329,72 @@ self.onmessage = function (e) {
                         cat = cats[urlParams.get('type')]
                         nuevaColumna.innerHTML = iner
                         filasDatos[i].appendChild(nuevaColumna);
+                        nuevaColumna = document.createElement("td");*/
+
+                        let buttonDisplay = "display:block;";
                         nuevaColumna = document.createElement("td");
+                        nuevaColumna.style.margin = '0 auto';
+                        nuevaColumna.style.textAlign = 'center';
+
+                        let iner=""
+                        let spanButtonDisplay="flex";
+                        if(GM_getValue("collapseLeagueButtons")){
+
+                            iner+= `<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png'
+                                 width='${GM_getValue("league_image_size")}px'
+                                  height='${GM_getValue("league_image_size")}px'
+                                  id='but_tog${id}'
+                                  style='cursor:pointer;'/>`;
+                            spanButtonDisplay="none";
+                        }
+
+                        iner += `<span id='extraButs${id}' style='gap: 2px; display:${spanButtonDisplay};'>`;
+
+                        iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png'
+  width='${GM_getValue("league_image_size")}px'
+  height='${GM_getValue("league_image_size")}px'
+  id='but${id}'
+  style='cursor:pointer;'/>`;
+
+                        if (GM_getValue("league_graph_button") === "checked") {
+                            iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/graph.png'
+      width='${GM_getValue("league_image_size")}px'
+      height='${GM_getValue("league_image_size")}px'
+      id='but1${id}' style='cursor:pointer;'/>`;
+                        }
+
+                        if (GM_getValue("league_report_button") === "checked") {
+                            iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/report.png'
+      width='${GM_getValue("league_image_size")}px'
+      height='${GM_getValue("league_image_size")}px'
+      id='but2${id}' style='cursor:pointer;'/>`;
+                        }
+
+                        if (GM_getValue("league_calendar_button") === "checked") {
+                            iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/calendar.png'
+      width='${GM_getValue("league_image_size")}px'
+      height='${GM_getValue("league_image_size")}px'
+      id='but3${id}' style='cursor:pointer;'/>`;
+                        }
+
+                        iner += `</span>`;
+
+                        cat = cats[urlParams.get('type')];
+                        nuevaColumna.innerHTML = iner;
+
+
+                        filasDatos[i].appendChild(nuevaColumna);
+                        nuevaColumna = document.createElement("td");
+                        if(GM_getValue("collapseLeagueButtons")){
+                            document.querySelector(`#but_tog${id}`).addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const extra = document.querySelector(`#extraButs${id}`);
+                                const isOpen = extra.style.display !== 'none';
+                                document.querySelectorAll('[id^="extraButs"]').forEach(el => el.style.display = 'none');
+                                extra.style.display = isOpen ? 'none' : 'flex';
+                            });
+                        }
+
 
 
                         (function (currentId, currentLSport, lang) {
@@ -6564,6 +6564,8 @@ self.onmessage = function (e) {
     async function match() {
         let tablas = document.querySelectorAll('table.hitlist.statsLite.marker');
         let tablasJugadores = document.querySelectorAll('table.hitlist.statsLite.marker.tablesorter');
+        let homeStats=[]
+        let awayStats=[]
         if(tablasJugadores.length>0){
             let clase="loader-"+window.sport
             let txtToInsert=
@@ -6592,8 +6594,10 @@ self.onmessage = function (e) {
 
                     if (match) {
                         if(contPlayers<limitPlayers){
-                            pids.add(match[1]);
+                            pids.add({player_id:match[1],initial:true});
                             contPlayers++
+                        }else{
+                            pids.add({player_id:match[1],initial:false});
                         }
                     }
 
@@ -6613,8 +6617,10 @@ self.onmessage = function (e) {
 
                     if (match) {
                         if(contPlayers<limitPlayers){
-                            pids.add(match[1]);
+                            pids.add({player_id:match[1],initial:true});
                             contPlayers++
+                        }else{
+                            pids.add({player_id:match[1],initial:false});
                         }
                     }
                 }
@@ -6639,11 +6645,10 @@ self.onmessage = function (e) {
                     }
                 }
             });
-            let [homeStats, awayStats] = await Promise.all([
+            [homeStats, awayStats] = await Promise.all([
                 getTeamMatchStats(teamIds[0], homePids),
                 getTeamMatchStats(teamIds[1], awayPids)
             ]);
-
 
             let index=0;
             if(window.sport==="hockey"){
@@ -6665,18 +6670,6 @@ self.onmessage = function (e) {
             let total = nat + noNat;
             let natPercent = total ? (nat / total) * 100 : 0;
             let noNatPercent = total ? (noNat / total) * 100 : 0;
-
-
-
-            /*let te = `
-               <div style="border-radius: 5px; width:4em; height:10px; display:flex; border:1px solid #ccc;">
-                 <div style="width:${natPercent}%; background:#4caf50;"></div>
-                 <div style="width:${noNatPercent}%; background:#f44336;"></div>
-               </div>
-               <div style="font-size:11px; margin-top:2px;">
-                 ${nat} / ${noNat}
-               </div>
-             `;*/
 
 
             let te = `
@@ -6719,18 +6712,6 @@ self.onmessage = function (e) {
             natPercent = total ? (nat / total) * 100 : 0;
             noNatPercent = total ? (noNat / total) * 100 : 0;
 
-
-
-            /* let te1 = `
-                <div style="border-radius: 5px; width:4em; height:10px; display:flex; border:1px solid #ccc;">
-                  <div style="width:${natPercent}%; background:#4caf50;"></div>
-                  <div style="width:${noNatPercent}%; background:#f44336;"></div>
-                </div>
-                <div style="font-size:11px; margin-top:2px;">
-                  ${nat} / ${noNat}
-                </div>
-              `;*/
-
             let te1 = `
   <div style="
     position: relative;
@@ -6770,34 +6751,6 @@ self.onmessage = function (e) {
 
         }
 
-        // añadir la nueva fila al final
-
-
-        /*
-        if (tablaOriginal) {
-            let tablaClon = tablaOriginal.cloneNode(true);
-            tablaClon.id="stx_stats_match"
-            tablaOriginal.parentNode.insertBefore(tablaClon, tablaOriginal);
-
-             const filas = tablaClon.getElementsByTagName('tr');
-
-            if (filas.length > 0) {
-                const primerTr = filas[0];
-
-                const celdas = primerTr.getElementsByTagName('td');
-
-                if (celdas.length >= 3) {
-                    celdas[0].textContent = 'a';
-                    celdas[1].textContent = 'b';
-                    celdas[2].textContent = 'c';
-                }
-            }
-
-
-        }*/
-
-
-
 
         let team_div = document.getElementsByClassName("flex-grow-0 textCenter team-table block")
         if (team_div.length===0){
@@ -6815,6 +6768,81 @@ self.onmessage = function (e) {
         cats_elo["national_team"] = "SENIOR";
         cats_elo["national_team_U21"] = "U21";
 
+        let linkIds=""
+        let contIds=0
+        for (let x = 0; x < 2; x++) {
+            let as = team_div[x].getElementsByTagName("a")
+            let urlObj = new URL("https://www.managerzone.com/" + as[0].getAttribute('href'));
+            let params = new URLSearchParams(urlObj.search);
+            let tidValue = params.get('tid');
+            teams_[x] = { "team_name": as[0].innerHTML, "team_id": tidValue, "inserted": "" }
+            linkIds += "&idEquipo" + contIds + "=" + tidValue
+            contIds++
+        }
+
+        let elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
+        let agesData = new Map([...homeStats["playersData"], ...awayStats["playersData"]]);
+        let a = document.querySelector('.flex-grow-1.block a');
+        let urlForfeit="https://statsxente.com/MZ1/Functions/tamper_matches_forfeit.php?sport="+window.sport+"&match_id="+match_id
+        if(a!==null){
+            let url = new URL(a.href);
+            let cid = url.searchParams.get('cid');
+            if(cid!==null){urlForfeit+="&cid="+cid}
+            let fsid = url.searchParams.get('fsid');
+            if(fsid!==null){urlForfeit+="&cid="+fsid}
+        }
+        let age_res=50
+        let formMap
+        if(GM_getValue("matchForfeit")){
+            age_res=await getMatchAgeRestriction(urlForfeit);
+        }
+
+        if(GM_getValue("matchForm")){
+            let flagForm=false
+            for (let x = 0; x < 2; x++) {
+                if(teams_[x]['team_id']===GM_getValue(window.sport+"_team_id")){
+                    flagForm=true
+                }
+            }
+
+            if(flagForm){
+                formMap=await getPlayersForm()
+            }
+        }
+        //Form data
+        for (let x = 0; x < 2; x++) {
+            let tabla = elems[x]
+            let filas = tabla.getElementsByTagName("tr");
+            for (let i = 2; i < filas.length - 1; i++) {
+                let fila = filas[i];
+                let tds=fila.querySelectorAll('td')
+                const a = tds[2].querySelector('a');
+                const url = new URL(a.href);
+                const pid = url.searchParams.get('pid');
+
+                if(GM_getValue("matchForfeit")){
+                    if(agesData.get(parseInt(pid))<=age_res){
+                        tds[2].innerHTML = '<img style="visibility: hidden;" alt="" src="https://statsxente.com/MZ1/View/Images/stop.png" width="10px" height="10px"> '+tds[2].innerHTML;
+                    }else{
+                        tds[2].innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/stop.png" width="10px" height="10px"> '+tds[2].innerHTML;
+                    }
+                }
+
+                if(GM_getValue("matchForm")){
+                    if(teams_[x]['team_id']===GM_getValue(window.sport+"_team_id")){
+                        let icon="cir_verde";
+                        if(formMap.get(pid)=="ko"){
+                            icon="cir_rojo";
+                        }
+                        fila.querySelector('td').innerHTML = '<img alt="" src="https://statsxente.com/MZ1/View/Images/'+icon+'.png" width="10px" height="10px"> '+fila.querySelector('td').innerHTML;
+                    }
+                }
+
+
+
+            }
+        }
+
         let statsTable = Array.from(document.getElementsByClassName("hitlist statsLite marker")).filter(element => {
             const classes = Array.from(element.classList);
             return classes.length === 3 && classes.includes("hitlist") && classes.includes("statsLite") && classes.includes("marker");
@@ -6831,6 +6859,10 @@ self.onmessage = function (e) {
                 },
                 onload: function (response) {
                     let elo_data= JSON.parse(response.responseText);
+
+
+                    elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
+
                     let newT = '</br><div style="text-align: center;"><div style="width: 4.5em; text" class="matchIcon  large shadow"><i style="color: black;"><img alt="" width="16px" height="12px" src="https://statsxente.com/MZ1/View/Images/diff_elo.png"> '
                     newT+=elo_data['elo_variation'].toFixed(2)+'</i></div></br></br>'
                     newT+='<select id="catSelect" style="background-color: '+GM_getValue("bg_native")+'; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: '+GM_getValue("bg_native")+'; color: '+GM_getValue("color_native")
@@ -6983,17 +7015,7 @@ self.onmessage = function (e) {
         }
 
 
-        let linkIds=""
-        let contIds=0
-        for (let x = 0; x < 2; x++) {
-            let as = team_div[x].getElementsByTagName("a")
-            let urlObj = new URL("https://www.managerzone.com/" + as[0].getAttribute('href'));
-            let params = new URLSearchParams(urlObj.search);
-            let tidValue = params.get('tid');
-            teams_[x] = { "team_name": as[0].innerHTML, "team_id": tidValue, "inserted": "" }
-            linkIds += "&idEquipo" + contIds + "=" + tidValue
-            contIds++
-        }
+
 
 
         GM_xmlhttpRequest({
@@ -7102,7 +7124,7 @@ self.onmessage = function (e) {
 
 
 
-        let elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
+
         if(elems.length) {
             for (let x = 0; x < 2; x++) {
                 let linkIds = ""
@@ -7130,8 +7152,16 @@ self.onmessage = function (e) {
             }
 
 
+
+
+
             elems = document.getElementsByClassName("hitlist " + window.sport + " statsLite marker tablesorter");
             for (let x = 0; x < 2; x++) {
+
+
+
+
+
                 if (teams_[x]['inserted']['total'] > 0) {
                     let tabla = elems[x]
                     let firstTrThead = tabla.querySelector('thead td');
@@ -7165,6 +7195,8 @@ self.onmessage = function (e) {
                         let urlObj = new URL("https://www.managerzone.com/" + as_[0].getAttribute("href"));
                         let params = new URLSearchParams(urlObj.search);
                         let pid = params.get('pid');
+
+
                         if (teams_[x]['inserted'][pid] === "yes") {
                             dato = document.createElement("td");
 //aa
@@ -7222,142 +7254,6 @@ self.onmessage = function (e) {
 
 
     }
-
-
-
-
-    function getPlayerDataAPI(id) {
-        return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: "https://statsxente.com/MZ1/API/player.php?sport=" + window.sport + "&format=json&player_id=" + id,
-                headers: {
-                    "Content-Type": "application/xml"
-                },
-                onload: function (r) {
-                    try {
-                        let data = JSON.parse(r.responseText);
-                        resolve(data);
-                    } catch (e) {
-                        reject(e);
-                    }
-                },
-                onerror: reject
-            });
-        });
-    }
-
-    function getTeamMatchStats(team_id,pids) {
-        return new Promise((resolve, reject) => {
-            let cont = 0;
-            let value = 0, salary = 0, age = 0;
-            let nat = 0;
-            let noNat = 0;
-            let found=[]
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+team_id,
-                headers: {
-                    "Content-Type": "application/xml"
-                },
-                onload: async function (response) {
-                    try {
-                        let parser = new DOMParser();
-                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
-
-                        let teamData = xmlDoc.getElementsByTagName("TeamPlayers");
-                        let teamCurrency = teamData[0].getAttribute("teamCurrency");
-                        let teamCountry = teamData[0].getAttribute("countryShortname");
-                        let players = xmlDoc.getElementsByTagName("Player");
-
-                        for (let i = 0; i < players.length; i++) {
-
-                            if (pids.includes(players[i].getAttribute("id"))) {
-
-                                found.push(players[i].getAttribute("id"))
-
-                                value += convertCurrency(
-                                    players[i].getAttribute("value"),
-                                    GM_getValue("currency"),
-                                    teamCurrency
-                                );
-
-                                salary += convertCurrency(
-                                    players[i].getAttribute("salary"),
-                                    GM_getValue("currency"),
-                                    teamCurrency
-                                );
-
-                                age += parseInt(players[i].getAttribute("age"));
-
-                                if (teamCountry === players[i].getAttribute("countryShortname")) {
-                                    nat++;
-                                } else {
-                                    noNat++;
-                                }
-
-                                cont++;
-                            }
-                        }
-
-                        let notFound = pids.filter(x => !found.includes(x));
-                        let promises = notFound.map(id => getPlayerDataAPI(id));
-                        let results = await Promise.all(promises);
-
-                        for (let i = 0; i < results.length; i++) {
-
-                            value += convertCurrency(
-                                results[i]["valor"],
-                                GM_getValue("currency"),
-                                "EUR"
-                            );
-
-                            salary += convertCurrency(
-                                results[i]["salario"],
-                                GM_getValue("currency"),
-                                "EUR"
-                            );
-                            age += parseInt(results[i]["edad"]);
-
-                            if(teamCountry===""){ //National Teams case
-                                nat++;
-                            }else{
-                                if (teamCountry === results[i]["codPais"]) {
-                                    nat++;
-                                } else {
-                                    noNat++;
-                                }
-                            }
-                            cont++
-                        }
-
-                        const toRet = {
-                            value,
-                            salary,
-                            age: cont ? age / cont : 0,
-                            nat,
-                            noNat
-                        };
-
-                        resolve(toRet);
-
-                    } catch (err) {
-                        reject(err);
-                    }
-                },
-
-                onerror: function (err) {
-                    reject(err);
-                }
-            });
-
-        });
-    }
-
-
-
-
-
 //Players page
     async function playersPage() {
         let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
@@ -7612,7 +7508,6 @@ self.onmessage = function (e) {
 
 
             }
-
         }
 
         if(sport==="soccer"){
@@ -7822,7 +7717,15 @@ self.onmessage = function (e) {
             contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>`;
             contenidoNuevo += "</div>";
 
-            contenidoNuevo+='<input id="tag-input-box" type="text" placeholder="Write a tag an press Enter…" /><div id="tag-container"></div>'
+            contenidoNuevo += `
+  <div style="width:95%; margin:0 auto;">
+  <div style="display:flex; align-items:center; gap:6px;">
+    <input id="tag-input-box" type="text" placeholder="Write a tag and press Enter…" />
+    <button id="clear-tags">✕</button>
+  </div>
+    <div style="display:none;" id="tag-container"></div>
+  </div>
+`;
 
 
         }
@@ -7833,6 +7736,12 @@ self.onmessage = function (e) {
 
 
 
+        document.getElementById('clear-tags').addEventListener('click', () => {
+            document.getElementById('tag-container').style.display="none"
+            document.getElementById('tag-container').innerHTML = '';
+            filterPlayers();
+        });
+
         document.getElementById('tag-input-box').addEventListener('keydown', function(e) {
             if (e.key !== 'Enter') return;
             e.preventDefault();
@@ -7840,6 +7749,7 @@ self.onmessage = function (e) {
             if (!val) return;
             addTag(val);
             document.getElementById('tag-input-box').value = '';
+            document.getElementById('tag-container').style.display="flex"
         });
 
         function addTag(text) {
@@ -7882,42 +7792,6 @@ self.onmessage = function (e) {
 
 
     }
-
-
-    function applyFilters() {
-        document.querySelectorAll('.playerContainer').forEach(player => {
-            const byPos = player._showByPos !== false;
-            const byTag = player._showByTag !== false;
-            player.style.display = (byPos && byTag) ? "block" : "none";
-        });
-    }
-    function filterPosition(triggeredElement) {
-        const container = document.getElementById('positionsFilter');
-
-        if (triggeredElement && triggeredElement.id === "posAll") {
-            container.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
-        } else if (triggeredElement) {
-            document.getElementById("posAll").checked = false;
-        }
-
-        const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
-        const posAllChecked = document.getElementById("posAll")?.checked;
-        const posNoneChecked = document.getElementById("posNone")?.checked;
-
-        document.querySelectorAll('.playerContainer').forEach(player => {
-            const pos = player.querySelector('.player_name')?.dataset.pos;
-            const showByPos = posAllChecked
-                || selected.includes(pos)
-                || (posNoneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
-
-            player._showByPos = showByPos;
-        });
-
-        applyFilters();
-    }
-
-
-
 //Players links to stats
     async function playersPageStats() {
         let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
@@ -10326,12 +10200,200 @@ self.onmessage = function (e) {
 
 
     }
+    function getPlayerDataAPI(id) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://statsxente.com/MZ1/API/player.php?sport=" + window.sport + "&format=json&player_id=" + id,
+                headers: {
+                    "Content-Type": "application/xml"
+                },
+                onload: function (r) {
+                    try {
+                        let data = JSON.parse(r.responseText);
+                        resolve(data);
+                    } catch (e) {
+                        reject(e);
+                    }
+                },
+                onerror: function (er) {
+                    reject(er);
+                }
+            });
+        });
+    }
+    function getTeamMatchStats(team_id,_pids) {
+        return new Promise((resolve, reject) => {
+            let cont = 0;
+            let value = 0, salary = 0, age = 0;
+            let nat = 0;
+            let noNat = 0;
+            let found=[]
+            let playersData=new Map();
+            let pidsMap = new Map(_pids.map(player => [player.player_id,player.initial]));
+            let pids = _pids.map(player => player.player_id);
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+team_id,
+                headers: {
+                    "Content-Type": "application/xml"
+                },
+                onload: async function (response) {
+                    try {
+                        let parser = new DOMParser();
+                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+
+                        let teamData = xmlDoc.getElementsByTagName("TeamPlayers");
+                        let teamCurrency = teamData[0].getAttribute("teamCurrency");
+                        let teamCountry = teamData[0].getAttribute("countryShortname");
+                        let players = xmlDoc.getElementsByTagName("Player");
+
+                        for (let i = 0; i < players.length; i++) {
 
 
+                            if (pids.includes(players[i].getAttribute("id"))) {
+                                found.push(players[i].getAttribute("id"))
+                                if(pidsMap.get(players[i].getAttribute("id"))===true){
+                                    value += convertCurrency(
+                                        players[i].getAttribute("value"),
+                                        GM_getValue("currency"),
+                                        teamCurrency
+                                    );
+                                    salary += convertCurrency(
+                                        players[i].getAttribute("salary"),
+                                        GM_getValue("currency"),
+                                        teamCurrency
+                                    );
+
+                                    age += parseInt(players[i].getAttribute("age"));
+
+                                    if (teamCountry === players[i].getAttribute("countryShortname")) {
+                                        nat++;
+                                    } else {
+                                        noNat++;
+                                    }
+
+                                }
+
+                                playersData.set(parseInt(players[i].getAttribute("id")),parseInt(players[i].getAttribute("age")))
+                                cont++;
+                            }
+                        }
+
+                        let notFound = pids.filter(x => !found.includes(x));
+                        let promises = notFound.map(id => getPlayerDataAPI(id));
+                        let results = await Promise.all(promises);
+
+                        for (let i = 0; i < results.length; i++) {
 
 
+                            if(pidsMap.get(results[i]["idJugador"])===true){
+
+                                value += convertCurrency(
+                                    results[i]["valor"],
+                                    GM_getValue("currency"),
+                                    "EUR"
+                                );
+
+                                salary += convertCurrency(
+                                    results[i]["salario"],
+                                    GM_getValue("currency"),
+                                    "EUR"
+                                );
+                                age += parseInt(results[i]["edad"]);
+
+                                if(teamCountry===""){ //National Teams case
+                                    nat++;
+                                }else{
+                                    if (teamCountry === results[i]["codPais"]) {
+                                        nat++;
+                                    } else {
+                                        noNat++;
+                                    }
+                                }
+                            }
+                            playersData.set(parseInt(results[i]["idJugador"]),parseInt(results[i]["edad"]))
+                            cont++
+                        }
+
+                        const toRet = {
+                            value,
+                            salary,
+                            age: cont ? age / cont : 0,
+                            nat,
+                            noNat,
+                            playersData
+                        };
+
+                        resolve(toRet);
+
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+
+                onerror: function (err) {
+                    reject(err);
+                }
+            });
+
+        });
+    }
+    function getPlayersForm(){
+        let formMap=new Map();
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://www.managerzone.com/?p=players",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onerror: function (err) {
+                    reject(err);
+                },
+                onload: function (response) {
+
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(response.responseText, "text/html");
+
+                    let elementos1 = doc.getElementsByClassName('playerContainer');
+                    for (let i = 0; i < elementos1.length; i++) {
+                        let id = elementos1[i].querySelector('.player_id_span').textContent;
+                        let form="ok"
+                        let formSpan = elementos1[i].querySelector('.p_sublinks .player_icon_placeholder');
+                        if(formSpan.innerHTML.includes("form-satisfied-icon")){
+                            form="ok"
+                        }else{
+                            form="ko"
+                        }
+                        formMap.set(id,form)
+                    }
+                    resolve(formMap)
+                }
+            });
+
+        });
 
 
+    }
+    function getMatchAgeRestriction(url) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    resolve(jsonResponse["age"])
+                },
+                onerror: function () {
+                    reject("none");
+                }
+            });
+        });
+    }
 
 
 //UTILS FUNCTIONS
@@ -10759,7 +10821,7 @@ self.onmessage = function (e) {
     `;
         document.head.appendChild(style);
         const defaults = {
-            leagueFlag: true, matchFlag: true, federationFlag: true,
+            leagueFlag: true, matchFlag: true, matchForfeit: false,matchForm:false, federationFlag: true,
             playersFlag: true, countryRankFlag: true, eloNextMatchesFlag: true,
             eloPlayedMatchesFlag: true, teamPageFlag: true, trainingReportFlag: true,
             eloHiddenPlayedMatchesFlag: true, flFlag: true, cupFlag: true,
@@ -10771,7 +10833,7 @@ self.onmessage = function (e) {
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
             transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,
             onlySinglePages:true,eloChangeCalendar:true,trainingPercentages:true,partialSkills:true,onlySinglePagesSkills:true,
-            positionsColors:true,positionsColorsBG:false
+            positionsColors:true,positionsColorsBG:false,collapseLeagueButtons:false
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -10819,7 +10881,8 @@ self.onmessage = function (e) {
 
             // Matches
             { key: 'matchFlag',                  id: 'matchSelect',                   label: 'Match' },
-
+            { key: 'matchForfeit',               id: 'matchForfeit',                  label: 'Match Forfeit' },
+            { key: 'matchForm',                  id: 'matchForm',                     label: 'Match Form' },
 
             // ELO related
             { key: 'eloPlayedMatchesFlag',       id: 'eloPlayedSelect',               label: 'ELO changes' },
@@ -10889,6 +10952,8 @@ self.onmessage = function (e) {
         html += `<label class="stx-checkitem"><input type="checkbox" id="league_report_check" ${chk('league_report_button')}> Graph</label>`;
         html += `<label class="stx-checkitem"><input type="checkbox" id="league_calendar_check" ${chk('league_calendar_button')}> ELO matches</label>`;
         html += `<label class="stx-checkitem"><input type="checkbox" id="show_league_checkbox" ${chk('show_league_selects')}> Show selects</label>`;
+        html += `<label class="stx-checkitem"><input type="checkbox" id="collapseLeagueButtons" ${chk('collapseLeagueButtons')}> Collapse buttons</label>`;
+
         html += '</div>';
         html += `<div class="stx-slider-row"><label>Icons size</label><input type="range" min="10" max="30" step="1" value="${GM_getValue('league_image_size')}" id="slider_input"><span class="stx-slider-val" id="sizeImageLeagueSpan">${GM_getValue('league_image_size')}</span></div>`;
         html += '</div>';
@@ -11101,7 +11166,9 @@ self.onmessage = function (e) {
             GM_setValue('onlySinglePagesSkills',  document.getElementById('onlySinglePagesSkills').checked);
             GM_setValue('positionsColorsBG',      document.getElementById('positionsColorsBG').checked);
             GM_setValue('showSkillsResume',       document.getElementById('showSkillsResume').checked);
+            GM_setValue('collapseLeagueButtons',  document.getElementById('collapseLeagueButtons').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
+
             window.location.reload();
         });
 
@@ -11963,6 +12030,63 @@ self.onmessage = function (e) {
             red: { ...base_obj }
         };
     }
+    function applyFilters() {
+        document.querySelectorAll('.playerContainer').forEach(player => {
+            const byPos = player._showByPos !== false;
+            const byTag = player._showByTag !== false;
+            player.style.display = (byPos && byTag) ? "block" : "none";
+        });
+    }
+    function getPreviousElement(elem,class_){
+        let el = elem.previousElementSibling
+        let maxIterations = 10; // límite
+        let i = 0;
+        while (el && i < maxIterations && !el.matches(class_)) {
+            el = el.previousElementSibling;
+            i++;
+        }
+        return el
+    }
+    function getPreviousElementByTag(elem, tag, class_) {
+        let el = elem.previousElementSibling;
+        let maxIterations = 10;
+        let i = 0;
+
+        while (
+            el &&
+            i < maxIterations &&
+            !el.querySelector(`${tag}.${class_}`)
+            ) {
+            el = el.previousElementSibling;
+            i++;
+        }
+
+        return el;
+    }
+    function filterPosition(triggeredElement) {
+        const container = document.getElementById('positionsFilter');
+
+        if (triggeredElement && triggeredElement.id === "posAll") {
+            container.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
+        } else if (triggeredElement) {
+            document.getElementById("posAll").checked = false;
+        }
+
+        const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
+        const posAllChecked = document.getElementById("posAll")?.checked;
+        const posNoneChecked = document.getElementById("posNone")?.checked;
+
+        document.querySelectorAll('.playerContainer').forEach(player => {
+            const pos = player.querySelector('.player_name')?.dataset.pos;
+            const showByPos = posAllChecked
+                || selected.includes(pos)
+                || (posNoneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
+
+            player._showByPos = showByPos;
+        });
+
+        applyFilters();
+    }
     function setCSSStyles(){
         let link = document.createElement('link');
         link.href = 'https://fonts.googleapis.com/css?family=Roboto&display=swap';
@@ -12603,8 +12727,17 @@ cursor:pointer;
     }
 }
 
+#clear-tags{
+    background: #ff9d9d;
+    color: black;
+    border: 1px solid black;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
 #tag-input-box {
-  width: 100%;
+  width: 95%;
   padding: 8px 12px;
   font-size: 15px;
   border: 0.5px solid #ccc;
@@ -12623,6 +12756,8 @@ cursor:pointer;
   gap: 8px;
   margin-top: 10px;
   min-height: 36px;
+  margin-left: 5px;
+  padding-bottom: 5px;
 }
 
 .tag {
