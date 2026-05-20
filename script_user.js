@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.241
+// @version      0.242
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -10608,6 +10608,7 @@ self.onmessage = function (e) {
     function getTeamMatchStats(team_id,_pids) {
         return new Promise((resolve, reject) => {
             let cont = 0;
+            let contXI = 0;
             let value = 0, salary = 0, age = 0;
             let nat = 0;
             let noNat = 0;
@@ -10655,7 +10656,7 @@ self.onmessage = function (e) {
                                     } else {
                                         noNat++;
                                     }
-
+                                    contXI++;
                                 }
 
                                 playersData.set(parseInt(players[i].getAttribute("id")),parseInt(players[i].getAttribute("age")))
@@ -10694,6 +10695,7 @@ self.onmessage = function (e) {
                                         noNat++;
                                     }
                                 }
+                                contXI++;
                             }
                             playersData.set(parseInt(results[i]["idJugador"]),parseInt(results[i]["edad"]))
                             cont++
@@ -10702,7 +10704,7 @@ self.onmessage = function (e) {
                         const toRet = {
                             value,
                             salary,
-                            age: cont ? age / cont : 0,
+                            age: contXI ? age / contXI : 0,
                             nat,
                             noNat,
                             playersData
