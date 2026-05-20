@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.240
+// @version      0.241
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1275,9 +1275,57 @@ self.onmessage = function (e) {
                 newSpan.className = "player_icon_placeholder training_graphs1 "+window.sport;
                 span11.after(newSpan);
 
+                if(GM_getValue("transfersPlayerCompare")){
+                    let newSpan1 = document.createElement('span');
+                    newSpan1.innerHTML = `<span id="but_stx_compare_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-scale-balanced compare-icon"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>
+`
+                    newSpan1.className = "player_icon_placeholder training_graphs1 "+window.sport;
+                    span11.after(newSpan1);
+                    if (divs_dark[1].querySelector("#but_stx_compare_" + player_id)) {
+                        (function (currentId,el) {
+                            el.querySelector("#but_stx_compare_" + currentId).addEventListener('click', async function (e) {
+                                if(!document.getElementById("comparing_players")){return;}
+                                let skillsTable = el.querySelector('table.player_skills.player_skills_transfer');
+                                let clase="loader-"+window.sport
+                                let txtToInsert=
+                                    "<div style='text-align:center;'>" +
+                                    "<div id='hp_loader_comparing"+currentId+"' style='width:50%; margin:0 auto;'>" +
+                                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                                    "</div>" +
+                                    "</div>";
+
+                                skillsTable.insertAdjacentHTML('afterend', txtToInsert);
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if(document.getElementById("player_comparing_"+currentId)){document.getElementById("player_comparing_"+currentId).remove()}
+                                let actual_id=document.getElementById("comparing_players").value
+                                let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
+                                let tableData
+                                let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+                                tableData=skillsTablePlayer.outerHTML
+
+                                let playerName = test.querySelector('span.player_name');
+                                let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                                skillsTable.insertAdjacentHTML('afterend', txt);
+                                document.getElementById("hp_loader_comparing"+currentId).remove()
+
+                            });
+                        })(player_id,el);
+
+                    }
+
+                }
+
+
+
 
                 if (divs_dark[1].querySelector("#but_stx_" + player_id)) {
-
                     (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                         el.querySelector("#but_stx_" + currentId).addEventListener('click', function (e) {
                             e.preventDefault();
@@ -3818,7 +3866,6 @@ self.onmessage = function (e) {
         let awayName=encodeURIComponent(names[1].innerText)
         let elems = document.getElementsByClassName("top-pane__deadline");
         let tabla = elems[0]
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_federations_clash_data.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport +"&home="+local_id[1]+"&away="+away_id[1],
@@ -3841,7 +3888,12 @@ self.onmessage = function (e) {
                 contenidoNuevo+="<td style='border-bottom-right-radius: 5px; background-color:#ffffe5; padding: 5px;'><img alt='' id=clashMatcher src='https://www.statsxente.com/MZ1/View/Images/clash_icon.png' style='width:45px; height:45px; cursor:pointer;'/></center></td>"
                 contenidoNuevo+="</tr></table></center></br>";
                 contenidoNuevo+="<table style='width:65%;margin: 0 auto; table-layout:unset;' class='hitlist challenges-list'><thead><tr>"
-                contenidoNuevo+="<th colspan='2'>Rank</th><th>Value</th><th>LM Value</th><th>ELO Score</th></tr></thead>"
+                let valueKey="Value TOP21"
+                if(window.sport==="soccer"){
+                    valueKey="Value TOP11"
+                }
+
+                contenidoNuevo+="<th colspan='2'>Rank</th><th>Value</th><th>"+valueKey+"</th><th>LM Value</th><th>ELO Score</th></tr></thead>"
                 contenidoNuevo+="<tbody>"
 
                 contenidoNuevo+="<tr class='odd'>"
@@ -3850,6 +3902,8 @@ self.onmessage = function (e) {
                 contenidoNuevo+="<td style='text-align:left;'>#"+jsonResponse[local_id[1]]["table_index"]+"</td>"
 
                 let valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[local_id[1]]["value"]))
+                contenidoNuevo+="<td style='margin: 0 auto;'>"+valor+"</td>"
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[local_id[1]]["valueTOP"]))
                 contenidoNuevo+="<td style='margin: 0 auto;'>"+valor+"</td>"
                 valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[local_id[1]]["valueLM"]))
                 contenidoNuevo+="<td style='margin: 0 auto;'>"+valor+"</td>"
@@ -3864,6 +3918,8 @@ self.onmessage = function (e) {
 
 
                 valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[away_id[1]]["value"]))
+                contenidoNuevo+="<td style='margin: 0 auto;'>"+valor+"</td>"
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[away_id[1]]["valueTOP"]))
                 contenidoNuevo+="<td style='margin: 0 auto;'>"+valor+"</td>"
                 valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[away_id[1]]["valueLM"]))
                 contenidoNuevo+="<td style='margin: 0 auto;'>"+valor+"</td>"
@@ -4704,7 +4760,7 @@ self.onmessage = function (e) {
         values.set('valorUPSUB23', 'U23 LM Value');
         values.set('valorUPSUB21', 'U21 LM Value');
         values.set('valorUPSUB18', 'U18 LM Value');
-        values.set('edad', 'Age');
+        values.set('avgLMValue', 'Average LM Value');
         if (window.sport === "soccer") {
             values.set('valor11', 'TOP 11');
             values.set('valor11_23', 'U23 TOP 11');
@@ -4804,7 +4860,7 @@ self.onmessage = function (e) {
             values.set('edadSUB21', 'U21 TOP 21 Age');
             values.set('edadSUB18', 'U18 TOP 21 Age');
         }
-
+        values.set('edad', 'Age');
         values.set('edadUPSenior', 'LM Age');
         values.set('edadUPSUB23', 'U23 LM Age');
         values.set('edadUPSUB21', 'U21 LM Age');
@@ -4910,7 +4966,7 @@ self.onmessage = function (e) {
             }
 
 
-            if (clave === "edadUPSenior") {
+            if (clave === "edad") {
                 contenidoNuevo += "</tr><tr>";
             }
 
@@ -4933,7 +4989,7 @@ self.onmessage = function (e) {
         cats_elo["u18_world"] = "U18";
 
         //RELLENO EN BLANCO TABLA
-        contenidoNuevo += "<td></td>";
+        //contenidoNuevo += "<td></td>";
         //contenidoNuevo += "<td></td>";
 
 
@@ -5542,7 +5598,6 @@ self.onmessage = function (e) {
             contIds++
         }
 
-
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_federations.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
@@ -5687,7 +5742,7 @@ self.onmessage = function (e) {
         values.set('valorUPSUB23', 'U23 LM Value');
         values.set('valorUPSUB21', 'U21 LM Value');
         values.set('valorUPSUB18', 'U18 LM Value');
-        values.set('edad', 'Age');
+        values.set('avgLMValue', 'Average LM Value');
         if (window.sport === "soccer") {
             values.set('valor11', 'TOP 11');
             values.set('valor11_23', 'U23 TOP 11');
@@ -5753,7 +5808,7 @@ self.onmessage = function (e) {
             values.set('edadSUB21', 'U21 TOP 21 Age');
             values.set('edadSUB18', 'U18 TOP 21 Age');
         }
-
+        values.set('edad', 'Age');
         values.set('edadUPSenior', 'LM Age');
         values.set('edadUPSUB23', 'U23 LM Age');
         values.set('edadUPSUB21', 'U21 LM Age');
@@ -5835,9 +5890,11 @@ self.onmessage = function (e) {
             }
 
 
-            if (clave === "edadUPSenior") {
+            if (clave === "edad") {
                 contenidoNuevo += "</tr><tr>";
             }
+
+
             if (clave === initialValues[detected_cat]) {
                 contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" checked value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
             } else {
@@ -6299,7 +6356,20 @@ self.onmessage = function (e) {
                         nuevaColumna = document.createElement("td");
                         nuevaColumna.style.margin = '0 auto';
                         nuevaColumna.style.textAlign = 'center';
-                        let iner = "<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but" + id + "' style='cursor:pointer;'/>";
+
+                        let iner=""
+                        let spanButtonDisplay="flex";
+                        if(GM_getValue("collapseLeagueButtons")){
+                            iner+= `<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png'
+                                 width='${GM_getValue("league_image_size")}px'
+                                  height='${GM_getValue("league_image_size")}px'
+                                  id='but_tog${id}'
+                                  style='cursor:pointer;'/>`;
+                            spanButtonDisplay="none";
+                        }
+
+
+                        /*let iner = "<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but" + id + "' style='cursor:pointer;'/>";
                         if (GM_getValue("league_graph_button") === "checked") {
                             buttonDisplay = ""
                         } else {
@@ -6320,11 +6390,56 @@ self.onmessage = function (e) {
                             buttonDisplay = "display:none;";
                         }
                         iner += " <img alt='' src='https://statsxente.com/MZ1/View/Images/calendar.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but3" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-                        iner += "</center>";
+                        iner += "</center>";*/
+
+                        iner += `<span id='extraButs${id}' style='gap: 2px; display:${spanButtonDisplay};'>`;
+
+                        iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png'
+  width='${GM_getValue("league_image_size")}px'
+  height='${GM_getValue("league_image_size")}px'
+  id='but${id}'
+  style='cursor:pointer;'/>`;
+
+                        if (GM_getValue("league_graph_button") === "checked") {
+                            iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/graph.png'
+      width='${GM_getValue("league_image_size")}px'
+      height='${GM_getValue("league_image_size")}px'
+      id='but1${id}' style='cursor:pointer;'/>`;
+                        }
+
+                        if (GM_getValue("league_report_button") === "checked") {
+                            iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/report.png'
+      width='${GM_getValue("league_image_size")}px'
+      height='${GM_getValue("league_image_size")}px'
+      id='but2${id}' style='cursor:pointer;'/>`;
+                        }
+
+                        if (GM_getValue("league_calendar_button") === "checked") {
+                            iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/calendar.png'
+      width='${GM_getValue("league_image_size")}px'
+      height='${GM_getValue("league_image_size")}px'
+      id='but3${id}' style='cursor:pointer;'/>`;
+                        }
+
+                        iner += `</span>`;
 
                         nuevaColumna.innerHTML = iner
                         filasDatos[i].appendChild(nuevaColumna);
                         nuevaColumna = document.createElement("td");
+
+
+
+                        if(GM_getValue("collapseLeagueButtons")){
+                            document.querySelector(`#but_tog${id}`).addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const extra = document.querySelector(`#extraButs${id}`);
+                                const isOpen = extra.style.display !== 'none';
+                                document.querySelectorAll('[id^="extraButs"]').forEach(el => el.style.display = 'none');
+                                extra.style.display = isOpen ? 'none' : 'flex';
+                            });
+                        }
+
+
                         (function (currentId, currentLSport, lang) {
                             document.getElementById("but1" + currentId).addEventListener('click', function () {
                                 let link = "https://statsxente.com/MZ1/Graficos/graficoProgresoEquipo.php?idEquipo=" + currentId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") + "&deporte=" + currentLSport;
@@ -6794,7 +6909,6 @@ self.onmessage = function (e) {
                 let fsid = url.searchParams.get('fsid');
                 if(fsid!==null){urlForfeit+="&cid="+fsid}
             }
-            console.log(urlForfeit)
             let age_res=50
             let formMap
             if(GM_getValue("matchForfeit")){
@@ -7262,9 +7376,9 @@ self.onmessage = function (e) {
     }
 //Players page
     async function playersPage() {
-        let colors= ['None','Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
+        let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey','None',];
         if(window.sport==="soccer"){
-            colors = ['None','Goalkeeper','Defender','Midfielder','Striker','Wing'];
+            colors = ['Goalkeeper','Defender','Midfielder','Striker','Wing','None',];
         }
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const workerURL = URL.createObjectURL(blob);
@@ -7414,8 +7528,8 @@ self.onmessage = function (e) {
                     //let pos=playerPositions.get(ids[0].textContent);
                     let c=playerPosColors.get(pos)
                     let abv=positionsAbrev.get(pos)
-                    if((abv === "None" || abv === undefined || abv === "undefined")){
-                        c="grey"
+                    if((abv === "No" || abv === "None" || abv === undefined || abv === "undefined")){
+                        c="#878686"
                         abv="No"
                     }
                     txt+=`<span class="player_icon_placeholder"><div id='csw' data-id="${ids[0].textContent}">
@@ -7475,7 +7589,12 @@ self.onmessage = function (e) {
                         el.addEventListener('click', () => {
                             let abv=positionsAbrev.get(c)
                             current = playerPosColors.get(c);
-                            sel.style.background = playerPosColors.get(c);
+                            //sel.style.background = playerPosColors.get(c);
+                            if(c==="None"){
+                                sel.style.background="#878686"
+                            }else{
+                                sel.style.background = playerPosColors.get(c);
+                            }
                             sel.innerHTML=abv+' <i class="bi bi-caret-down-fill"></i>'
                             dd.querySelectorAll('.coption').forEach(o => o.classList.remove('selected'));
                             el.classList.add('selected');
@@ -7727,18 +7846,22 @@ self.onmessage = function (e) {
             contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>`;
             contenidoNuevo += "</div>";
 
-            contenidoNuevo += `
+
+        }
+
+        contenidoNuevo += `
   <div style="width:95%; margin:0 auto;">
-  <div style="display:flex; align-items:center; gap:6px;">
-    <input id="tag-input-box" type="text" placeholder="Write a tag and press Enter…" />
-    <button id="clear-tags">✕</button>
-  </div>
-    <div style="display:none;" id="tag-container"></div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <input id="tag-input-box" type="text" placeholder="Write a tag and press Enter…" />
+      <button id="show-saved-btn" title="Saved tag sets"/><img alt="" src="https://statsxente.com/MZ1/View/Images/tag.png" width="15" height="15"/></button>
+      <button id="save-tag-btn" title="Save current tags" /><img alt="" src="https://statsxente.com/MZ1/View/Images/save.png" width="15" height="15"/></button>
+      <button id="clear-tags"><img alt="" src="https://statsxente.com/MZ1/View/Images/clear.png" width="20" height="20"/></button>
+    </div>
+    <div id="saved-tags-panel" style="visibility:hidden; display:none; flex-wrap:wrap; gap:6px; margin-top:6px; padding:8px; background:#f0f4ff; border-radius:8px; border:1px solid #c0d0ff;"></div>
+    <div style="display:none; visibility:hidden;" id="tag-container"></div>
   </div>
 `;
 
-
-        }
 
 
 
@@ -7746,48 +7869,128 @@ self.onmessage = function (e) {
 
 
 
+        // ── helpers ──────────────────────────────────────────────
+        function getSavedSets() {
+            return GM_getValue('savedTagSets', []);
+        }
+        function saveSets(sets) {
+            GM_setValue('savedTagSets', sets);
+        }
+        function getActiveTags() {
+            return [...document.querySelectorAll('#tag-container .tag span')].map(s => s.textContent);
+        }
+
+// ── render saved panel ────────────────────────────────────
+        function renderSavedPanel() {
+            const panel = document.getElementById('saved-tags-panel');
+            const sets = getSavedSets();
+            panel.innerHTML = '';
+
+            if (sets.length === 0) {
+                panel.innerHTML = '<span style="color:#888; font-size:12px;">No saved tag sets yet.</span>';
+                return;
+            }
+
+            sets.forEach((set, i) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'display:flex; align-items:center; gap:4px; background:#fff; border:1px solid #b0c4ff; border-radius:16px; padding:3px 10px; cursor:pointer; font-size:12px;';
+                item.innerHTML = `
+            <span title="Load this set" style="cursor:pointer;"><img alt="" src="https://statsxente.com/MZ1/View/Images/tag.png" width="15" height="15"/> ${set.join(', ')}</span>
+            <button title="Delete" style="background:none; border:none; cursor:pointer; color:#e05; font-size:11px; padding:0 2px;">✕</button>
+        `;
+                // click label → load tags
+                item.querySelector('span').addEventListener('click', () => {
+                    set.forEach(t => addTag(t));
+                    document.getElementById('tag-container').style.display = 'flex';
+                    document.getElementById('tag-container').style.visibility = 'visible';
+                });
+                // click ✕ → delete set
+                item.querySelector('button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!confirm(`¿Delete stored tag "${set.join(', ')}"?`)) return;
+                    const updated = getSavedSets();
+                    updated.splice(i, 1);
+                    saveSets(updated);
+                    renderSavedPanel();
+                });
+                panel.appendChild(item);
+            });
+        }
+
+// ── save current tags ─────────────────────────────────────
+        document.getElementById('save-tag-btn').addEventListener('click', () => {
+            const tags = getActiveTags();
+            if (tags.length === 0) return;
+            const sets = getSavedSets();
+            tags.forEach(tag => {
+                const exists = sets.some(s => s.length === 1 && s[0] === tag);
+                if (!exists) sets.push([tag]);
+            });
+            saveSets(sets);
+            const panel = document.getElementById('saved-tags-panel');
+            panel.style.display = 'flex';
+            panel.style.visibility = 'visible';
+            renderSavedPanel();
+        });
+
+// ── toggle saved panel ────────────────────────────────────
+        document.getElementById('show-saved-btn').addEventListener('click', () => {
+            const panel = document.getElementById('saved-tags-panel');
+            const visible = panel.style.visibility !== 'hidden';
+            if (visible) {
+                panel.style.display = 'none';
+                panel.style.visibility = 'hidden';
+            } else {
+                panel.style.display = 'flex';
+                panel.style.visibility = 'visible';
+                renderSavedPanel();
+            }
+        });
+// ── clear all active tags ─────────────────────────────────
         document.getElementById('clear-tags').addEventListener('click', () => {
-            document.getElementById('tag-container').style.display="none"
+            document.getElementById('tag-container').style.display = 'none';
             document.getElementById('tag-container').innerHTML = '';
             filterPlayers();
         });
 
+// ── input enter ───────────────────────────────────────────
         document.getElementById('tag-input-box').addEventListener('keydown', function(e) {
             if (e.key !== 'Enter') return;
             e.preventDefault();
-            const val = document.getElementById('tag-input-box').value.trim();
+            const val = this.value.trim();
             if (!val) return;
             addTag(val);
-            document.getElementById('tag-input-box').value = '';
-            document.getElementById('tag-container').style.display="flex"
+            this.value = '';
+            document.getElementById('tag-container').style.display = 'flex';
+            document.getElementById('tag-container').style.visibility = 'visible';
         });
 
+// ── add tag ───────────────────────────────────────────────
         function addTag(text) {
+            const existing = [...document.querySelectorAll('#tag-container .tag span')].map(s => s.textContent);
+            if (existing.includes(text)) return;
             const div = document.createElement('div');
             div.className = 'tag';
             div.innerHTML = `<span>${text}</span><button>✕</button>`;
             div.querySelector('button').addEventListener('click', () => {
                 div.remove();
+                const remaining = document.querySelectorAll('#tag-container .tag');
+                if (remaining.length === 0) {
+                    document.getElementById('tag-container').style.display = 'none';
+                    document.getElementById('tag-container').style.visibility = 'hidden';
+                }
                 filterPlayers();
             });
             document.getElementById('tag-container').appendChild(div);
             filterPlayers();
         }
 
-        function filterPlayers() {
-            const tags = [...document.querySelectorAll('#tag-container .tag span')]
-                .map(span => span.textContent.trim().toLowerCase());
 
-            document.querySelectorAll('.playerContainer').forEach(player => {
-                const note = player.querySelector('.box_dark.player-note');
-                const noteText = note ? note.textContent.trim().toLowerCase() : '';
-                const showByTag = tags.length === 0 || tags.every(tag => noteText.includes(tag));
 
-                player._showByTag = showByTag;
-            });
 
-            applyFilters();
-        }
+
+
+
 
         if(GM_getValue("positionsColors")){
             document.getElementById("positionsFilter").addEventListener('change', (e) => {
@@ -7804,9 +8007,9 @@ self.onmessage = function (e) {
     }
 //Players links to stats
     async function playersPageStats() {
-        let colors= ['None','Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey'];
+        let colors= ['Goalkeeper_hockey','Defender_hockey','Center','Wing_hockey','None',];
         if(window.sport==="soccer"){
-            colors = ['None','Goalkeeper','Defender','Midfielder','Striker','Wing'];
+            colors = ['Goalkeeper','Defender','Midfielder','Striker','Wing','None',];
         }
         let element = document.getElementById('thePlayers_0');
         let elementos_ = element.getElementsByClassName('p_sublinks');
@@ -7833,10 +8036,12 @@ self.onmessage = function (e) {
 
             let c=playerPosColors.get(pos)
             let abv=positionsAbrev.get(pos)
-            if((abv === "None" || abv === undefined || abv === "undefined")){
-                c="grey"
+
+            if((abv === "No" || abv === "None" || abv === undefined || abv === "undefined")){
+                c="#878686"
                 abv="No"
             }
+
             txt+=`<span class="player_icon_placeholder"><div id='csw' data-id="${ids[0].textContent}">
   <div id="ctrigger"><div class="swatch" id="csel" style="background:${c};">${abv} <i class="bi bi-caret-down-fill"></i></div></div>
   <div id="cdropdown"></div>
@@ -7894,7 +8099,15 @@ self.onmessage = function (e) {
                 el.addEventListener('click', () => {
                     let abv=positionsAbrev.get(c)
                     current = playerPosColors.get(c);
-                    sel.style.background = playerPosColors.get(c);
+                    //sel.style.background = playerPosColors.get(c);
+
+                    if(c==="None"){
+                        sel.style.background="#878686"
+                    }else{
+                        sel.style.background = playerPosColors.get(c);
+                    }
+
+
                     sel.innerHTML=abv+' <i class="bi bi-caret-down-fill"></i>'
                     dd.querySelectorAll('.coption').forEach(o => o.classList.remove('selected'));
                     el.classList.add('selected');
@@ -8285,7 +8498,11 @@ self.onmessage = function (e) {
 
     }
 //Insert scout filter in transfers page
-    function insertScoutFilter(){
+    async function insertScoutFilter(){
+        let playersToCompare
+        if(GM_getValue("transfersPlayerCompare")){
+            playersToCompare= await fetchTeamPlayers()
+        }
         getDeviceFormat()
         let options="<option value='any'>Any</option>";
         document
@@ -8385,6 +8602,18 @@ self.onmessage = function (e) {
         txt +='</div>'
         txt+='</div>'
 
+        if(GM_getValue("transfersPlayerCompare")){
+            txt+='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#compare_player\').slideToggle();">Compare Players</div>';
+            txt += `<div id="compare_player" style="z-index: 9999;
+        background: white; color: black; padding: 8px; border-radius: 6px;">`;
+            txt += `Player:
+        <select class="statsxente" id="comparing_players" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
+            txt+=playersToCompare
+            txt +='</select>';
+            txt +='</div>'
+        }
+        //txt+='</div>'
+
         let txt1='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
         txt1+='; font-family: \'Roboto\'; font-weight:bold; font-size:small; padding: 3px 0px;" id="searchScoutReport">'
         txt1+='<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15px" height="15px"/> Search</button>'
@@ -8406,6 +8635,73 @@ self.onmessage = function (e) {
 
 
         document.getElementById("filters_search").insertAdjacentHTML("afterend",txt)
+
+
+        if(GM_getValue("transfersPlayerCompare")){
+            document.getElementById("comparing_players").addEventListener("change", async function() {
+
+                let elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
+                for (let i = 0; i < elementos1.length; i++) {
+                    let el = elementos1[i]
+                    let currentId= el.id.replace('player_comparing_', '');
+                    let clase="loader-"+window.sport
+                    let txtToInsert=
+                        "<div style='text-align:center;'>" +
+                        "<div id='hp_loader_comparing"+currentId+"' style='width:50%; margin:0 auto;'>" +
+                        "<div style='text-align:center;'><b>Loading...</b></div>" +
+                        "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                        "</div>" +
+                        "</div>";
+                    document.getElementById("player_comparing_"+currentId).innerHTML = txtToInsert;
+                }
+
+                let actual_id=document.getElementById("comparing_players").value
+                let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
+                let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+                let tableData=skillsTablePlayer.outerHTML
+                let playerName = test.querySelector('span.player_name');
+
+                elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
+                for (let i = 0; i < elementos1.length; i++) {
+                    let el = elementos1[i]
+                    let currentId= el.id.replace('player_comparing_', '');
+                    let clase="loader-"+window.sport
+                    let txtToInsert=
+                        "<div style='text-align:center;'>" +
+                        "<div id='hp_loader_comparing"+currentId+"' style='width:50%; margin:0 auto;'>" +
+                        "<div style='text-align:center;'><b>Loading...</b></div>" +
+                        "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                        "</div>" +
+                        "</div>";
+                    document.getElementById("player_comparing_"+currentId).innerHTML = txtToInsert;
+                    let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color: "+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                    document.getElementById("player_comparing_"+currentId).innerHTML = txt;
+                }
+
+            });
+
+        }
+
+        if((GM_getValue("transfersPlayerCompare"))&&(GM_getValue("floatingDropdown"))){
+
+            const retiredFilter = document.getElementById('compare_player');
+            const originalPosition = retiredFilter.getBoundingClientRect().top + window.scrollY;
+
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > originalPosition) {
+                    retiredFilter.style.position = 'fixed';
+                    retiredFilter.style.left = '85%';
+                    retiredFilter.style.top = '30%';
+                    retiredFilter.style.transform = 'translateY(-50%)';
+                    retiredFilter.style.boxShadow="0 2px 8px rgba(0,0,0,0.2)"
+                } else {
+                    retiredFilter.style.position = 'static';
+                    retiredFilter.style.transform = 'none';
+                    retiredFilter.style.boxShadow="none"
+
+                }
+            });
+        }
 
 
         document.querySelectorAll("#hp_stars img[data-index]").forEach(img => {
@@ -9735,6 +10031,77 @@ self.onmessage = function (e) {
     }
 
 //FETCH FUNCTIONS
+    function fetchPlayerTableSkills(link) {
+        return new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url:link,
+                    onload: function (response) {
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
+                        let player_cointainer=doc.getElementById("thePlayers_0")
+                        resolve(player_cointainer)
+                    },
+                    onerror: function (error) {
+                        reject(error);
+                    }
+                });
+
+            }
+        );
+    }
+    function fetchTeamPlayers(){
+        let options=""
+        let sport_id=2
+        if(window.sport==="soccer"){sport_id=1}
+        let link="http://www.managerzone.com/xml/team_playerlist.php?sport_id="+sport_id+"&team_id="+GM_getValue(window.sport+"_team_id")
+        return new Promise((resolve, reject) => {
+
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: link,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    onload: function (response) {
+                        let parser = new DOMParser();
+                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                        let players = xmlDoc.getElementsByTagName("Player");
+                        for (let i = 0; i < players.length; i++) {
+                            options+="<option style='font-weight:bold;' value='"+players[i].getAttribute("id")+"'>("+players[i].getAttribute("shirtNo")+") "+players[i].getAttribute("name")+"</option>";
+                        }
+                        resolve(options)
+
+                    },
+                    onerror: function () {
+                        reject("none");
+                    }
+                });
+
+
+                /*GM_xmlhttpRequest({
+                    method: 'GET',
+                    url:link,
+                    onload: function (response) {
+                        let options=""
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
+                        let elementos1 = doc.getElementsByClassName('playerContainer');
+                        for (let i = 0; i < elementos1.length; i++) {
+                            let playerName = elementos1[i].querySelector('span.player_name');
+                            let id = elementos1[i].querySelector('span.player_id_span');
+                            options+="<option value='"+id.textContent+"'>"+playerName.textContent+"</option>";
+                        }
+                        resolve(options)
+                    },
+                    onerror: function (error) {
+                        reject(error);
+                    }
+                });*/
+
+            }
+        );
+    }
     function fetchSelects() {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -10724,11 +11091,11 @@ self.onmessage = function (e) {
         #stx-overlay.open { display: flex; }
         .stx-modal {
             background: #fff; border-radius: 12px; overflow: hidden;
-            width: 90%; max-width: 120vh; max-height: 95vh;
+            width: 90%; max-width: 120vh; max-height: 100vh;
             overflow-y: auto; font-family: system-ui, sans-serif;
         }
         .stx-header {
-            background: ${GM_getValue("bg_native")}; padding: 12px 16px;
+            background: ${GM_getValue("bg_native")}; padding: 5px 16px;
             display: flex; align-items: center; justify-content: space-between;
             position: sticky; top: 0; z-index: 1;
         }
@@ -10791,7 +11158,7 @@ self.onmessage = function (e) {
         .stx-slider-row label { font-size: 12px; color: #888; white-space: nowrap; }
         .stx-slider-row input[type=range] { flex: 1; accent-color:${GM_getValue("bg_native")}; }
         .stx-slider-val { font-size: 12px; color: #555; min-width: 28px; }
-        .stx-two-col { display: flex; gap: 32px; flex-wrap: wrap; }
+        .stx-two-col { display: flex; gap: 20px; flex-wrap: wrap; }
         .stx-paypal { text-align: center; padding: 10px 0 4px; }
         .stx-paypal p { font-size: 12px; color: #888; margin-bottom: 6px; }
         .stx-footer { padding: 12px 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
@@ -10849,7 +11216,7 @@ self.onmessage = function (e) {
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
             transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,
             onlySinglePages:true,eloChangeCalendar:true,trainingPercentages:true,partialSkills:true,onlySinglePagesSkills:true,
-            positionsColors:true,positionsColorsBG:false,collapseLeagueButtons:false
+            positionsColors:true,positionsColorsBG:false,collapseLeagueButtons:false,transfersPlayerCompare:true,floatingDropdown:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -10919,6 +11286,7 @@ self.onmessage = function (e) {
             { key: 'transfersFilterFlag',        id: 'transfersFilterFlagSelect',     label: 'Transfers filter' },
             { key: 'transfersSellerFlag',        id: 'transfersSellerSelect',         label: 'Transfers seller' },
             { key: 'transfersTaxFlag',           id: 'transfersTaxSelect',            label: 'Transfers tax' },
+            { key: 'transfersPlayerCompare',     id: 'transfersPlayerCompare',        label: 'TM player compare' },
 
             // Finance
             { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
@@ -11072,15 +11440,12 @@ self.onmessage = function (e) {
         }
         html += '</div></div>';
 
-        /*playerPosColors.set("Goalkeeper","#a45408bf"); //GK
-   playerPosColors.set("Defender","#80a6ffbf"); //Defender
-   playerPosColors.set("Midfielder","#65f465bf"); //Midfielder
-   playerPosColors.set("Striker","#ff5555bf"); //Attacker
-   playerPosColors.set("Winger","#ff55fabf"); //Winge*/
 
 
 
-
+        html += '<div><div class="stx-section-title">TM Player Compare</div><div class="stx-checkrow">';
+        html += `<label class="stx-checkitem"><input type="checkbox" id="floatingDropdown" ${chk('floatingDropdown')}> Floating dropdown</label>`;
+        html += '</div></div>'
         html +='</div>';
 
 
@@ -11089,7 +11454,7 @@ self.onmessage = function (e) {
         html += '<div class="stx-paypal"><p>Support the project</p>';
         html += '<div style="display: flex; align-items: center;gap: 10px;justify-content: center;">'
         html += '<a href="https://www.paypal.com/donate?hosted_button_id=C6JN5W2LHP3Z8" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/paypal_script.png" width="50" height="50"/></a>';
-        html += '<a href="https://buymeacoffee.com/statsxente" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/buy_me_a_coffee.svg" width="70" height="70"/></a>'
+        html += '<a href="https://buymeacoffee.com/statsxente" target="_blank"><img alt="" src="https://statsxente.com/MZ1/View/Images/buy_me_a_coffee.svg" width="60" height="60"/></a>'
         html += '</div>';
         html += '</div>';
 
@@ -11183,8 +11548,8 @@ self.onmessage = function (e) {
             GM_setValue('positionsColorsBG',      document.getElementById('positionsColorsBG').checked);
             GM_setValue('showSkillsResume',       document.getElementById('showSkillsResume').checked);
             GM_setValue('collapseLeagueButtons',  document.getElementById('collapseLeagueButtons').checked);
+            GM_setValue('floatingDropdown',  document.getElementById('floatingDropdown').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
-
             window.location.reload();
         });
 
@@ -12063,6 +12428,21 @@ self.onmessage = function (e) {
         }
         return el
     }
+
+    function filterPlayers() {
+        const tags = [...document.querySelectorAll('#tag-container .tag span')]
+            .map(span => span.textContent.trim().toLowerCase());
+
+        document.querySelectorAll('.playerContainer').forEach(player => {
+            const note = player.querySelector('.box_dark.player-note');
+            const noteText = note ? note.textContent.trim().toLowerCase() : '';
+            const showByTag = tags.length === 0 || tags.every(tag => noteText.includes(tag));
+
+            player._showByTag = showByTag;
+        });
+
+        applyFilters();
+    }
     function getPreviousElementByTag(elem, tag, class_) {
         let el = elem.previousElementSibling;
         let maxIterations = 10;
@@ -12745,6 +13125,24 @@ cursor:pointer;
 
 #clear-tags{
     background: #ff9d9d;
+    color: black;
+    border: 1px solid black;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 3px 5px;
+}
+
+#save-tag-btn{
+    background:#bdffb7;
+    color: black;
+    border: 1px solid black;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+#show-saved-btn{
+    background:#bfc2ff;
     color: black;
     border: 1px solid black;
     border-radius: 6px;
