@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.252
+// @version      0.253
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1377,13 +1377,13 @@ self.onmessage = function (e) {
                                     let trs = table.querySelectorAll("tr");
                                     let start = 4;
                                     let maxChecks = 5;
-                                    let index=3;
+                                    let index=4;
                                     for (let i = start; i < trs.length && i < start + maxChecks; i++) {
                                         let tr = trs[i];
                                         if (tr && tr.textContent.includes(GM_getValue("currency"))) {
-                                            index++
                                             break;
                                         }
+                                        index++
                                     }
 
 
@@ -8934,13 +8934,13 @@ self.onmessage = function (e) {
                 let trs = table.querySelectorAll("tr");
                 let start = 4;
                 let maxChecks = 5;
-                let index=3;
+                let index=4;
                 for (let i = start; i < trs.length && i < start + maxChecks; i++) {
                     let tr = trs[i];
                     if (tr && tr.textContent.includes(GM_getValue("currency"))) {
-                        index++
                         break;
                     }
+                    index++
                 }
 
 
