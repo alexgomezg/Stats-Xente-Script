@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.247
+// @version      0.248
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -10383,6 +10383,10 @@ self.onmessage = function (e) {
                         let parser = new DOMParser();
                         let doc = parser.parseFromString(response.responseText, 'text/html');
                         let player_cointainer=doc.getElementById("thePlayers_0")
+                        if (!player_cointainer) {
+                            reject(new Error("thePlayers_0 null | status: " + response.status + " | url: " + link + " | html: " + response.responseText.substring(0, 200)));
+                            return;
+                        }
                         resolve(player_cointainer)
                     },
                     onerror: function (error) {
