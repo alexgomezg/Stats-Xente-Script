@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.242
+// @version      0.243
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -150,7 +150,7 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'federations')
-            && (urlParams.get('sub') === 'league') && (GM_getValue("federationFlag"))) {
+            && (urlParams.get('sub') === 'league') && (urlParams.get('tab') === 'division') && (GM_getValue("federationFlag"))) {
             waitToDOM(clashLeagues, ".nice_table", 0,7000)
         }
 
@@ -501,7 +501,24 @@
                 });
             });
     }
-    function profilePage(){
+    async function profilePage(){
+        let h2hMax=false
+        let h2h12=false
+        let link = document.querySelector('a[href*="p=challenges&challenge-tid="]');
+        if (link) {
+            let href = link.getAttribute("href");
+            let params = new URLSearchParams(href.split("?")[1]);
+            let rivaltid = params.get("challenge-tid");
+
+            let urlParams = new URLSearchParams(window.location.search)
+            if (urlParams.has('uid')){
+                h2hMax=await fetchH2HMatches(rivaltid,"max")
+                if(h2hMax){
+                    h2h12=await fetchH2HMatches(rivaltid,"2")
+                }
+            }
+        }
+
         let elems=document.getElementsByClassName("flex-wrap");
         let tables=elems[0].getElementsByTagName("table");
         let segundoTr = tables[1].rows[0]
@@ -623,7 +640,25 @@
                 teamTable+='<tr><td colspan=10>'
                 teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
                 teamTable+='; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history"'
-                teamTable+=' style="font-style:normal;"> ELO History</i></button></tr>'
+                teamTable+=' style="font-style:normal;"> ELO History</i></button>'
+
+
+                if(h2h12){
+                    teamTable+=' <button class="btn-save" style="width:8.5em; color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
+                    teamTable+='; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="h2hButton"><i class="bi bi-trophy-fill"'
+                    teamTable+=' style="font-style:normal;"> H2H Matches</i></button>'
+                }
+
+                if((!h2h12)&&(h2hMax)){
+                    teamTable += "</br></br><div style='padding: 5px;display:flex;align-items:center;justify-content:center;font-weight:600;margin:0 auto;border-radius:4px;width:50%;background-color:#AD4039;color:" + GM_getValue("color_native") + ";gap:6px;'>";
+                    teamTable += "<img src='https://statsxente.com/MZ1/View/Images/idea.png' width='15' height='15'/>";
+                    teamTable += "<span>H2H matches found</span>";
+                    teamTable += "</div>"
+                }
+
+
+
+                teamTable+='</tr>'
                 teamTable+='</tbody></table></div>'
 
 
@@ -640,6 +675,12 @@
                     document.styleSheets[0].cssRules.length
                 );
 
+                if(h2h12){
+                    document.getElementById("h2hButton").addEventListener('click', function () {
+                        let link=`https://statsxente.com/MZ1/Functions/loadTeamsCompareData.php?idioma=${window.lang}&tid1=${GM_getValue(window.sport+"_team_id")}&sport=${window.sport}&tid2=${team_id}&type=all&range=12&senior=yes&sub23=yes&sub21=yes&sub18=yes&fecha_inicio=-1&fecha_fin=-1`
+                        openWindow(link, 0.95, 1.25);
+                    });
+                }
 
                 document.getElementById("eloHistoryButton").addEventListener('click', function () {
                     let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id+"&sport=" + window.sport
@@ -3476,8 +3517,41 @@ self.onmessage = function (e) {
 
 
     }
+
+
+    function fetchH2HMatches(rival_tid,limit){
+        return new Promise((resolve, reject) => {
+            let formData = new FormData();
+            formData.append("type", "played");
+            formData.append("hidescore", "false");
+            formData.append("selectType", "all");
+            formData.append("limit",limit);
+            formData.append("tid1",GM_getValue(window.sport+"_team_id"));
+            formData.append("tid2",rival_tid);
+            GM_xmlhttpRequest({
+                method: "POST",
+                url: "https://www.managerzone.com/ajax.php?p=matches&sub=list&sport="+window.sport,
+                data: formData,
+
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    let flag=false
+                    if(jsonResponse["list"].includes("?p=match&sub=stats&tid=")){
+                        flag=true
+                    }
+                    resolve(flag)
+                },
+
+                onerror: function (error) {
+                    reject(error)
+                }
+            });
+
+        });
+    }
+
 //Team page
-    function teamPage(){
+    async function teamPage(){
 
         let divToInserT=document.getElementById("streakAndCupInfo")
         let clase="loader-"+window.sport
@@ -3527,6 +3601,14 @@ self.onmessage = function (e) {
                 team_id=GM_getValue("hockey_team_id")
             }
 
+        }
+        let h2hMax=false
+        let h2h12=false
+        if (urlParams.has('tid')){
+            h2hMax=await fetchH2HMatches(urlParams.get("tid"),"max")
+            if(h2hMax){
+                h2h12=await fetchH2HMatches(urlParams.get("tid"),"2")
+            }
         }
 
         let main_div=document.getElementById("infoAboutTeam")
@@ -3653,14 +3735,34 @@ self.onmessage = function (e) {
                 teamTable+='<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable+='</td></tr>'
                 teamTable+='<tr><td colspan=10>'
-                teamTable+='<button class="btn-save" style="color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
+                teamTable+='<button class="btn-save" style="width:8.5em; color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
                 teamTable+='; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history"'
-                teamTable+=' style="font-style:normal;"> ELO History</i></button></tr>'
+                teamTable+=' style="font-style:normal;"> ELO History</i></button>'
+
+                if(h2h12){
+                    teamTable+=' <button class="btn-save" style="width:8.5em; color:'+GM_getValue("color_native")+'; background-color:'+GM_getValue("bg_native")
+                    teamTable+='; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="h2hButton"><i class="bi bi-trophy-fill"'
+                    teamTable+=' style="font-style:normal;"> H2H Matches</i></button>'
+                }
+
+                if((!h2h12)&&(h2hMax)){
+                    teamTable += "</br></br><div style='padding: 5px;display:flex;align-items:center;justify-content:center;font-weight:600;margin:0 auto;border-radius:4px;width:50%;background-color:#AD4039;color:" + GM_getValue("color_native") + ";gap:6px;'>";
+                    teamTable += "<img src='https://statsxente.com/MZ1/View/Images/idea.png' width='15' height='15'/>";
+                    teamTable += "<span>H2H matches found</span>";
+                    teamTable += "</div>"
+                }
+
+                teamTable+='</tr>'
                 teamTable+='</tbody></table></div>'
+
+
 
 
                 let divToInserT=document.getElementById("streakAndCupInfo")
                 divToInserT.innerHTML=teamTable+divToInserT.innerHTML
+
+
+
 
                 document.getElementById("hp_loader").remove()
 
@@ -3671,6 +3773,13 @@ self.onmessage = function (e) {
                     '.btn-save:hover { background-color: '+darkerColor+' !important; }',
                     document.styleSheets[0].cssRules.length
                 );
+
+                if(h2h12){
+                    document.getElementById("h2hButton").addEventListener('click', function () {
+                        let link=`https://statsxente.com/MZ1/Functions/loadTeamsCompareData.php?idioma=${window.lang}&tid1=${GM_getValue(window.sport+"_team_id")}&sport=${window.sport}&tid2=${team_id}&type=all&range=12&senior=yes&sub23=yes&sub21=yes&sub18=yes&fecha_inicio=-1&fecha_fin=-1`
+                        openWindow(link, 0.95, 1.25);
+                    });
+                }
 
 
                 document.getElementById("eloHistoryButton").addEventListener('click', function () {
@@ -3718,6 +3827,17 @@ self.onmessage = function (e) {
                 document.getElementById("thTransparent0").style.backgroundColor="transparent";
             }
         });
+
+
+
+
+
+
+
+
+
+
+
     }
 //Last matches page
     function lastMatchesELO(){
@@ -5412,7 +5532,6 @@ self.onmessage = function (e) {
   height='${GM_getValue("league_image_size")}px'
   id='but${id}'
   style='cursor:pointer;'/>`;
-
                         if (GM_getValue("league_graph_button") === "checked") {
                             iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/graph.png'
       width='${GM_getValue("league_image_size")}px'
@@ -6787,6 +6906,9 @@ self.onmessage = function (e) {
             let natPercent = total ? (nat / total) * 100 : 0;
             let noNatPercent = total ? (noNat / total) * 100 : 0;
 
+            let natColor="#ff9800"
+            let noNatColor="#9e9e9e"
+
 
             let te = `
   <div style="
@@ -6802,8 +6924,8 @@ self.onmessage = function (e) {
     font-weight: bold;
     text-shadow: 0 0 2px black;
   ">
-    <div style="width:${natPercent}%; background:#4caf50;"></div>
-    <div style="width:${noNatPercent}%; background:#f44336;"></div>
+    <div style="width:${natPercent}%; background:${natColor};"></div>
+    <div style="width:${noNatPercent}%; background:${noNatColor};"></div>
 
     <div style="
       position:absolute;
@@ -6842,8 +6964,8 @@ self.onmessage = function (e) {
     font-weight: bold;
     text-shadow: 0 0 2px black;
   ">
-    <div style="width:${natPercent}%; background:#4caf50;"></div>
-    <div style="width:${noNatPercent}%; background:#f44336;"></div>
+   <div style="width:${natPercent}%; background:${natColor};"></div>
+    <div style="width:${noNatPercent}%; background:${noNatColor};"></div>
 
     <div style="
       position:absolute;
@@ -8595,10 +8717,11 @@ self.onmessage = function (e) {
         txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
         txt +="</td></tr></table></div>"
 
-        txt+='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#retired_filter\').slideToggle();">Retiring Filter</div>';
+        txt+='<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#retired_filter\').slideToggle();">Stats Xente Filters</div>';
         txt += '<div id="retired_filter" style="display:flex; gap:15px; align-items:center;">';
         txt += '<label><input type="checkbox" class="checkbox" id="retiring_players" name="retiring_players"> Retiring</label>';
         txt += '<label><input type="checkbox" class="checkbox" id="non_retiring_players" name="non_retiring_players">Non Retiring</label>';
+        txt += '<label><input type="checkbox" class="checkbox" id="no_scout_report" name="no_scout_report">No Scout Report</label>';
         txt +='</div>'
         txt+='</div>'
 
@@ -8751,7 +8874,7 @@ self.onmessage = function (e) {
         if(document.getElementById("lp2_select").value!=="any"){lp_skills.push(document.getElementById("lp2_select").value)}
 
         if((parseInt(min_hp_stars)===0)&&(parseInt(min_lp_stars)===0)&&(parseInt(min_sp_stars)===0)&&(hp_skills.length===0)&&(lp_skills.length===0)
-            &&(!document.getElementById("retiring_players").checked)&&(!document.getElementById("non_retiring_players").checked)){
+            &&(!document.getElementById("retiring_players").checked)&&(!document.getElementById("non_retiring_players").checked)&&(!document.getElementById("no_scout_report").checked)){
             document.getElementById("searchb").click()
             return;
         }
@@ -8901,7 +9024,21 @@ self.onmessage = function (e) {
                         const nonRetiring = document.getElementById("non_retiring_players").checked;
                         const noneSelected = !retiring && !nonRetiring;
                         const isRetiring = p.querySelector(".dg_playerview_retire") !== null;
-                        if (noneSelected || (retiring && isRetiring) || (nonRetiring && !isRetiring)) {
+                        const noScoutReport = document.getElementById("no_scout_report").checked;
+
+                        const scoutCondition = noScoutReport ? scout.length === 0 : true;
+
+                        if ((noneSelected || (retiring && isRetiring) || (nonRetiring && !isRetiring)) && scoutCondition) {
+                            if(contShowed<20){
+                                container.appendChild(p.cloneNode(true));
+                            }
+                            searchResults.push(p.cloneNode(true))
+                            contShowed++;
+                        }
+
+
+
+                        /*if (noneSelected || (retiring && isRetiring) || (nonRetiring && !isRetiring)) {
                             if(scout.length>0){
 
                                 let scout_divs = p.querySelectorAll(".scout_report_stars");
@@ -8967,7 +9104,7 @@ self.onmessage = function (e) {
 
 
                             }
-                        }
+                        }*/
 
                     });
 
@@ -13389,10 +13526,6 @@ cursor:pointer;
     #profit-card .pc-danger  { color: #dc2626 !important; }
     #profit-card .pc-success { color: #059669 !important; }
 `;
-
-
-
-
         }
         let style = document.createElement('style');
         style.textContent = css;
