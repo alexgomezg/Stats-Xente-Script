@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.251
+// @version      0.252
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1352,8 +1352,6 @@ self.onmessage = function (e) {
                                     let tableData
                                     let tds = skillsTablePlayer.querySelectorAll("td.skillval");
 
-                                    let start = 1;
-                                    let end = tds.length;
                                     let edad=0,valor=0,salario=0,skillsTotal=0,season=0
                                     /*for (let i = start; i < end; i++) {
 
@@ -1376,15 +1374,29 @@ self.onmessage = function (e) {
                                     edad= strong ? strong.textContent.trim() : null;
 
 
-                                    tr = table.querySelectorAll("tr")[4];
+                                    let trs = table.querySelectorAll("tr");
+                                    let start = 4;
+                                    let maxChecks = 5;
+                                    let index=3;
+                                    for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                                        let tr = trs[i];
+                                        if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                                            index++
+                                            break;
+                                        }
+                                    }
+
+
+                                    tr = table.querySelectorAll("tr")[index];
                                     td = tr.querySelectorAll("td")[0];
                                     let span = td.querySelector("span");
                                     valor= span ? span.textContent.trim() : null;
                                     valor=valor.replace(GM_getValue("currency"),"")
                                     valor=valor.replace(/\s+/g, '');
                                     valor=formatNum(valor)
+                                    index++
 
-                                    tr = table.querySelectorAll("tr")[5];
+                                    tr = table.querySelectorAll("tr")[index];
                                     if(tr.innerHTML.includes(GM_getValue("currency"))){
                                         td = tr.querySelectorAll("td")[0];
                                         span = td.querySelector("span");
@@ -1395,8 +1407,8 @@ self.onmessage = function (e) {
                                     }else{
                                         salario="Youth"
                                     }
-
-                                    tr = table.querySelectorAll("tr")[6];
+                                    index++;
+                                    tr = table.querySelectorAll("tr")[index];
                                     td = tr.querySelectorAll("td")[0];
                                     span = td.querySelector("span.bold");
                                     skillsTotal= span ? span.textContent.trim() : null;
@@ -8919,16 +8931,29 @@ self.onmessage = function (e) {
                 let strong = td.querySelector("strong");
                 edad= strong ? strong.textContent.trim() : null;
 
+                let trs = table.querySelectorAll("tr");
+                let start = 4;
+                let maxChecks = 5;
+                let index=3;
+                for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                    let tr = trs[i];
+                    if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                        index++
+                        break;
+                    }
+                }
 
-                tr = table.querySelectorAll("tr")[4];
+
+                tr = table.querySelectorAll("tr")[index];
                 td = tr.querySelectorAll("td")[0];
                 let span = td.querySelector("span");
                 valor= span ? span.textContent.trim() : null;
                 valor=valor.replace(GM_getValue("currency"),"")
                 valor=valor.replace(/\s+/g, '');
                 valor=formatNum(valor)
+                index++;
 
-                tr = table.querySelectorAll("tr")[5];
+                tr = table.querySelectorAll("tr")[index];
                 if(tr.innerHTML.includes(GM_getValue("currency"))){
                     td = tr.querySelectorAll("td")[0];
                     span = td.querySelector("span");
@@ -8939,8 +8964,9 @@ self.onmessage = function (e) {
                 }else{
                     salario="Youth"
                 }
+                index++;
 
-                tr = table.querySelectorAll("tr")[6];
+                tr = table.querySelectorAll("tr")[index];
                 td = tr.querySelectorAll("td")[0];
                 span = td.querySelector("span.bold");
                 skillsTotal= span ? span.textContent.trim() : null;
