@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.249
+// @version      0.250
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1349,7 +1349,7 @@ self.onmessage = function (e) {
                                 try{
                                     let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
                                     let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
-
+                                    let tableData
                                     let tds = skillsTablePlayer.querySelectorAll("td.skillval");
 
                                     let start = 1;
@@ -10379,6 +10379,10 @@ self.onmessage = function (e) {
                 GM_xmlhttpRequest({
                     method: 'GET',
                     url:link,
+                    headers: {
+                        "Cookie": document.cookie
+                    },
+                    withCredentials: true,
                     onload: function (response) {
                         let parser = new DOMParser();
                         let doc = parser.parseFromString(response.responseText, 'text/html');
