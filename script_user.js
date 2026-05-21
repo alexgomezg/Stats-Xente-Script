@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.244
+// @version      0.245
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1349,10 +1349,95 @@ self.onmessage = function (e) {
                                 let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
                                 let tableData
                                 let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+
+                                let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
+                                let edad=0,valor=0,salario=0,skillsTotal=0,season=0
+                                let tr = table.querySelectorAll("tr")[0];
+                                let td = tr.querySelectorAll("td")[0];
+                                let strong = td.querySelector("strong");
+                                edad= strong ? strong.textContent.trim() : null;
+
+
+                                tr = table.querySelectorAll("tr")[4];
+                                td = tr.querySelectorAll("td")[0];
+                                let span = td.querySelector("span");
+                                valor= span ? span.textContent.trim() : null;
+                                valor=valor.replace(GM_getValue("currency"),"")
+                                valor=valor.replace(/\s+/g, '');
+                                valor=formatNum(valor)
+
+                                tr = table.querySelectorAll("tr")[5];
+                                if(tr.innerHTML.includes(GM_getValue("currency"))){
+                                    td = tr.querySelectorAll("td")[0];
+                                    span = td.querySelector("span");
+                                    salario= span ? span.textContent.trim() : null;
+                                    salario=salario.replace(GM_getValue("currency"),"")
+                                    salario=salario.replace(/\s+/g, '');
+                                    salario=formatNum(salario)
+                                }else{
+                                    salario="Youth"
+                                }
+
+                                tr = table.querySelectorAll("tr")[6];
+                                td = tr.querySelectorAll("td")[0];
+                                span = td.querySelector("span.bold");
+                                skillsTotal= span ? span.textContent.trim() : null;
+
+                                tr = table.querySelectorAll("tr")[2];
+                                td = tr.querySelectorAll("td")[0];
+                                strong = td.querySelector("strong");
+                                season= strong ? strong.textContent.trim() : null;
+                                let icon="fa-hockey-puck"
+                                if(window.sport=="soccer"){
+                                    icon="fa-futbol"
+                                }
+
                                 tableData=skillsTablePlayer.outerHTML
 
+
+
+
+                                let font_size="12px"
+                                let bg="#f7f6f2"
+                                const infoGrid = `
+
+<div style="padding:4px 4px 6px;font-family:sans-serif;">
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
+      <span style="font-size:11px;color:#AD4039;">Age</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
+    </div>
+
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
+      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
+      <span style="font-size:11px;color:#AD4039;">Value</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
+      <span style="font-size:11px;color:#AD4039;">Salary</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
+    </div>
+
+  </div>
+</div>`;
+
                                 let playerName = test.querySelector('span.player_name');
-                                let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                                let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'>"
+                                txt+="<h2 style='margin-bottom: 1px; text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"
+                                txt+=playerName.textContent+"</h2>"
+                                txt+=infoGrid
+                                txt+=tableData+"</div>"
                                 skillsTable.insertAdjacentHTML('afterend', txt);
                                 document.getElementById("hp_loader_comparing"+currentId).remove()
 
@@ -8794,6 +8879,90 @@ self.onmessage = function (e) {
                 let tableData=skillsTablePlayer.outerHTML
                 let playerName = test.querySelector('span.player_name');
 
+
+                let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
+                let edad=0,valor=0,salario=0,skillsTotal=0,season=0
+                let tr = table.querySelectorAll("tr")[0];
+                let td = tr.querySelectorAll("td")[0];
+                let strong = td.querySelector("strong");
+                edad= strong ? strong.textContent.trim() : null;
+
+
+                tr = table.querySelectorAll("tr")[4];
+                td = tr.querySelectorAll("td")[0];
+                let span = td.querySelector("span");
+                valor= span ? span.textContent.trim() : null;
+                valor=valor.replace(GM_getValue("currency"),"")
+                valor=valor.replace(/\s+/g, '');
+                valor=formatNum(valor)
+
+                tr = table.querySelectorAll("tr")[5];
+                if(tr.innerHTML.includes(GM_getValue("currency"))){
+                    td = tr.querySelectorAll("td")[0];
+                    span = td.querySelector("span");
+                    salario= span ? span.textContent.trim() : null;
+                    salario=salario.replace(GM_getValue("currency"),"")
+                    salario=salario.replace(/\s+/g, '');
+                    salario=formatNum(salario)
+                }else{
+                    salario="Youth"
+                }
+
+                tr = table.querySelectorAll("tr")[6];
+                td = tr.querySelectorAll("td")[0];
+                span = td.querySelector("span.bold");
+                skillsTotal= span ? span.textContent.trim() : null;
+
+                tr = table.querySelectorAll("tr")[2];
+                td = tr.querySelectorAll("td")[0];
+                strong = td.querySelector("strong");
+                season= strong ? strong.textContent.trim() : null;
+                let icon="fa-hockey-puck"
+                if(window.sport=="soccer"){
+                    icon="fa-futbol"
+                }
+                tableData=skillsTablePlayer.outerHTML
+                let font_size="12px"
+                let bg="#f7f6f2"
+
+                const infoGrid = `
+
+<div style="padding:4px 4px 6px;font-family:sans-serif;">
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
+      <span style="font-size:11px;color:#AD4039;">Age</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
+    </div>
+
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
+      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
+      <span style="font-size:11px;color:#AD4039;">Value</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
+      <span style="font-size:11px;color:#AD4039;">Salary</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
+    </div>
+
+  </div>
+</div>`;
+
+
+
+
+
+
                 elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
                 for (let i = 0; i < elementos1.length; i++) {
                     let el = elementos1[i]
@@ -8807,7 +8976,12 @@ self.onmessage = function (e) {
                         "</div>" +
                         "</div>";
                     document.getElementById("player_comparing_"+currentId).innerHTML = txtToInsert;
-                    let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color: "+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                    //let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color: "+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                    let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'>"
+                    txt+="<h2 style='margin-bottom: 1px; text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"
+                    txt+=playerName.textContent+"</h2>"
+                    txt+=infoGrid
+                    txt+=tableData+"</div>"
                     document.getElementById("player_comparing_"+currentId).innerHTML = txt;
                 }
 
@@ -11445,7 +11619,7 @@ self.onmessage = function (e) {
         let html = '<div class="stx-modal">';
 
 
-        html += `<div class="stx-header"><span>Stast Xente Script Config</span><button class="stx-close" id="stxClose">✕</button></div>`;
+        html += `<div class="stx-header"><span>Stast Xente Script Config (${GM_info.script.version})</span><button class="stx-close" id="stxClose">✕</button></div>`;
 
         // Update banner
         if(GM_getValue("available_new_version") === "yes") {
@@ -12567,6 +12741,12 @@ self.onmessage = function (e) {
             player.style.display = (byPos && byTag) ? "block" : "none";
         });
     }
+    function formatNum(n) {
+        if (n >= 1_000_000) return (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1) + "M";
+        if (n >= 1_000)     return (n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1) + "K";
+        return n.toString();
+    }
+
     function getPreviousElement(elem,class_){
         let el = elem.previousElementSibling
         let maxIterations = 10; // límite
