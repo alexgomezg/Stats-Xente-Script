@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.246
+// @version      0.247
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1346,78 +1346,78 @@ self.onmessage = function (e) {
                                 e.stopPropagation();
                                 if(document.getElementById("player_comparing_"+currentId)){document.getElementById("player_comparing_"+currentId).remove()}
                                 let actual_id=document.getElementById("comparing_players").value
-                                let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
-                                let tableData
-                                let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+                                try{
+                                    let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
+                                    let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
 
-                                let tds = skillsTablePlayer.querySelectorAll("td.skillval");
+                                    let tds = skillsTablePlayer.querySelectorAll("td.skillval");
 
-                                let start = 1;
-                                let end = tds.length;
-                                let edad=0,valor=0,salario=0,skillsTotal=0,season=0
-                                for (let i = start; i < end; i++) {
+                                    let start = 1;
+                                    let end = tds.length;
+                                    let edad=0,valor=0,salario=0,skillsTotal=0,season=0
+                                    for (let i = start; i < end; i++) {
 
-                                    let td = tds[i];
+                                        let td = tds[i];
 
-                                    let text = td.textContent
-                                        .trim()
-                                        .replace(/[()]/g, "");
+                                        let text = td.textContent
+                                            .trim()
+                                            .replace(/[()]/g, "");
 
-                                    skillsTotal+=parseInt(text)
+                                        skillsTotal+=parseInt(text)
 
-                                    console.log(text);
-                                }
+                                        console.log(text);
+                                    }
 
-                                /*let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
+                                    /*let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
 
-                                let tr = table.querySelectorAll("tr")[0];
-                                let td = tr.querySelectorAll("td")[0];
-                                let strong = td.querySelector("strong");
-                                edad= strong ? strong.textContent.trim() : null;
+                                    let tr = table.querySelectorAll("tr")[0];
+                                    let td = tr.querySelectorAll("td")[0];
+                                    let strong = td.querySelector("strong");
+                                    edad= strong ? strong.textContent.trim() : null;
 
 
-                                tr = table.querySelectorAll("tr")[4];
-                                td = tr.querySelectorAll("td")[0];
-                                let span = td.querySelector("span");
-                                valor= span ? span.textContent.trim() : null;
-                                valor=valor.replace(GM_getValue("currency"),"")
-                                valor=valor.replace(/\s+/g, '');
-                                valor=formatNum(valor)
-
-                                tr = table.querySelectorAll("tr")[5];
-                                if(tr.innerHTML.includes(GM_getValue("currency"))){
+                                    tr = table.querySelectorAll("tr")[4];
                                     td = tr.querySelectorAll("td")[0];
-                                    span = td.querySelector("span");
-                                    salario= span ? span.textContent.trim() : null;
-                                    salario=salario.replace(GM_getValue("currency"),"")
-                                    salario=salario.replace(/\s+/g, '');
-                                    salario=formatNum(salario)
-                                }else{
-                                    salario="Youth"
-                                }
+                                    let span = td.querySelector("span");
+                                    valor= span ? span.textContent.trim() : null;
+                                    valor=valor.replace(GM_getValue("currency"),"")
+                                    valor=valor.replace(/\s+/g, '');
+                                    valor=formatNum(valor)
 
-                                tr = table.querySelectorAll("tr")[6];
-                                td = tr.querySelectorAll("td")[0];
-                                span = td.querySelector("span.bold");
-                                skillsTotal= span ? span.textContent.trim() : null;
+                                    tr = table.querySelectorAll("tr")[5];
+                                    if(tr.innerHTML.includes(GM_getValue("currency"))){
+                                        td = tr.querySelectorAll("td")[0];
+                                        span = td.querySelector("span");
+                                        salario= span ? span.textContent.trim() : null;
+                                        salario=salario.replace(GM_getValue("currency"),"")
+                                        salario=salario.replace(/\s+/g, '');
+                                        salario=formatNum(salario)
+                                    }else{
+                                        salario="Youth"
+                                    }
 
-                                tr = table.querySelectorAll("tr")[2];
-                                td = tr.querySelectorAll("td")[0];
-                                strong = td.querySelector("strong");
-                                season= strong ? strong.textContent.trim() : null;*/
-                                let icon="fa-hockey-puck"
-                                if(window.sport=="soccer"){
-                                    icon="fa-futbol"
-                                }
+                                    tr = table.querySelectorAll("tr")[6];
+                                    td = tr.querySelectorAll("td")[0];
+                                    span = td.querySelector("span.bold");
+                                    skillsTotal= span ? span.textContent.trim() : null;
 
-                                tableData=skillsTablePlayer.outerHTML
+                                    tr = table.querySelectorAll("tr")[2];
+                                    td = tr.querySelectorAll("td")[0];
+                                    strong = td.querySelector("strong");
+                                    season= strong ? strong.textContent.trim() : null;*/
+                                    let icon="fa-hockey-puck"
+                                    if(window.sport=="soccer"){
+                                        icon="fa-futbol"
+                                    }
+
+                                    tableData=skillsTablePlayer.outerHTML
 
 
 
 
-                                let font_size="12px"
-                                let bg="#f7f6f2"
-                                const infoGrid = `
+                                    let font_size="12px"
+                                    let bg="#f7f6f2"
+                                    const infoGrid = `
 
 <div style="padding:4px 4px 6px;font-family:sans-serif;">
   <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
@@ -1450,14 +1450,18 @@ self.onmessage = function (e) {
   </div>
 </div>`;
 
-                                let playerName = test.querySelector('span.player_name');
-                                let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'>"
-                                txt+="<h2 style='margin-bottom: 1px; text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"
-                                txt+=playerName.textContent+"</h2>"
-                                txt+=infoGrid
-                                txt+=tableData+"</div>"
-                                skillsTable.insertAdjacentHTML('afterend', txt);
-                                document.getElementById("hp_loader_comparing"+currentId).remove()
+                                    let playerName = test.querySelector('span.player_name');
+                                    let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'>"
+                                    txt+="<h2 style='margin-bottom: 1px; text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"
+                                    txt+=playerName.textContent+"</h2>"
+                                    txt+=infoGrid
+                                    txt+=tableData+"</div>"
+                                    skillsTable.insertAdjacentHTML('afterend', txt);
+                                    document.getElementById("hp_loader_comparing"+currentId).remove()
+                                } catch (e) {
+                                    alert(e?.message || e?.toString() || JSON.stringify(e));
+                                    document.getElementById("hp_loader_comparing"+currentId).remove()
+                                }
 
                             });
                         })(player_id,el);
@@ -10382,7 +10386,7 @@ self.onmessage = function (e) {
                         resolve(player_cointainer)
                     },
                     onerror: function (error) {
-                        reject(error);
+                        reject(new Error("Error loading: " + link + " | " + JSON.stringify(error)));
                     }
                 });
 
