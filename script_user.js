@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.245
+// @version      0.246
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1350,8 +1350,26 @@ self.onmessage = function (e) {
                                 let tableData
                                 let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
 
-                                let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
+                                let tds = skillsTablePlayer.querySelectorAll("td.skillval");
+
+                                let start = 1;
+                                let end = tds.length;
                                 let edad=0,valor=0,salario=0,skillsTotal=0,season=0
+                                for (let i = start; i < end; i++) {
+
+                                    let td = tds[i];
+
+                                    let text = td.textContent
+                                        .trim()
+                                        .replace(/[()]/g, "");
+
+                                    skillsTotal+=parseInt(text)
+
+                                    console.log(text);
+                                }
+
+                                /*let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
+
                                 let tr = table.querySelectorAll("tr")[0];
                                 let td = tr.querySelectorAll("td")[0];
                                 let strong = td.querySelector("strong");
@@ -1386,7 +1404,7 @@ self.onmessage = function (e) {
                                 tr = table.querySelectorAll("tr")[2];
                                 td = tr.querySelectorAll("td")[0];
                                 strong = td.querySelector("strong");
-                                season= strong ? strong.textContent.trim() : null;
+                                season= strong ? strong.textContent.trim() : null;*/
                                 let icon="fa-hockey-puck"
                                 if(window.sport=="soccer"){
                                     icon="fa-futbol"
