@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.250
+// @version      0.251
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1355,7 +1355,7 @@ self.onmessage = function (e) {
                                     let start = 1;
                                     let end = tds.length;
                                     let edad=0,valor=0,salario=0,skillsTotal=0,season=0
-                                    for (let i = start; i < end; i++) {
+                                    /*for (let i = start; i < end; i++) {
 
                                         let td = tds[i];
 
@@ -1366,9 +1366,9 @@ self.onmessage = function (e) {
                                         skillsTotal+=parseInt(text)
 
                                         console.log(text);
-                                    }
+                                    }*/
 
-                                    /*let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
+                                    let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
 
                                     let tr = table.querySelectorAll("tr")[0];
                                     let td = tr.querySelectorAll("td")[0];
@@ -1404,7 +1404,7 @@ self.onmessage = function (e) {
                                     tr = table.querySelectorAll("tr")[2];
                                     td = tr.querySelectorAll("td")[0];
                                     strong = td.querySelector("strong");
-                                    season= strong ? strong.textContent.trim() : null;*/
+                                    season= strong ? strong.textContent.trim() : null;
                                     let icon="fa-hockey-puck"
                                     if(window.sport=="soccer"){
                                         icon="fa-futbol"
@@ -1459,7 +1459,7 @@ self.onmessage = function (e) {
                                     skillsTable.insertAdjacentHTML('afterend', txt);
                                     document.getElementById("hp_loader_comparing"+currentId).remove()
                                 } catch (e) {
-                                    alert(e?.message || e?.toString() || JSON.stringify(e));
+                                    //alert(e?.message || e?.toString() || JSON.stringify(e));
                                     document.getElementById("hp_loader_comparing"+currentId).remove()
                                 }
 
@@ -2629,8 +2629,10 @@ self.onmessage = function (e) {
                             method: "GET",
                             url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id="+team_id_search,
                             headers: {
+                                "Cookie": document.cookie,
                                 "Content-Type": "application/json"
                             },
+                            withCredentials: true,
                             onload: function (response) {
                                 let parser = new DOMParser();
                                 let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
@@ -3646,8 +3648,10 @@ self.onmessage = function (e) {
                 method: "POST",
                 url: "https://www.managerzone.com/ajax.php?p=matches&sub=list&sport="+window.sport,
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 data: params.toString(),
 
                 onload: function (response) {
@@ -4420,8 +4424,10 @@ self.onmessage = function (e) {
             method: "GET",
             url: link,
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Cookie": document.cookie
             },
+            withCredentials: true,
             onerror: function() {
                 notifySnackBarError("Players stats");
             },
@@ -4721,7 +4727,7 @@ self.onmessage = function (e) {
                                             GM_xmlhttpRequest({
                                                 method: "GET",
                                                 url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search,
-                                                headers: { "Content-Type": "application/json" },
+                                                headers: { "Content-Type": "application/json", "Cookie": document.cookie }, withCredentials: true,
                                                 onload: function (response) {
                                                     let parser = new DOMParser();
                                                     let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
@@ -6768,8 +6774,10 @@ self.onmessage = function (e) {
                                     method: "GET",
                                     url: "https://www.managerzone.com/matchviewer/getMatchFiles.php?type=stats&mid="+match_id+"&sport="+window.sport,
                                     headers: {
-                                        "Content-Type": "application/json"
+                                        "Content-Type": "application/json",
+                                        "Cookie": document.cookie
                                     },
+                                    withCredentials: true,
                                     onload: function (response) {
                                         let parser = new DOMParser();
                                         let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
@@ -8590,8 +8598,10 @@ self.onmessage = function (e) {
                         method: "GET",
                         url: "https://www.managerzone.com/xml/team_matchlist.php?sport_id=" + window.sport_id + "&team_id=" + team_id + "&match_status=2&limit=100",
                         headers: {
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            "Cookie": document.cookie
                         },
+                        withCredentials: true,
                         onload: function (response) {
 
                             let matchesDate = []
@@ -10412,8 +10422,11 @@ self.onmessage = function (e) {
                     method: "GET",
                     url: link,
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Cookie": document.cookie
                     },
+                    withCredentials: true,
+
                     onload: function (response) {
                         let parser = new DOMParser();
                         let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
@@ -10505,8 +10518,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: url,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
                     let parser = new DOMParser();
                     let doc = parser.parseFromString(response.responseText, "text/html");
@@ -10540,8 +10555,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: url,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
                     let parser = new DOMParser();
                     try {
@@ -10574,8 +10591,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: url,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
                     let jsonResponse = JSON.parse(response.responseText);
                     resolve(jsonResponse)
@@ -10591,6 +10610,10 @@ self.onmessage = function (e) {
                 GM_xmlhttpRequest({
                     method: 'GET',
                     url:link,
+                    headers: {
+                        "Cookie": document.cookie
+                    },
+                    withCredentials: true,
                     onload: function (response) {
 
                         let parser = new DOMParser();
@@ -10639,6 +10662,10 @@ self.onmessage = function (e) {
             GM_xmlhttpRequest({
                 method:"GET",
                 url:url,
+                headers: {
+                    "Cookie": document.cookie
+                },
+                withCredentials: true,
                 onload: r => {
                     percent+=Math.floor(100 / totalUrls);
                     document.getElementById("mz_progress_bar").style.width = percent + "%";
@@ -10662,8 +10689,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: "https://www.managerzone.com/?p=players&pid="+id,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onerror: function(err) {
                     reject(err);
                 },
@@ -10725,7 +10754,8 @@ self.onmessage = function (e) {
             GM_xmlhttpRequest({
                 method: "GET",
                 url: url,
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json","Cookie": document.cookie },
+                withCredentials: true,
                 onload:  function (response) {
                     resolve(response)
                 },
@@ -10742,8 +10772,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: "https://www.managerzone.com/?p=team&tid=" + tid,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onerror: function(err) {
                     reject(err);
                 },
@@ -10800,8 +10832,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: link,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
                     let texto =response.responseText
                     let jsonStr = texto.trim().slice(1, -1);
@@ -10835,8 +10869,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: link,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
                     let texto =response.responseText
                     if(texto===undefined){
@@ -10971,8 +11007,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id="+window.sport_id+"&team_id="+team_id,
                 headers: {
-                    "Content-Type": "application/xml"
+                    "Content-Type": "application/xml",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: async function (response) {
                     try {
                         let parser = new DOMParser();
@@ -11082,8 +11120,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: "https://www.managerzone.com/?p=players",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onerror: function (err) {
                     reject(err);
                 },
@@ -11118,8 +11158,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: url,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
                     let jsonResponse = JSON.parse(response.responseText);
                     resolve(jsonResponse["age"])
@@ -12249,8 +12291,10 @@ self.onmessage = function (e) {
                 method: "GET",
                 url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&username=" + username,
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Cookie": document.cookie
                 },
+                withCredentials: true,
                 onload: function (response) {
 
                     let parser = new DOMParser();
@@ -12282,8 +12326,10 @@ self.onmessage = function (e) {
                         method: "GET",
                         url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id=" + window.sport_id + "&team_id=" + userTeamsData[index].getAttribute("teamId"),
                         headers: {
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            "Cookie": document.cookie
                         },
+                        withCredentials: true,
                         onload: function (response) {
                             let parser = new DOMParser();
                             let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
