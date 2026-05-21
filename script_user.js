@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.243
+// @version      0.244
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3521,17 +3521,27 @@ self.onmessage = function (e) {
 
     function fetchH2HMatches(rival_tid,limit){
         return new Promise((resolve, reject) => {
-            let formData = new FormData();
+            /*let formData = new FormData();
             formData.append("type", "played");
             formData.append("hidescore", "false");
             formData.append("selectType", "all");
             formData.append("limit",limit);
             formData.append("tid1",GM_getValue(window.sport+"_team_id"));
-            formData.append("tid2",rival_tid);
+            formData.append("tid2",rival_tid);*/
+            const params = new URLSearchParams();
+            params.append("type", "played");
+            params.append("hidescore", "false");
+            params.append("selectType", "all");
+            params.append("limit", limit);
+            params.append("tid1", GM_getValue(window.sport + "_team_id"));
+            params.append("tid2", rival_tid);
             GM_xmlhttpRequest({
                 method: "POST",
                 url: "https://www.managerzone.com/ajax.php?p=matches&sub=list&sport="+window.sport,
-                data: formData,
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                data: params.toString(),
 
                 onload: function (response) {
                     let jsonResponse = JSON.parse(response.responseText);
