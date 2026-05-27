@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.253
+// @version      0.254
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -101,6 +101,14 @@
             )
         )
     );
+    const badges = ["crew","cm_epic","cm_elite","cm_legendary","cm_champion","cm_senior","cm_gold","cm_blue"];
+    let isCM = false;
+    if(document.getElementById("header-username")){
+        let style = document.getElementById("header-username").getAttribute("style") || "";
+        isCM = badges.some(badge => style.includes(badge));
+    }
+
+
 
     //let currentGeneration = 0;
     /*let observer = new MutationObserver(() => {
@@ -339,7 +347,7 @@
             waitToDOM(trainingReport, ".clippable.player_link", 0,7000)
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingPercentages"))) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report')&& (GM_getValue("trainingPercentages")) &&(isCM)) {
             getDeviceFormat()
             waitToDOM(trainingReportPercentages, ".clippable.player_link", 0,7000)
         }
@@ -651,7 +659,7 @@
 
                 if((!h2h12)&&(h2hMax)){
                     teamTable += "</br></br><div style='padding: 5px;display:flex;align-items:center;justify-content:center;font-weight:600;margin:0 auto;border-radius:4px;width:50%;background-color:#AD4039;color:" + GM_getValue("color_native") + ";gap:6px;'>";
-                    teamTable += "<img src='https://statsxente.com/MZ1/View/Images/idea.png' width='15' height='15'/>";
+                    teamTable += "<img alt='' src='https://statsxente.com/MZ1/View/Images/idea.png' width='15' height='15'/>";
                     teamTable += "<span>H2H matches found</span>";
                     teamTable += "</div>"
                 }
@@ -1185,6 +1193,28 @@ self.onmessage = function (e) {
 
         }
     }
+
+
+
+    function insertPlayerMonitor(link){
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: link,
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    resolve(jsonResponse)
+                },
+
+                onerror: function (error) {
+                    reject(error)
+                }
+            });
+
+        });
+    }
+
+
 //Seller info transfer market
     async function processTMPlayer(el) {
         try {
@@ -1327,6 +1357,11 @@ self.onmessage = function (e) {
 `
                     newSpan1.className = "player_icon_placeholder training_graphs1 "+window.sport;
                     span11.after(newSpan1);
+
+
+
+
+
                     if (divs_dark[1].querySelector("#but_stx_compare_" + player_id)) {
                         (function (currentId,el) {
                             el.querySelector("#but_stx_compare_" + currentId).addEventListener('click', async function (e) {
@@ -1346,90 +1381,77 @@ self.onmessage = function (e) {
                                 e.stopPropagation();
                                 if(document.getElementById("player_comparing_"+currentId)){document.getElementById("player_comparing_"+currentId).remove()}
                                 let actual_id=document.getElementById("comparing_players").value
-                                try{
-                                    let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
-                                    let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
-                                    let tableData
-                                    let tds = skillsTablePlayer.querySelectorAll("td.skillval");
+                                // try{
+                                let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid="+actual_id);
+                                let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+                                let tableData
+                                let tds = skillsTablePlayer.querySelectorAll("td.skillval");
 
-                                    let edad=0,valor=0,salario=0,skillsTotal=0,season=0
-                                    /*for (let i = start; i < end; i++) {
+                                let edad=0,valor=0,salario=0,skillsTotal=0,season=0
 
-                                        let td = tds[i];
+                                let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
 
-                                        let text = td.textContent
-                                            .trim()
-                                            .replace(/[()]/g, "");
-
-                                        skillsTotal+=parseInt(text)
-
-                                        console.log(text);
-                                    }*/
-
-                                    let table = test.querySelector(".dg_playerview_info."+window.sport+" table");
-
-                                    let tr = table.querySelectorAll("tr")[0];
-                                    let td = tr.querySelectorAll("td")[0];
-                                    let strong = td.querySelector("strong");
-                                    edad= strong ? strong.textContent.trim() : null;
+                                let tr = table.querySelectorAll("tr")[0];
+                                let td = tr.querySelectorAll("td")[0];
+                                let strong = td.querySelector("strong");
+                                edad= strong ? strong.textContent.trim() : null;
 
 
-                                    let trs = table.querySelectorAll("tr");
-                                    let start = 4;
-                                    let maxChecks = 5;
-                                    let index=4;
-                                    for (let i = start; i < trs.length && i < start + maxChecks; i++) {
-                                        let tr = trs[i];
-                                        if (tr && tr.textContent.includes(GM_getValue("currency"))) {
-                                            break;
-                                        }
-                                        index++
+                                let trs = table.querySelectorAll("tr");
+                                let start = 4;
+                                let maxChecks = 5;
+                                let index=4;
+                                for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                                    let tr = trs[i];
+                                    if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                                        break;
                                     }
-
-
-                                    tr = table.querySelectorAll("tr")[index];
-                                    td = tr.querySelectorAll("td")[0];
-                                    let span = td.querySelector("span");
-                                    valor= span ? span.textContent.trim() : null;
-                                    valor=valor.replace(GM_getValue("currency"),"")
-                                    valor=valor.replace(/\s+/g, '');
-                                    valor=formatNum(valor)
                                     index++
+                                }
 
-                                    tr = table.querySelectorAll("tr")[index];
-                                    if(tr.innerHTML.includes(GM_getValue("currency"))){
-                                        td = tr.querySelectorAll("td")[0];
-                                        span = td.querySelector("span");
-                                        salario= span ? span.textContent.trim() : null;
-                                        salario=salario.replace(GM_getValue("currency"),"")
-                                        salario=salario.replace(/\s+/g, '');
-                                        salario=formatNum(salario)
-                                    }else{
-                                        salario="Youth"
-                                    }
-                                    index++;
-                                    tr = table.querySelectorAll("tr")[index];
+                                tr = table.querySelectorAll("tr")[index];
+                                td = tr.querySelectorAll("td")[0];
+                                let span = td.querySelector("span");
+                                valor= span ? span.textContent.trim() : null;
+                                valor=valor.replace(GM_getValue("currency"),"")
+                                valor=valor.replace(/\s+/g, '');
+                                valor=formatNum(valor)
+                                index++
+
+                                tr = table.querySelectorAll("tr")[index];
+                                if(tr.innerHTML.includes(GM_getValue("currency"))){
                                     td = tr.querySelectorAll("td")[0];
-                                    span = td.querySelector("span.bold");
-                                    skillsTotal= span ? span.textContent.trim() : null;
+                                    span = td.querySelector("span");
+                                    salario= span ? span.textContent.trim() : null;
+                                    salario=salario.replace(GM_getValue("currency"),"")
+                                    salario=salario.replace(/\s+/g, '');
+                                    salario=formatNum(salario)
+                                }else{
+                                    salario="Youth"
+                                }
+                                index++;
+                                tr = table.querySelectorAll("tr")[index];
+                                td = tr.querySelectorAll("td")[0];
+                                span = td.querySelector("span.bold");
+                                skillsTotal= span ? span.textContent.trim() : null;
 
-                                    tr = table.querySelectorAll("tr")[2];
-                                    td = tr.querySelectorAll("td")[0];
-                                    strong = td.querySelector("strong");
-                                    season= strong ? strong.textContent.trim() : null;
-                                    let icon="fa-hockey-puck"
-                                    if(window.sport=="soccer"){
-                                        icon="fa-futbol"
-                                    }
+                                tr = table.querySelectorAll("tr")[2];
+                                td = tr.querySelectorAll("td")[0];
+                                strong = td.querySelector("strong");
+                                season= strong ? strong.textContent.trim() : null;
+                                let icon="fa-hockey-puck"
+                                if(window.sport=="soccer"){
+                                    icon="fa-futbol"
+                                }
 
-                                    tableData=skillsTablePlayer.outerHTML
-
-
+                                tableData=skillsTablePlayer.outerHTML
 
 
-                                    let font_size="12px"
-                                    let bg="#f7f6f2"
-                                    const infoGrid = `
+
+
+                                let font_size="12px"
+                                let bg="#f7f6f2"
+                                const infoGrid = `
 
 <div style="padding:4px 4px 6px;font-family:sans-serif;">
   <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
@@ -1462,24 +1484,76 @@ self.onmessage = function (e) {
   </div>
 </div>`;
 
-                                    let playerName = test.querySelector('span.player_name');
-                                    let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'>"
-                                    txt+="<h2 style='margin-bottom: 1px; text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"
-                                    txt+=playerName.textContent+"</h2>"
-                                    txt+=infoGrid
-                                    txt+=tableData+"</div>"
-                                    skillsTable.insertAdjacentHTML('afterend', txt);
-                                    document.getElementById("hp_loader_comparing"+currentId).remove()
-                                } catch (e) {
-                                    //alert(e?.message || e?.toString() || JSON.stringify(e));
-                                    document.getElementById("hp_loader_comparing"+currentId).remove()
-                                }
+                                let playerName = test.querySelector('span.player_name');
+                                let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'>"
+                                txt+="<h2 style='margin-bottom: 1px; text-align: center; color:"+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"
+                                txt+=playerName.textContent+"</h2>"
+                                txt+=infoGrid
+                                txt+=tableData+"</div>"
+                                skillsTable.insertAdjacentHTML('afterend', txt);
+                                document.getElementById("hp_loader_comparing"+currentId).remove()
+                                /* } catch (e) {
+                                     //alert(e?.message || e?.toString() || JSON.stringify(e));
+                                     document.getElementById("hp_loader_comparing"+currentId).remove()
+                                 }*/
 
                             });
                         })(player_id,el);
 
                     }
 
+                }
+
+
+
+                if(GM_getValue("telegramNotifications")) {
+                    let newSpan2 = document.createElement('span');
+                    newSpan2.innerHTML = `<span id="but_stx_monitor_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-brands fa-telegram"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>
+`
+                    newSpan2.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                    span11.after(newSpan2);
+
+
+                    if (divs_dark[1].querySelector("#but_stx_monitor_" + player_id)) {
+                        (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
+                            el.querySelector("#but_stx_monitor_" + currentId).addEventListener('click', async function (e) {
+
+                                var overlay = document.createElement('div');
+                                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+                                var modal = document.createElement('div');
+                                modal.style.cssText = 'background:#fff;border-radius:12px;padding:24px;width:320px;max-width:90vw;position:relative;';
+                                let clase = "loader-" + window.sport
+                                var txtToInsert =
+                                    "<div style='text-align:center;'>" +
+                                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                                    "</div>" +
+                                    "</div>";
+
+                                modal.innerHTML = '<button id="modal-close" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;">✕</button>' + txtToInsert;
+
+                                overlay.appendChild(modal);
+                                document.body.appendChild(overlay);
+
+                                e.preventDefault();
+                                e.stopPropagation();
+                                let link = "https://statsxente.com/MZ1/Functions/tamper_monitor.php?sport=" + currentSport
+                                    + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
+                                    + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                                let responseMonitor = await insertPlayerMonitor(link)
+                                document.body.removeChild(overlay)
+                                notifySnackBar(responseMonitor["status_code"], responseMonitor["msg"]);
+                            });
+                        })(player_id, GM_getValue(window.sport + "_team_id"), window.sport, window.lang, team_name, player_name);
+
+                    }
                 }
 
 
@@ -4672,6 +4746,12 @@ self.onmessage = function (e) {
                         document.getElementById("show_teams_history").style.backgroundColor=GM_getValue("bg_native")
                         document.getElementById("show_users_history").style.color=GM_getValue("color_native")
                         document.getElementById("show_users_history").style.backgroundColor=GM_getValue("bg_native")
+
+
+                        document.querySelectorAll('.btn-save').forEach(btn => {
+                            btn.style.backgroundColor=GM_getValue("bg_native");
+                            btn.style.color=GM_getValue("color_native")
+                        });
 
                         if(window.stx_device!=="computer"){
                             document.getElementById("league_history_table").classList.remove("hitlist-compact-list-included");
@@ -8939,8 +9019,8 @@ self.onmessage = function (e) {
                     let tr = trs[i];
                     if (tr && tr.textContent.includes(GM_getValue("currency"))) {
                         break;
+                        index++
                     }
-                    index++
                 }
 
 
@@ -11637,7 +11717,8 @@ self.onmessage = function (e) {
             show_tactic_filter: true, league_image_size: 20,transfer_grid_2:false,transfer_grid_4:true,
             transfersTaxFlag:true,showSkillsResume:false,tacticsSkillsResume: true,teamsFinancialMarket:true,
             onlySinglePages:true,eloChangeCalendar:true,trainingPercentages:true,partialSkills:true,onlySinglePagesSkills:true,
-            positionsColors:true,positionsColorsBG:false,collapseLeagueButtons:false,transfersPlayerCompare:true,floatingDropdown:true
+            positionsColors:true,positionsColorsBG:false,collapseLeagueButtons:false,transfersPlayerCompare:true,floatingDropdown:true,
+            telegramNotifications:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -11712,6 +11793,7 @@ self.onmessage = function (e) {
             // Finance
             { key: 'teamsFinancialMarket',       id: 'teamsFinancialMarket',          label: 'Teams financial data' },
             { key: 'positionsColors',            id: 'positionsColors',               label: 'Positions colors' },
+            { key: 'telegramNotifications',      id: 'telegramNotifications',         label: 'Telegram Notifications' },
         ];
 
         let html = '<div class="stx-modal">';
@@ -12411,6 +12493,23 @@ self.onmessage = function (e) {
 
 
     }
+
+
+    function notifySnackBar(status,msg){
+
+        let x = document.getElementById("snackbar_stx");
+        let txt = "<img alt='' src='https://statsxente.com/MZ1/View/Images/main_icon.png' width='25px' height='25px'> <span style='color:#f44336; font-size: 17px;'>[Stats Xente Script] </span>"
+        txt+=msg+"</br>"
+        x.innerHTML = txt;
+        x.className = "showSnackBar_stx";
+        setTimeout(function () { x.className = x.className.replace("showSnackBar_stx", ""); }, 4000);
+        let clase="loader-"+window.sport
+        let elementos = document.querySelectorAll('.'+clase);
+        elementos.forEach(elemento => elemento.remove());
+    }
+
+
+
     function notifySnackBarError(id){
 
         let x = document.getElementById("snackbar_stx");
@@ -12424,8 +12523,8 @@ self.onmessage = function (e) {
         let clase="loader-"+window.sport
         let elementos = document.querySelectorAll('.'+clase);
         elementos.forEach(elemento => elemento.remove());
-
     }
+
     function getDate(first_of_month){
         let hoy = new Date();
         let day="01"
