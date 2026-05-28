@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.254
+// @version      0.255
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -107,6 +107,10 @@
         let style = document.getElementById("header-username").getAttribute("style") || "";
         isCM = badges.some(badge => style.includes(badge));
     }
+    let storedMonitors=[]
+    let telegramChatId=GM_getValue('telegramChatId',"")
+
+
 
 
 
@@ -1214,6 +1218,24 @@ self.onmessage = function (e) {
         });
     }
 
+    function getMonitors(link){
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: link,
+                onload: function (response) {
+                    let jsonResponse = JSON.parse(response.responseText);
+                    resolve(jsonResponse)
+                },
+
+                onerror: function (error) {
+                    reject(error)
+                }
+            });
+
+        });
+    }
+
 
 //Seller info transfer market
     async function processTMPlayer(el) {
@@ -1507,11 +1529,21 @@ self.onmessage = function (e) {
 
 
                 if(GM_getValue("telegramNotifications")) {
+                    let color="#AD4039"
+                    let flagDelete=false
+                    let status="insert"
+                    if(storedMonitors[player_id]!==undefined){
+                        color="#4c9f34"
+                        flagDelete=true
+                        status="delete"
+                    }
+
+
                     let newSpan2 = document.createElement('span');
                     newSpan2.innerHTML = `<span id="but_stx_monitor_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
                     <a class="player_icon"><span class="player_icon_wrapper">
               <span class="fa-stack">
- <i class="fa-brands fa-telegram"></i>
+ <i id="player_icon_${player_id}" data-status="${status}" class="fa-brands fa-telegram" style="color: ${color};"></i>
 </span>
 <span class="player_icon_text"></span></span></a></span>
 `
@@ -1522,6 +1554,10 @@ self.onmessage = function (e) {
                     if (divs_dark[1].querySelector("#but_stx_monitor_" + player_id)) {
                         (function (currentId, currentTeamId, currentSport, lang, team_name, player_name) {
                             el.querySelector("#but_stx_monitor_" + currentId).addEventListener('click', async function (e) {
+                                let flagDelete=false
+                                if(document.getElementById("player_icon_"+currentId).dataset.status==="delete"){
+                                    flagDelete=true
+                                }
 
                                 var overlay = document.createElement('div');
                                 overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -1544,10 +1580,21 @@ self.onmessage = function (e) {
 
                                 e.preventDefault();
                                 e.stopPropagation();
-                                let link = "https://statsxente.com/MZ1/Functions/tamper_monitor.php?sport=" + currentSport
-                                    + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
-                                    + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
-                                let responseMonitor = await insertPlayerMonitor(link)
+                                let urlMonitor=""
+                                if(!flagDelete){
+                                    urlMonitor = "https://statsxente.com/MZ1/Functions/tamper_monitor.php?type=insert&sport=" + currentSport
+                                        + "&player_id=" + currentId + "&team_id=" + currentTeamId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency")
+                                        + "&team_name=" + encodeURIComponent(team_name) + "&player_name=" + encodeURIComponent(player_name)
+                                    document.getElementById("player_icon_"+currentId).style.color="#4c9f34"
+                                    document.getElementById("player_icon_"+currentId).dataset.status="delete"
+                                }else{
+                                    urlMonitor = "https://statsxente.com/MZ1/Functions/tamper_monitor.php?type=delete&sport=" + currentSport
+                                        + "&player_id=" + currentId + "&chat_id=" + telegramChatId
+                                    document.getElementById("player_icon_"+currentId).style.color="#AD4039"
+                                    document.getElementById("player_icon_"+currentId).dataset.status="insert"
+                                }
+                                console.log(urlMonitor)
+                                let responseMonitor = await insertPlayerMonitor(urlMonitor)
                                 document.body.removeChild(overlay)
                                 notifySnackBar(responseMonitor["status_code"], responseMonitor["msg"]);
                             });
@@ -1669,6 +1716,13 @@ self.onmessage = function (e) {
         if(document.querySelector(".player_loading_div")!==null){
             return;
         }
+
+        if(telegramChatId!==""){
+            let link = "https://statsxente.com/MZ1/Functions/tamper_monitor.php?sport=" + window.sport+"&chat_id="+telegramChatId+"&type=get";
+            storedMonitors = await getMonitors(link)
+
+        }
+
         console.log("START")
         ///CHECK DUPLICATES
         isRunning = false;
@@ -2815,13 +2869,14 @@ self.onmessage = function (e) {
                 },
                 onload: function (response) {
                     let jsonResponse = JSON.parse(response.responseText);
+                    console.log(jsonResponse)
                     let thStyle="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+";'"
                     let thStyleLeft="style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'"
                     let table='<br><h3>ELO Review</h3>'
                     let style='max-width: 100%; overflow-x: auto; display: block; width:100%;'
                     getDeviceFormat()
                     if(window.stx_device==="computer"){
-                        style="width:65%; margin: 0 auto;"
+                        style="width:85%; margin: 0 auto;"
                     }
                     table+='<div style="display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
 
@@ -2832,6 +2887,7 @@ self.onmessage = function (e) {
                     table+="<th  style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO</th>"
                     table+="<th  style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO Pos</th>"
                     table+="<th  "+thStyleLeft+">Change Week</th><th  "+thStyleLeft+">Change Month</th>"
+                    table+="<th  "+thStyleLeft+">Change 3 Months</th><th  "+thStyleLeft+">Change 6 Months</th>"
                     table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>Change Year</th>"
                     // table+="<th style='background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:left;'>ELO</th>"
                     // table+="<th style='border-top-right-radius: 5px; background-color: "+GM_getValue("bg_native")+"; color: "+GM_getValue("color_native")+"; text-align:center;'>ELO Pos</th>"
@@ -2896,6 +2952,38 @@ self.onmessage = function (e) {
                         table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
                         table+=symbol
                         table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['month'])+"</td>";
+
+                        symbol=""
+                        status="down"
+                        if(jsonResponse[tmp_cat]['3month']>0){
+                            symbol="&nbsp;"
+                            status="up"
+                        }
+                        if(jsonResponse[tmp_cat]['3month']===0){
+                            symbol="&nbsp;"
+                            status="cir_amarillo"
+                        }
+
+                        table+="<td style='text-align: left;"+bottomStyle+";'>"
+                        table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
+                        table+=symbol
+                        table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['3month'])+"</td>";
+
+                        symbol=""
+                        status="down"
+                        if(jsonResponse[tmp_cat]['6month']>0){
+                            symbol="&nbsp;"
+                            status="up"
+                        }
+                        if(jsonResponse[tmp_cat]['6month']===0){
+                            symbol="&nbsp;"
+                            status="cir_amarillo"
+                        }
+
+                        table+="<td style='text-align: left;"+bottomStyle+";'>"
+                        table+="<img alt='' src='https://statsxente.com/MZ1/View/Images/"+status+".png' width='10px' height='10px'/>"
+                        table+=symbol
+                        table+=new Intl.NumberFormat(window.userLocal, {minimumFractionDigits: 2,maximumFractionDigits: 2}).format(jsonResponse[tmp_cat]['6month'])+"</td>";
 
                         symbol=""
                         status="down"
@@ -11949,6 +12037,15 @@ self.onmessage = function (e) {
         html += '<div><div class="stx-section-title">TM Player Compare</div><div class="stx-checkrow">';
         html += `<label class="stx-checkitem"><input type="checkbox" id="floatingDropdown" ${chk('floatingDropdown')}> Floating dropdown</label>`;
         html += '</div></div>'
+
+
+        html += '<div><div class="stx-section-title">Telegram Chat ID</div><div class="stx-checkrow">';
+        html += `<input style="border-radius:3px; width:7em; background-color: ${lightedColor1};" type="text" value="${telegramChatId}" id="telegramChatId" placeholder="Your chat id">`;
+        html += '</div></div>'
+
+
+
+
         html +='</div>';
 
 
@@ -12053,6 +12150,7 @@ self.onmessage = function (e) {
             GM_setValue('collapseLeagueButtons',  document.getElementById('collapseLeagueButtons').checked);
             GM_setValue('floatingDropdown',  document.getElementById('floatingDropdown').checked);
             GM_setValue('league_image_size',      parseInt(document.getElementById('slider_input').value));
+            GM_setValue('telegramChatId',document.getElementById("telegramChatId").value);
             window.location.reload();
         });
 
