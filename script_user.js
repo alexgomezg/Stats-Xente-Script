@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.258
+// @version      0.259
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -90,18 +90,6 @@
     }
     let storedMonitors = []
     let telegramChatId = GM_getValue('telegramChatId', "")
-
-
-
-
-
-    //let currentGeneration = 0;
-    /*let observer = new MutationObserver(() => {
-        observer.disconnect();
-        addTeamInfoMarket().finally(() => {
-            //observeContainerTM();
-        });
-    });*/
 
 
     setCSSStyles()
@@ -781,16 +769,7 @@
         });
 
         document.getElementById("ui-id-3").parentNode.addEventListener('click', function () {
-
             waitToDOMById(() => calendarEloChange("cup_matches"), "cup_match_schedule_hitlist", 5000);
-
-            /*setTimeout(() => {
-
-                calendarEloChange("cup_matches")
-
-
-            }, 2000);*/
-
         });
 
 
@@ -1329,7 +1308,6 @@ self.onmessage = function (e) {
                 let secondTd11 = tds11[4];
                 let span11 = secondTd11.querySelector('span');
                 let newSpan = document.createElement('span');
-                /*let clonedSpan1 = span11.cloneNode(true);*/
                 newSpan.innerHTML = `<span id="but_stx_${player_id}" class="player_icon_placeholder" style="padding-left:3px;"><a href="#"
             title="Stats Xente" class="player_icon">
             <span class="player_icon_wrapper"><span class="player_icon_image"
@@ -1484,11 +1462,6 @@ self.onmessage = function (e) {
                                 txt += tableData + "</div>"
                                 skillsTable.insertAdjacentHTML('afterend', txt);
                                 document.getElementById("hp_loader_comparing" + currentId).remove()
-                                /* } catch (e) {
-                                     //alert(e?.message || e?.toString() || JSON.stringify(e));
-                                     document.getElementById("hp_loader_comparing"+currentId).remove()
-                                 }*/
-
                             });
                         })(player_id, el);
 
@@ -1712,9 +1685,6 @@ self.onmessage = function (e) {
                     let profit = (venta - player_data['purchase_price']) - fee - tax
                     let gross_profit = venta - tax - fee
 
-                    /*let tax = (venta - player_data['purchase_price']) * tax_rate
-                    let profit = (venta - player_data['purchase_price']) - fee - tax
-                    let gross_profit = venta - tax - fee*/
                     if (profit < 0) {
                         gross_profit = venta - fee
                     }
@@ -2235,8 +2205,6 @@ self.onmessage = function (e) {
         }
 
 
-        /* txt+=`
-   <center>`*/
         if (!document.getElementById("selectDivTactic")) {
             txt += "<div id='selectDivTactic' " + styleTable + ">Tactics: <select id='changeTactic'>"
             for (let [clave] of tacticsMap) {
@@ -6773,30 +6741,6 @@ self.onmessage = function (e) {
                             spanButtonDisplay = "none";
                         }
 
-
-                        /*let iner = "<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but" + id + "' style='cursor:pointer;'/>";
-                        if (GM_getValue("league_graph_button") === "checked") {
-                            buttonDisplay = ""
-                        } else {
-                            buttonDisplay = "display:none;";
-                        }
-                        iner += "<img alt='' src='https://statsxente.com/MZ1/View/Images/graph.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but1" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-
-                        if (GM_getValue("league_report_button") === "checked") {
-                            buttonDisplay = ""
-                        } else {
-                            buttonDisplay = "display:none;";
-                        }
-                        iner += "<img alt='' src='https://statsxente.com/MZ1/View/Images/report.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but2" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-
-                        if (GM_getValue("league_calendar_button") === "checked") {
-                            buttonDisplay = ""
-                        } else {
-                            buttonDisplay = "display:none;";
-                        }
-                        iner += " <img alt='' src='https://statsxente.com/MZ1/View/Images/calendar.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but3" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-                        iner += "</center>";*/
-
                         iner += `<span id='extraButs${id}' style='gap: 2px; display:${spanButtonDisplay};'>`;
 
                         iner += `<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png'
@@ -7918,27 +7862,6 @@ self.onmessage = function (e) {
                 let player_span = elementos1[i].querySelector('.player_name')
                 if ((GM_getValue("positionsColors")) && (spanShare !== null)) {
                     let pos = playerPositions.get(ids[0].textContent);
-                    /*txt +='<span class="player_icon_placeholder"><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
-                    txt +='border-radius: 3px; width: 3em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
-                    txt +='<option>None</option>'
-
-                    let pos=playerPositions.get(ids[0].textContent);
-
-
-                    if(window.sport==="soccer"){
-                        txt += `<option value="Goalkeeper" ${pos === "Goalkeeper" ? "selected" : ""}>Gk</option>`;
-                        txt += `<option value="Defender" ${pos=== "Defender" ? "selected" : ""}>De</option>`;
-                        txt += `<option value="Midfielder" ${pos === "Midfielder" ? "selected" : ""}>Md</option>`;
-                        txt += `<option value="Striker" ${pos === "Striker" ? "selected" : ""}>Sk</option>`;
-                        txt += `<option value="Wing" ${pos === "Wing" ? "selected" : ""}>Wg</option>`;
-                    }else{
-                        txt += `<option value="Goalkeeper_hockey" ${pos === "Goalkeeper_hockey" ? "selected" : ""}>Goalkeeper</option>`;
-                        txt += `<option value="Defender_hockey" ${pos=== "Defender_hockey" ? "selected" : ""}>Defender</option>`;
-                        txt += `<option value="Center" ${pos=== "Center" ? "selected" : ""}>Center</option>`;
-                        txt += `<option value="Wing_hockey" ${pos === "Wing_hockey" ? "selected" : ""}>Wing</option>`;
-                    }
-                    txt +='</span></select>'*/
-                    //let pos=playerPositions.get(ids[0].textContent);
                     let c = playerPosColors.get(pos)
                     let abv = positionsAbrev.get(pos)
                     if ((abv === "No" || abv === "None" || abv === undefined || abv === "undefined")) {
@@ -8441,15 +8364,9 @@ self.onmessage = function (e) {
         const spanShare = element.querySelector('span.player_icon_placeholder.player_share_skills');
         let player_span = enlace.querySelector('.player_name')
         if ((GM_getValue("positionsColors")) && (spanShare !== null)) {
-            /*txt +='<span class="player_icon_placeholder"><select id="position_'+ids[0].textContent+'" style="margin-left:3px; background-color: '+GM_getValue("bg_native")+'; padding: 2px 3px;'
-            txt +='border-radius: 3px; width: 7em; border-color: white; color: '+GM_getValue("color_native")+'; font-family: Roboto; font-weight: bold; font-size: revert;">'
-            txt +='<option>None</option>'*/
-
             let pos = playerPositions.get(ids[0].textContent);
-
             let c = playerPosColors.get(pos)
             let abv = positionsAbrev.get(pos)
-
             if ((abv === "No" || abv === "None" || abv === undefined || abv === "undefined")) {
                 c = "#878686"
                 abv = "No"
@@ -9432,90 +9349,11 @@ self.onmessage = function (e) {
                             contShowed++;
                         }
 
-
-
-                        /*if (noneSelected || (retiring && isRetiring) || (nonRetiring && !isRetiring)) {
-                            if(scout.length>0){
-
-                                let scout_divs = p.querySelectorAll(".scout_report_stars");
-
-                                let hp_stars = scout_divs[0].querySelectorAll("i").length;
-                                let lp_stars = scout_divs[1].querySelectorAll("i").length;
-                                let sp_stars = scout_divs[2].querySelectorAll("i").length;
-
-
-                                if((hp_stars>=min_hp_stars)&&(lp_stars>=min_lp_stars)&&(sp_stars>=min_sp_stars)){
-
-                                    if((hp_skills.length>0)||(lp_skills.length>0)){
-
-                                        let skill_names = p.querySelectorAll(".skill_name");
-                                        let hp_matches=0;
-                                        let lp_matches=0;
-                                        skill_names.forEach(skill => {
-                                            let spans = skill.querySelectorAll("span");
-                                            if(spans.length>1){
-
-                                                //HP
-                                                if(spans[1].textContent==="1"){
-                                                    if(hp_skills.includes(spans[0].textContent)){
-                                                        hp_matches++;
-                                                    }
-                                                }
-
-                                                //LP
-                                                if(spans[1].textContent==="2"){
-                                                    if(lp_skills.includes(spans[0].textContent)){
-                                                        lp_matches++;
-                                                    }
-                                                }
-                                            }
-
-
-                                        }); //Aqui acaba skills
-
-
-                                        if((hp_skills.length===hp_matches)&&(lp_skills.length===lp_matches)){
-                                            if(contShowed<20){
-                                                container.appendChild(p.cloneNode(true));
-                                            }
-                                            searchResults.push(p.cloneNode(true))
-                                            //document.getElementById("players_container_stx").innerHTML+=p.innerHTML
-                                            contShowed++;
-                                        }
-                                    }else{
-                                        if(contShowed<20){
-                                            container.appendChild(p.cloneNode(true));
-                                        }
-                                        searchResults.push(p.cloneNode(true))
-                                        contShowed++;
-                                    }
-
-
-
-
-
-                                }
-
-
-
-
-                            }
-                        }*/
-
                     });
 
                 });
 
-
-
-                /*document.getElementById("players_container").innerHTML = container.innerHTML;
-                document.getElementById("players_container").style.display="block"
-                document.getElementById("players_container_stx").style.display="none"*/
-
-
                 document.getElementById("players_container_stx").innerHTML = container.innerHTML;
-
-
                 if (document.getElementById("gw_run")) { document.getElementById("gw_run").click() }
                 if (document.getElementById("stxc_colorize_skills_mobile")) { document.getElementById("stxc_colorize_skills_mobile").click() }
                 percent = 100;
@@ -10621,27 +10459,6 @@ self.onmessage = function (e) {
                         reject("none");
                     }
                 });
-
-
-                /*GM_xmlhttpRequest({
-                    method: 'GET',
-                    url:link,
-                    onload: function (response) {
-                        let options=""
-                        let parser = new DOMParser();
-                        let doc = parser.parseFromString(response.responseText, 'text/html');
-                        let elementos1 = doc.getElementsByClassName('playerContainer');
-                        for (let i = 0; i < elementos1.length; i++) {
-                            let playerName = elementos1[i].querySelector('span.player_name');
-                            let id = elementos1[i].querySelector('span.player_id_span');
-                            options+="<option value='"+id.textContent+"'>"+playerName.textContent+"</option>";
-                        }
-                        resolve(options)
-                    },
-                    onerror: function (error) {
-                        reject(error);
-                    }
-                });*/
 
             }
         );
@@ -11886,14 +11703,6 @@ self.onmessage = function (e) {
             html += `<label class="stx-toggle ${tog(m.key)}" data-key="${m.key}" id="${m.id}"><div class="stx-dot"></div>${m.label}</label>`;
         });
         html += '</div></div>';
-
-        // Leagues config
-        /*html += '<div class="stx-section"><div class="stx-section-title">Leagues config</div>';
-        html += '<div class="stx-row">';
-        ['senior', 'u23', 'u21', 'u18'].forEach(cat => {
-            html += `<label>${cat.toUpperCase()}</label>${generateValuesSelect(cat)}`;
-        });
-        html += '</div>';*/
         html += '<div class="stx-section"><div class="stx-section-title">Leagues config</div>';
         html += '<div class="stx-row-select">';
         ['senior', 'u23', 'u21', 'u18'].forEach(cat => {
@@ -13119,7 +12928,6 @@ self.onmessage = function (e) {
         GM_addStyle(`#snackbar_stx {
   visibility: hidden;
   position: fixed;
-  /*display: flex;*/
   align-items: center;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -13177,25 +12985,16 @@ self.onmessage = function (e) {
     text-shadow: 1px 1px #ffffff;
 }.modal_cargando-stx {
         display: none;
-        /* Hidden by default */
         position: fixed;
-        /* Stay in place */
         z-index: 150;
-        /* Sit on top */
         padding-top: 25px;
-        /* Location of the box */
         left: 0;
         top: 0;
         width: 100%;
-        /* Full width */
         height: 100%;
-        /* Full height */
         overflow: auto;
-        /* Enable scroll if needed */
         background-color: rgb(0, 0, 0);
-        /* Fallback color */
         background-color: rgba(0, 0, 0, 0.75);
-        /* Black w/ opacity */
         justify-content: center;
         align-items: center;
     }
@@ -13223,13 +13022,13 @@ border-radius: 3px;
   cursor:pointer;
   color: white;
   font-family: 'Roboto', sans-serif;
-  background-color: #3CC93F;/*Color de fondo*/
+  background-color: #3CC93F;
 }
 .btn-save:hover{
-  background-color: #37B839;/*Color de fondo*/
+  background-color: #37B839;
 }
 .btn-save:active{
-  background-color: #29962A;/*Color de fondo*/
+  background-color: #29962A;
 }
 
 
@@ -13244,13 +13043,13 @@ border-radius: 3px;
   cursor:pointer;
   color: white;
   font-family: 'Roboto', sans-serif;
-  background-color: #2da8ef;/*Color de fondo*/
+  background-color: #2da8ef;
 }
 .btn-update:hover{
-  background-color: #2187c2;/*Color de fondo*/
+  background-color: #2187c2;
 }
 .btn-update:active{
-  background-color: #2187c2;/*Color de fondo*/
+  background-color: #2187c2;
 }
 
 
@@ -13263,13 +13062,13 @@ border-radius: 5px;
   padding: 7px 3px;
   cursor:pointer;
   color: white;
-  background-color: #2da8ef;/*Color de fondo*/
+  background-color: #2da8ef;
 }
 .btn-comp-fed:hover{
-  background-color: #2187c2;/*Color de fondo*/
+  background-color: #2187c2;
 }
 .btn-comp-fed:active{
-  background-color: #2187c2;/*Color de fondo*/
+  background-color: #2187c2;
 }
 
 .btn-delete{
@@ -13284,13 +13083,13 @@ border-radius: 3px;
   cursor:pointer;
   color: white;
   font-family: 'Roboto', sans-serif;
-  background-color: #e6413e;/*Color de fondo*/
+  background-color: #e6413e;
 }
 .btn-delete:hover{
-  background-color: #C93832;/*Color de fondo*/
+  background-color: #C93832;
 }
 .btn-delete:active{
-  background-color: #ad2a24;/*Color de fondo*/
+  background-color: #ad2a24;
 }
 
     .cerrar {
@@ -13373,7 +13172,6 @@ border-radius: 3px;
   user-select: none;
 }
 
-/* Hide the browser's default checkbox */
 .containerPeqAmarillo input {
   position: absolute;
   opacity: 0;
@@ -13382,7 +13180,6 @@ border-radius: 3px;
   width: 0;
 }
 
-/* Create a custom checkbox */
 .checkmarkPeqAmarillo {
   position: absolute;
   top: 0;
@@ -13392,29 +13189,24 @@ border-radius: 3px;
   background-color: #a1a1a1;
 }
 
-/* On mouse-over, add a grey background color */
 .containerPeqAmarillo:hover input ~ .checkmarkPeqAmarillo {
   background-color: #5c5151;
 }
 
-/* When the checkbox is checked, add a blue background */
 .containerPeqAmarillo input:checked ~ .checkmarkPeqAmarillo {
   background-color: #FFCC00;
 }
 
-/* Create the checkmark/indicator (hidden when not checked) */
 .checkmarkPeqAmarillo:after {
   content: "";
   position: absolute;
   display: none;
 }
 
-/* Show the checkmark when checked */
 .containerPeqAmarillo input:checked ~ .checkmarkPeqAmarillo:after {
   display: block;
 }
 
-/* Style the checkmark/indicator */
 .containerPeqAmarillo .checkmarkPeqAmarillo:after {
   left: 9px;
   top: 5px;
@@ -13433,10 +13225,6 @@ border-radius: 3px;
     font-size: 14px;
     font-family: 'Roboto', sans-serif
   }
-
- /* #showMenu th,td {
-    padding: 4px;
-  }*/
 
   #showMenu td {
     background-color: white;
@@ -13594,7 +13382,7 @@ background-color: #f2f2f2;
     }
 
     table.matchValuesTable th:first-child {
-  border-top: none; /* Quita el borde superior de la primera celda del encabezado */
+  border-top: none;
 }
 
 
