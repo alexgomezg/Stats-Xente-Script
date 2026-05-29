@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.256
+// @version      0.257
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -104,6 +104,7 @@
     const badges = ["crew", "cm_epic", "cm_elite", "cm_legendary", "cm_champion", "cm_senior", "cm_gold", "cm_blue"];
     let isCM = false;
     if (document.getElementById("header-username")) {
+        GM_setValue("stx_u",document.getElementById("header-username").textContent)
         let style = document.getElementById("header-username").getAttribute("style") || "";
         isCM = badges.some(badge => style.includes(badge));
     }
@@ -392,18 +393,18 @@
             getDeviceFormat();
             const observer = new MutationObserver((mutations) => {
                 const changed = mutations.some((mutation) =>
-                    mutation.addedNodes.length > 0 && (
-                        mutation.target.id === "players_container" ||
-                        [...mutation.addedNodes].some(node =>
-                            node.classList && (
-                                node.classList.contains("playerContainer") ||
-                                node.classList.contains("player_loading_div1")
+                        mutation.addedNodes.length > 0 && (
+                            mutation.target.id === "players_container" ||
+                            [...mutation.addedNodes].some(node =>
+                                    node.classList && (
+                                        node.classList.contains("playerContainer") ||
+                                        node.classList.contains("player_loading_div1")
+                                    )
+                            ) ||
+                            [...mutation.addedNodes].some(node =>
+                                node.querySelector?.('.player_loading_div1')
                             )
-                        ) ||
-                        [...mutation.addedNodes].some(node =>
-                            node.querySelector?.('.player_loading_div1')
                         )
-                    )
                 );
                 if (changed && !document.getElementById("players_container_stx")) {
                     console.log("----Event----")
@@ -550,7 +551,7 @@
             "</div>" + divToInserT.innerHTML;
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&username=" + username,
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&username=" + username,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -2707,7 +2708,7 @@ self.onmessage = function (e) {
 
                 GM_xmlhttpRequest({
                     method: "GET",
-                    url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+                    url: "https://statsxente.com/MZ1/Functions/tamper_elo_predictor_nt.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
                     headers: {
                         "Content-Type": "application/json"
                     },
@@ -3981,7 +3982,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo=" + team_id,
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&idEquipo=" + team_id,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -4268,9 +4269,12 @@ self.onmessage = function (e) {
 
         });
 
+        console.log("https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + "&team_id=" + team_id + "&initial_date=" + initialDate + "&final_date=" + finalDate)
+
+
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?sport=" + window.sport + "&team_id=" + team_id + "&initial_date=" + initialDate + "&final_date=" + finalDate,
+            url: "https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + "&team_id=" + team_id + "&initial_date=" + initialDate + "&final_date=" + finalDate,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -10635,29 +10639,29 @@ self.onmessage = function (e) {
     //FETCH FUNCTIONS
     function fetchPlayerTableSkills(link) {
         return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: link,
-                headers: {
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: function (response) {
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, 'text/html');
-                    let player_cointainer = doc.getElementById("thePlayers_0")
-                    if (!player_cointainer) {
-                        reject(new Error("login" + document.getElementById("login_form_content") + " title: " + doc.title + " | status: " + response.status));
-                        return;
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: link,
+                    headers: {
+                        "Cookie": document.cookie
+                    },
+                    withCredentials: true,
+                    onload: function (response) {
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
+                        let player_cointainer = doc.getElementById("thePlayers_0")
+                        if (!player_cointainer) {
+                            reject(new Error("login" + document.getElementById("login_form_content") + " title: " + doc.title + " | status: " + response.status));
+                            return;
+                        }
+                        resolve(player_cointainer)
+                    },
+                    onerror: function (error) {
+                        reject(new Error("Error loading: " + link + " | " + JSON.stringify(error)));
                     }
-                    resolve(player_cointainer)
-                },
-                onerror: function (error) {
-                    reject(new Error("Error loading: " + link + " | " + JSON.stringify(error)));
-                }
-            });
+                });
 
-        }
+            }
         );
     }
     function fetchTeamPlayers() {
@@ -10667,52 +10671,52 @@ self.onmessage = function (e) {
         let link = "http://www.managerzone.com/xml/team_playerlist.php?sport_id=" + sport_id + "&team_id=" + GM_getValue(window.sport + "_team_id")
         return new Promise((resolve, reject) => {
 
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: link,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: link,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Cookie": document.cookie
+                    },
+                    withCredentials: true,
 
-                onload: function (response) {
-                    let parser = new DOMParser();
-                    let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
-                    let players = xmlDoc.getElementsByTagName("Player");
-                    for (let i = 0; i < players.length; i++) {
-                        options += "<option style='font-weight:bold;' value='" + players[i].getAttribute("id") + "'>(" + players[i].getAttribute("shirtNo") + ") " + players[i].getAttribute("name") + "</option>";
+                    onload: function (response) {
+                        let parser = new DOMParser();
+                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                        let players = xmlDoc.getElementsByTagName("Player");
+                        for (let i = 0; i < players.length; i++) {
+                            options += "<option style='font-weight:bold;' value='" + players[i].getAttribute("id") + "'>(" + players[i].getAttribute("shirtNo") + ") " + players[i].getAttribute("name") + "</option>";
+                        }
+                        resolve(options)
+
+                    },
+                    onerror: function () {
+                        reject("none");
                     }
-                    resolve(options)
-
-                },
-                onerror: function () {
-                    reject("none");
-                }
-            });
+                });
 
 
-            /*GM_xmlhttpRequest({
-                method: 'GET',
-                url:link,
-                onload: function (response) {
-                    let options=""
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, 'text/html');
-                    let elementos1 = doc.getElementsByClassName('playerContainer');
-                    for (let i = 0; i < elementos1.length; i++) {
-                        let playerName = elementos1[i].querySelector('span.player_name');
-                        let id = elementos1[i].querySelector('span.player_id_span');
-                        options+="<option value='"+id.textContent+"'>"+playerName.textContent+"</option>";
+                /*GM_xmlhttpRequest({
+                    method: 'GET',
+                    url:link,
+                    onload: function (response) {
+                        let options=""
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
+                        let elementos1 = doc.getElementsByClassName('playerContainer');
+                        for (let i = 0; i < elementos1.length; i++) {
+                            let playerName = elementos1[i].querySelector('span.player_name');
+                            let id = elementos1[i].querySelector('span.player_id_span');
+                            options+="<option value='"+id.textContent+"'>"+playerName.textContent+"</option>";
+                        }
+                        resolve(options)
+                    },
+                    onerror: function (error) {
+                        reject(error);
                     }
-                    resolve(options)
-                },
-                onerror: function (error) {
-                    reject(error);
-                }
-            });*/
+                });*/
 
-        }
+            }
         );
     }
     function fetchSelects() {
@@ -10856,53 +10860,53 @@ self.onmessage = function (e) {
     }
     function fetchAndProcessPlayerData(link, skill, toChange, device) {
         return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: link,
-                headers: {
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: function (response) {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: link,
+                    headers: {
+                        "Cookie": document.cookie
+                    },
+                    withCredentials: true,
+                    onload: function (response) {
 
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, 'text/html');
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response.responseText, 'text/html');
 
-                    let player_cointainer = doc.getElementById("thePlayers_0")
+                        let player_cointainer = doc.getElementById("thePlayers_0")
 
-                    let elements = player_cointainer.querySelectorAll('.skillval');
-                    elements.forEach(element => {
-                        //let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
-                        let previousTd = getPreviousElementByTag(element, "span", "skill_name")
-                        let maxs = element.getElementsByClassName("maxed")
-                        let clips = previousTd.getElementsByClassName("clippable")
-                        let skill_name
-                        if (clips.length === 0) {
-                            let skills_ = previousTd.getElementsByClassName("skill_name")
-                            skill_name = skills_[0].querySelectorAll("span")[0].innerHTML.trim()
-                        } else {
-                            skill_name = clips[0].innerText.trim()
-                        }
-                        if ((skill_name === skill.trim()) && (maxs.length > 0)) {
-
-                            if (device !== "computer") {
-                                toChange.style.padding = "3px"
+                        let elements = player_cointainer.querySelectorAll('.skillval');
+                        elements.forEach(element => {
+                            //let previousTd = element.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling;
+                            let previousTd = getPreviousElementByTag(element, "span", "skill_name")
+                            let maxs = element.getElementsByClassName("maxed")
+                            let clips = previousTd.getElementsByClassName("clippable")
+                            let skill_name
+                            if (clips.length === 0) {
+                                let skills_ = previousTd.getElementsByClassName("skill_name")
+                                skill_name = skills_[0].querySelectorAll("span")[0].innerHTML.trim()
+                            } else {
+                                skill_name = clips[0].innerText.trim()
                             }
-                            toChange.style.setProperty('background-color', '#db5d5d', 'important');
-                            toChange.style.fontWeight = "bold"
-                            toChange.style.borderRadius = "5px"
-                        }
+                            if ((skill_name === skill.trim()) && (maxs.length > 0)) {
+
+                                if (device !== "computer") {
+                                    toChange.style.padding = "3px"
+                                }
+                                toChange.style.setProperty('background-color', '#db5d5d', 'important');
+                                toChange.style.fontWeight = "bold"
+                                toChange.style.borderRadius = "5px"
+                            }
 
 
-                    });
-                    resolve("Done")
-                },
-                onerror: function (error) {
-                    reject(error);
-                }
-            });
+                        });
+                        resolve("Done")
+                    },
+                    onerror: function (error) {
+                        reject(error);
+                    }
+                });
 
-        }
+            }
         );
 
     }
@@ -13138,7 +13142,7 @@ self.onmessage = function (e) {
             el &&
             i < maxIterations &&
             !el.querySelector(`${tag}.${class_}`)
-        ) {
+            ) {
             el = el.previousElementSibling;
             i++;
         }
