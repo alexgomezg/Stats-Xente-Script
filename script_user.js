@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.257
+// @version      0.258
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -24,23 +24,6 @@
 
 (function () {
     'use strict';
-
-
-    /*let keys = GM_listValues();
-    keys.forEach(function(key) {
-        console.log(key+" "+GM_getValue(key))
-    });*/
-
-    /*let actual_version="0.9666"
-    console.log(GM_info.script.version)
-
-    if(GM_info.script.version!=actual_version){
-        console.log("here")
-        keys = GM_listValues();
-                keys.forEach(function (key) {
-                    GM_deleteValue(key);
-                });
-    }*/
     let filter_initial_date = getDate(true)
     let filter_final_date = getDate(false)
     let changeDates = true
@@ -51,10 +34,7 @@
     let teams_data = "";
     let teams_stats = "";
     let searchClassName = ""
-    //let players = []
-    //let lines = []
     let gk_line = ""
-    //let skills_names = []
     let su_line = "unsetted";
     let fl_data = []
     let langs = new Map();
@@ -136,17 +116,6 @@
 
     /// FUNCTIONS MENU
     setTimeout(function () {
-
-        /*document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'l') {
-                e.preventDefault();
-                console.log("Disparado")
-                addTeamInfoMarket();
-            }
-        });*/
-
-
-
         const urlParams = new URLSearchParams(window.location.search);
         if ((urlParams.has('p')) && (urlParams.get('p') === 'league') && (GM_getValue("leagueFlag"))) {
             getDeviceFormat()
@@ -1798,8 +1767,6 @@ self.onmessage = function (e) {
                     console.error("Error procesando jugador:", err)
                 ))
             );
-            /* GM_setValue("TMplayersData_" + window.sport, JSON.stringify([...playersCache]));
-             GM_setValue("TMteamsData_" + window.sport, JSON.stringify([...teamCache]));*/
         }
 
         GM_setValue("TMplayersData_" + window.sport, JSON.stringify([...playersCache]));
@@ -3857,13 +3824,6 @@ self.onmessage = function (e) {
 
     function fetchH2HMatches(rival_tid, limit) {
         return new Promise((resolve, reject) => {
-            /*let formData = new FormData();
-            formData.append("type", "played");
-            formData.append("hidescore", "false");
-            formData.append("selectType", "all");
-            formData.append("limit",limit);
-            formData.append("tid1",GM_getValue(window.sport+"_team_id"));
-            formData.append("tid2",rival_tid);*/
             const params = new URLSearchParams();
             params.append("type", "played");
             params.append("hidescore", "false");
@@ -4268,9 +4228,6 @@ self.onmessage = function (e) {
             elem.innerHTML += "</br><div id='hp_loader' class='" + clase + "'></div>"
 
         });
-
-        console.log("https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + "&team_id=" + team_id + "&initial_date=" + initialDate + "&final_date=" + finalDate)
-
 
         GM_xmlhttpRequest({
             method: "GET",
@@ -5836,36 +5793,6 @@ self.onmessage = function (e) {
                         if (jsonResponse[id]["elo23"] > 0) { flagSub23 = 1 }
                         if (jsonResponse[id]["elo21"] > 0) { flagSub21 = 1 }
                         if (jsonResponse[id]["elo18"] > 0) { flagSub18 = 1 }
-
-                        /*let buttonDisplay = "display:block;";
-                        nuevaColumna = document.createElement("td");
-                        nuevaColumna.style.margin = '0 auto';
-                        nuevaColumna.style.textAlign = 'center';
-                        let iner = "<img alt='' src='https://statsxente.com/MZ1/View/Images/detail.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but" + id + "' style='cursor:pointer;'/>";
-                        if (GM_getValue("league_graph_button") === "checked") {
-                            buttonDisplay = ""
-                        } else {
-                            buttonDisplay = "display:none;";
-                        }
-                        iner += "<img alt='' src='https://statsxente.com/MZ1/View/Images/graph.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but1" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-
-                        if (GM_getValue("league_report_button") === "checked") {
-                            buttonDisplay = ""
-                        } else {
-                            buttonDisplay = "display:none;";
-                        }
-                        iner += "<img alt='' src='https://statsxente.com/MZ1/View/Images/report.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but2" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-
-                        if (GM_getValue("league_calendar_button") === "checked") {
-                            buttonDisplay = ""
-                        } else {
-                            buttonDisplay = "display:none;";
-                        }
-                        iner += " <img alt='' src='https://statsxente.com/MZ1/View/Images/calendar.png' width='" + GM_getValue("league_image_size") + "px' height='" + GM_getValue("league_image_size") + "px' id='but3" + id + "' style='cursor:pointer; " + buttonDisplay + "'/>";
-                        cat = cats[urlParams.get('type')]
-                        nuevaColumna.innerHTML = iner
-                        filasDatos[i].appendChild(nuevaColumna);
-                        nuevaColumna = document.createElement("td");*/
 
                         let buttonDisplay = "display:block;";
                         nuevaColumna = document.createElement("td");
