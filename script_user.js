@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.260
+// @version      0.261
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -64,17 +64,17 @@
     let queue = [];
     let playerPositions = new Map(JSON.parse(GM_getValue("playersPositions", "[]")));
     let playerPosColors = new Map(JSON.parse(GM_getValue("playerPosColors",JSON.stringify([
-                    ["Goalkeeper", "#a45408bf"],
-                    ["Defender", "#80a6ffbf"],
-                    ["Midfielder", "#65f465bf"],
-                    ["Striker", "#ff5555bf"],
-                    ["Wing", "#ff55fabf"],
-                    ["Goalkeeper_hockey", "#a45408bf"],
-                    ["Defender_hockey", "#80a6ffbf"],
-                    ["Center", "#65f465bf"],
-                    ["Wing_hockey", "#ff5555bf"],
-                    ["None", "#ff000000"],
-                ]))));
+        ["Goalkeeper", "#a45408bf"],
+        ["Defender", "#80a6ffbf"],
+        ["Midfielder", "#65f465bf"],
+        ["Striker", "#ff5555bf"],
+        ["Wing", "#ff55fabf"],
+        ["Goalkeeper_hockey", "#a45408bf"],
+        ["Defender_hockey", "#80a6ffbf"],
+        ["Center", "#65f465bf"],
+        ["Wing_hockey", "#ff5555bf"],
+        ["None", "#ff000000"],
+    ]))));
     const badges = ["crew", "cm_epic", "cm_elite", "cm_legendary", "cm_champion", "cm_senior", "cm_gold", "cm_blue"];
     let isCM = false;
     if (document.getElementById("header-username")) {
@@ -417,10 +417,16 @@ notifyBids()
     if(GM_getValue("gameNotifications")){
         notifyBids();
         setInterval(() => {
-            console.log("---Getting bids---");
+            console.log("Getting Bids....");
             notifyBids();
         }, 2 * 60 * 1000);
     }
+
+
+
+    /*openOutbidPopup(230814719, 'Jurre de Rooy',-1,"outbid");
+    openOutbidPopup(230814719, 'Jurre de Rooy',-1,"deadline");
+    openOutbidPopup(230814719, 'Jurre de Rooy',-1,"own");*/
 
     //BUTTONS EVENT LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
@@ -2492,6 +2498,10 @@ self.onmessage = function (e) {
             } else {
                 fieldIndexes = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
                 excluded = [6]
+                if(nationalTeam){
+                    excluded = []
+                    fieldIndexes = [3,4,5, 6, 7, 8, 9, 10, 11, 12, 13];
+                }
             }
 
             table = document.getElementById('playerAltViewTable');
@@ -10388,13 +10398,15 @@ self.onmessage = function (e) {
                 let u = enlace
                     ? new URL(enlace.href, window.location.origin).searchParams.get("u")
                     : null;
+                if (bids.has(u)) {
+                    obj=bids.get(u)
+                }else{
+                    obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false,deadline_date:fechaDate}
+                    bids.set(u,obj)
+                }
 
                 if (new Date() < bids.get(u).deadline_date) {
-                    if (bids.has(u)) {
-                        obj=bids.get(u)
-                    }else{
-                        obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false}
-                    }
+
 
                     if(GM_getValue("notifications_outbids"+window.sport)){
                         //NOTIFY OUTBID
@@ -10421,8 +10433,6 @@ self.onmessage = function (e) {
                             }
                         }
                     }
-
-                    obj["deadline_date"]=fechaDate
                     bids.set(obj.player_id,obj)
                     GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
                 }
@@ -10455,13 +10465,14 @@ self.onmessage = function (e) {
                     let u = enlace
                         ? new URL(enlace.href, window.location.origin).searchParams.get("u")
                         : null;
+                    if (bids.has(u)) {
+                        obj=bids.get(u)
+                    }else{
+                        obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false,deadline_date:fechaDate}
+                        bids.set(u,obj)
+                    }
                     if (new Date() < bids.get(u).deadline_date) {
                         if(bidders.length>0){
-                            if (bids.has(u)) {
-                                obj=bids.get(u)
-                            }else{
-                                obj={player_id:u,player_name:enlace.textContent,own:true}
-                            }
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"own");
                         }else{
                             if (bids.has(u)) {
@@ -11639,6 +11650,10 @@ self.onmessage = function (e) {
             GM_xmlhttpRequest({
                 method: "GET",
                 url: link,
+                headers: {
+                    "Cookie": document.cookie,
+                    "Content-Type": "application/json"
+                },
                 onload: function (response) {
                     let parser = new DOMParser();
                     let doc = parser.parseFromString(response.responseText, "text/html");
@@ -11661,6 +11676,10 @@ self.onmessage = function (e) {
             GM_xmlhttpRequest({
                 method: "GET",
                 url: "https://www.managerzone.com/ajax.php?p=transfer&sub="+key+"&sport="+window.sport,
+                headers: {
+                    "Cookie": document.cookie,
+                    "Content-Type": "application/json"
+                },
                 onload: function (response) {
                     let data = JSON.parse(response.responseText);
                     let parser = new DOMParser();
@@ -11835,8 +11854,8 @@ self.onmessage = function (e) {
 
         let excluded = new Map(JSON.parse(GM_getValue("excluded-"+window.sport+"-"+document.getElementById("type").value, "[]")));
         let filters = {
-            sport:"soccer",
-            currency:"EUR",
+            sport:window.sport,
+            currency:GM_getValue("currency","EUR"),
             ntid:ntid,
             ageMin:    parseInt(document.getElementById('stxAgeMin').value),
             ageMax:    parseInt(document.getElementById('stxAgeMax').value),
