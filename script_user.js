@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.261
+// @version      0.262
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3965,51 +3965,161 @@ self.onmessage = function (e) {
     }
     function getTacticsUseNationalTeam(){
         playersTacticsNT.clear();
-        teamTactic.tacticsData.TeamTactics.Tactic.forEach((tactic, key) => {
-            tactic?.TacticPlayer?.forEach((player, key) => {
-                let y_=(0.328*parseFloat(player["@attributes"].y)) - 1.96
-                let position=player["@attributes"].pos
-                if(position==="on field"){
-                    position = "Mf";
-                    if (y_ < 112) position = "St";
-                    if (y_ > 215) position = "De";
-                    if (y_ > 300) position = "Gk";
-                }
-                switch(position){
-                    case "subst mid":
-                        position="Su, Mf"
-                        break;
-                    case "subst att":
-                        position="Su, St"
-                        break;
-                    case "subst def":
-                        position="Su, De"
-                        break;
-                    case "subst gk":
-                        position="Su, Gk"
-                        break;
-                    case "subst ext":
-                        position="Su"
-                        break
-                    case "gk":
-                        position="Gk"
-                        break;
+        if(window.sport==="soccer"){
+            teamTactic.tacticsData.TeamTactics.Tactic.forEach((tactic, key) => {
+                tactic?.TacticPlayer?.forEach((player, key) => {
+                    let y_=(0.328*parseFloat(player["@attributes"].y)) - 1.96
+                    let position=player["@attributes"].pos
+                    if(position==="on field"){
+                        position = "Mf";
+                        if (y_ < 112) position = "St";
+                        if (y_ > 215) position = "De";
+                        if (y_ > 300) position = "Gk";
+                    }
+                    switch(position){
+                        case "subst mid":
+                            position="Su, Mf"
+                            break;
+                        case "subst att":
+                            position="Su, St"
+                            break;
+                        case "subst def":
+                            position="Su, De"
+                            break;
+                        case "subst gk":
+                            position="Su, Gk"
+                            break;
+                        case "subst ext":
+                            position="Su"
+                            break
+                        case "gk":
+                            position="Gk"
+                            break;
 
-                }
-                let playerObj = {
-                    id:player["@attributes"].playerId,
-                    pos:position,
-                    tactic:tactic["@attributes"].name,
-                    y:y_,
-                    yO:player["@attributes"].y
-                };
-                if (!playersTacticsNT.has(player["@attributes"].playerId)) {
-                    playersTacticsNT.set(player["@attributes"].playerId, [playerObj]);
-                } else {
-                    playersTacticsNT.get(player["@attributes"].playerId).push(playerObj);
-                }
+                    }
+                    let playerObj = {
+                        id:player["@attributes"].playerId,
+                        pos:position,
+                        tactic:tactic["@attributes"].name,
+                        y:y_,
+                        yO:player["@attributes"].y
+                    };
+                    if (!playersTacticsNT.has(player["@attributes"].playerId)) {
+                        playersTacticsNT.set(player["@attributes"].playerId, [playerObj]);
+                    } else {
+                        playersTacticsNT.get(player["@attributes"].playerId).push(playerObj);
+                    }
+                });
             });
-        });
+        }else{
+            let lines=["n1","n2","n3","n4"]
+            teamTactic.tacticsData.TeamTactics.Tactic.forEach((tactic, key) => {
+                tactic?.TacticLine?.forEach((line, key) => {
+
+                    // console.log(line["@attributes"].name)
+                    if(lines.includes(line["@attributes"].name)){
+
+
+                        line.LinePlayer?.forEach((player, key) => {
+                            let position=player["@attributes"].pos
+                            switch(position){
+                                case "center":
+                                    position="C"
+                                    break;
+                                case "right_defender":
+                                    position="RD"
+                                    break;
+                                case "left_defender":
+                                    position="LD"
+                                    break;
+                                case "right_wing":
+                                    position="RW"
+                                    break;
+                                case "left_wing":
+                                    position="LW"
+                                    break;
+                                case "goalkeeper":
+                                    position="GK"
+                                    break;
+
+                            }
+
+                            let line_=""
+                            switch(line["@attributes"].name){
+                                case "n1":
+                                    line_="L1"
+                                    break;
+                                case "n2":
+                                    line_="L2"
+                                    break;
+                                case "n3":
+                                    line_="L3"
+                                    break;
+                                case "n4":
+                                    line_="L4"
+                                    break;
+                            }
+
+
+                            let playerObj = {
+                                id:player["@attributes"].playerId,
+                                pos:position,
+                                line:line_,
+                                tactic:tactic["@attributes"].name,
+                            };
+                            if (!playersTacticsNT.has(player["@attributes"].playerId)) {
+                                playersTacticsNT.set(player["@attributes"].playerId, [playerObj]);
+                            } else {
+                                playersTacticsNT.get(player["@attributes"].playerId).push(playerObj);
+                            }
+
+                        });
+
+                    }
+                    //if(line["@attributes"].name
+
+
+                    /*    let y_=(0.328*parseFloat(player["@attributes"].y)) - 1.96
+                        let position=player["@attributes"].pos
+                        switch(position){
+                            case "subst mid":
+                                position="Su, Mf"
+                                break;
+                            case "subst att":
+                                position="Su, St"
+                                break;
+                            case "subst def":
+                                position="Su, De"
+                                break;
+                            case "subst gk":
+                                position="Su, Gk"
+                                break;
+                            case "subst ext":
+                                position="Su"
+                                break
+                            case "gk":
+                                position="Gk"
+                                break;
+
+                        }
+                        let playerObj = {
+                            id:player["@attributes"].playerId,
+                            pos:position,
+                            tactic:tactic["@attributes"].name,
+                            y:y_,
+                            yO:player["@attributes"].y
+                        };
+                        if (!playersTacticsNT.has(player["@attributes"].playerId)) {
+                            playersTacticsNT.set(player["@attributes"].playerId, [playerObj]);
+                        } else {
+                            playersTacticsNT.get(player["@attributes"].playerId).push(playerObj);
+                        }*/
+
+
+
+                });
+            });
+        }
         GM_setValue("playersTacticsNT"+window.sport, JSON.stringify([...playersTacticsNT]));
     }
     //NT tactics page
@@ -4049,8 +4159,14 @@ self.onmessage = function (e) {
             let flag=false
             if (tactics) {
                 flag=true
+
                 tactics.forEach((tactic) => {
-                    txt+='<a class="player_tactic gradientSunriseIcon" href="/?p=national_teams&sub=tactics&type=national_team">'+tactic.tactic.toUpperCase()+' ( <span title="">'+tactic.pos+'</span> )</a>'
+                    if(window.sport==="soccer"){
+                        txt+='<a class="player_tactic gradientSunriseIcon" href="/?p=national_teams&sub=tactics&type=national_team">'+tactic.tactic.toUpperCase()+' ( <span title="">'+tactic.pos+'</span> )</a>'
+                    }else{
+                        txt+='<a class="player_tactic gradientSunriseIcon" href="/?p=national_teams&sub=tactics&type=national_team">'+tactic.tactic.toUpperCase()+' ( <span title="">'+tactic.line+": "+tactic.pos+'</span> )</a>'
+
+                    }
                 });
             }
             txt+="</div>"
