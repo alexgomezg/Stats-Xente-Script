@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.259
+// @version      0.260
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -60,13 +60,10 @@
     positionsAbrev.set("Defender_hockey", "De");
     positionsAbrev.set("Center", "C");
     positionsAbrev.set("Wing_hockey", "Wg");
-
+    const AUTOCLOSE = 5000;
+    let queue = [];
     let playerPositions = new Map(JSON.parse(GM_getValue("playersPositions", "[]")));
-    let playerPosColors = new Map(
-        JSON.parse(
-            GM_getValue(
-                "playerPosColors",
-                JSON.stringify([
+    let playerPosColors = new Map(JSON.parse(GM_getValue("playerPosColors",JSON.stringify([
                     ["Goalkeeper", "#a45408bf"],
                     ["Defender", "#80a6ffbf"],
                     ["Midfielder", "#65f465bf"],
@@ -77,10 +74,7 @@
                     ["Center", "#65f465bf"],
                     ["Wing_hockey", "#ff5555bf"],
                     ["None", "#ff000000"],
-                ])
-            )
-        )
-    );
+                ]))));
     const badges = ["crew", "cm_epic", "cm_elite", "cm_legendary", "cm_champion", "cm_senior", "cm_gold", "cm_blue"];
     let isCM = false;
     if (document.getElementById("header-username")) {
@@ -90,6 +84,13 @@
     }
     let storedMonitors = []
     let telegramChatId = GM_getValue('telegramChatId', "")
+    let maxed_imgs = new Map();
+    maxed_imgs.set('maxed_soccer', "<img alt='' width='"+GM_getValue('soccer_ball_width')+"' height='"+GM_getValue('soccer_ball_height')+"' src='data:image/gif;base64,R0lGODlhDAAKAJEDAP////8AAMyZmf///yH5BAEAAAMALAAAAAAMAAoAAAIk3BQZYp0CAAptxvjMgojTEVwKpl0dCQrQJX3T+jpLNDXGlDUFADs='/>");
+    maxed_imgs.set('unmaxed_soccer', "<img alt='' width='"+GM_getValue('soccer_ball_width')+"' height='"+GM_getValue('soccer_ball_height')+"' src='data:image/gif;base64,R0lGODlhDAAKAJEDAP///8zM/wAA/////yH5BAEAAAMALAAAAAAMAAoAAAIk3CIpYZ0BABJtxvjMgojTIVwKpl0dCQbQJX3T+jpLNDXGlDUFADs='/>");
+    maxed_imgs.set('maxed_hockey', "<img alt='' width='"+GM_getValue('hockey_puck_width')+"' height='"+GM_getValue('hockey_puck_height')+"' src='data:image/gif;base64,R0lGODlhDAAKANUkAOXq//8pKunt//ZTVPz19dXZ+tzk/+NAV+bl+Ojs//4wMeWkreXp/f4tLvRMT+Dm/+Xr/7lra/4vMepKSv7///ZRUvz8/tmHhs/Z/+xKSfVeYNCJkfhFRPUxOuBUZvRsb9ri//39//hDQv8oKf///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAACQALAAAAAAMAAoAAAZCQBLpMhqJMgiLkEQoOkeDwnLzdIowwuoTlNUWDRSSF/oIkUQBZ6BRAWiEkIlopPgsEhzPMgIQCBgOEiNLQh1PB4RBADs='/>");
+    maxed_imgs.set('unmaxed_hockey', "<img alt='' width='"+GM_getValue('hockey_puck_width')+"' height='"+GM_getValue('hockey_puck_height')+"' src='data:image/gif;base64,R0lGODlhDAAKALMNAOnt/+Xr/9ri/6/A/6G1/73L/52x/8/Z/4Wf/32Z/1x9/0Rr/x9N/////wAAAAAAACH5BAEAAA0ALAAAAAAMAAoAAAQwsDXD2FJB6sot0UnHLYckdoJ5VmmzWoi0nAuxSIEyW0qxJBrFAAAYKCoaSYgD1EQAADs='/>");
+
+
 
 
     setCSSStyles()
@@ -101,6 +102,31 @@
     checkScriptVersion().then()
     getSelects().then()
 
+    let playersTacticsNT = new Map(JSON.parse(GM_getValue("playersTacticsNT"+window.sport, "[]")));
+    let bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
+    let filtered
+    if(window.sport==="soccer"){
+        filtered = new Map([...playerPositions].filter(([key, value]) => typeof value === "string" && !value.includes("_hockey") && value !== "Center"));
+    }else{
+        filtered = new Map([...playerPositions].filter(([key, value]) => typeof value === "string" && (value.includes("_hockey") || value === "Center")));
+    }
+    const TOAST_TYPES = {
+        outbid: {
+            icon: '⚠️',
+            label: "You've been outbid!",
+            color: '#ef5350',
+        },
+        deadline: {
+            icon: '⏰',
+            label: 'Deadline in '+ GM_getValue("notifications_deadline_minutes"+window.sport, "15")+' minutes!',
+            color: '#F5C800',
+        },
+        own: {
+            icon: '👤',
+            label: 'Your player has received a bid!',
+            color: '#4caf50',
+        },
+    };
 
     /// FUNCTIONS MENU
     setTimeout(function () {
@@ -163,9 +189,6 @@
 
 
 
-
-
-
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('tid')) && (!urlParams.has('pid'))) {
@@ -182,6 +205,7 @@
             if ((GM_getValue("partialSkills"))) {
                 playerPartialSkills()
             }
+            waitToDOM(insertSkillsNTPlayer,".player_name", 0, 7000)
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_" + window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_" + window.sport, "[]")));
         }
@@ -189,7 +213,6 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'youth_academy') && (urlParams.get('tab') === 'exchange')) {
             playerPartialSkills()
         }
-
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'rank') && (urlParams.get('sub') === 'countryrank')
             && (GM_getValue("countryRankFlag"))) {
@@ -206,7 +229,6 @@
             matchPredictor()
         }
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'friendlyseries')
             && (urlParams.get('sub') === 'standings') && (GM_getValue("flFlag"))) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0, 7000)
@@ -222,17 +244,13 @@
 
         }
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'cup') && (urlParams.get('sub') === 'groupplay') && (GM_getValue("cupFlag"))) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0, 7000)
         }
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.get('sub') === 'groupplay') && (GM_getValue("cupFlag"))) {
             waitToDOM(friendlyCupsAndLeagues, ".nice_table", 0, 7000)
         }
-
-
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'played')) {
 
@@ -259,21 +277,15 @@
 
         }
 
-
-
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'match') && (urlParams.get('sub') === 'scheduled')) {
             if (GM_getValue("eloNextMatchesFlag")) {
                 waitToDOM(nextMatches, ".group", 0, 7000)
             }
         }
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'team') && (GM_getValue("teamPageFlag"))) {
             teamPage()
         }
-
-
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'profile')) {
             waitToDOM(profilePage, ".flex-wrap", 0, 7000)
@@ -297,12 +309,10 @@
             cupsListEventListener()
         }
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'private_cup') && (urlParams.has('cuptype')) &&
             (urlParams.get('cuptype') === 'partner')) {
             cupsListEventListener()
         }
-
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'training_report') && (GM_getValue("trainingReportFlag"))) {
             getDeviceFormat()
@@ -320,29 +330,22 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (GM_getValue("nationalTeamFlag"))) {
-            waitToDOMById(nationalTeamPage, "nt-tabs", 5000)
+            waitToDOMById(nationalTeamPage, "button_national_team", 5000)
+            insertNTPageEventListeners()
+        }
 
-
-            document.getElementById("ui-id-4").parentNode.addEventListener('click', function () {
-
-                setTimeout(() => {
-
-                    eloNationalPage()
-
-
-                }, 2000);
-
-            });
-
-
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (urlParams.get('sub') === 'tactics')) {
+            processTacticSkillsData()
+            getTacticsUseNationalTeam()
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (GM_getValue("transfersFilterFlag"))) {
+            getCurrencies()
             waitToDOMById(insertScoutFilter, "players_container", 5000)
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer')) {
-
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.get('sub') !== 'yourplayers')) {
+            getCurrencies()
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_" + window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_" + window.sport, "[]")));
             teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_" + window.sport, "[]")));
@@ -374,13 +377,11 @@
             addTeamInfoMarket().then()
         }
 
-
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.get('sub') === 'alt')) {
             getDeviceFormat()
             insertAvgRowAltTable()
             altTableEventListener()
         }
-
 
         if ((urlParams.has('p')) && (urlParams.get('p') !== 'players')) {//Adds stats icon in players page, when click on player info
             insertPlayersLinkEventListeners()
@@ -392,18 +393,36 @@
 
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.has('u')) && (GM_getValue("teamsFinancialMarket"))) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.has('u')) && (GM_getValue("teamsFinancialMarket"))  && (urlParams.get('sub') !== 'yourplayers')) {
+            getCurrencies()
             if (GM_getValue("onlySinglePages")) {
                 teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_" + window.sport, "[]")))
                 insertFinancialData(document.getElementById("thePlayers_0")).then()
             }
         }
+
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.get('sub') === 'yourplayers') && (GM_getValue("gameNotifications"))) {
+            insertGameNotificationsForm()
+        }
+
+        /*  if ((urlParams.has('p')) && (urlParams.get('p') === 'stadium') ) {
+
+
+
+notifyBids()
+        }*/
+
     }, 1000);
 
+    if(GM_getValue("gameNotifications")){
+        notifyBids();
+        setInterval(() => {
+            console.log("---Getting bids---");
+            notifyBids();
+        }, 2 * 60 * 1000);
+    }
 
-
-
-    //BUTTONS EVENTS LISTENERS
+    //BUTTONS EVENT LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
     if ((urlParams.get('p') === 'friendlyseries') || (urlParams.get('p') === 'federations')) {
         waitToDOMById(tableFLAndClashEventListener, "ui-id-2", 5000)
@@ -413,7 +432,6 @@
         waitToDOMById(tableCupsEventListener, "ui-id-4", 5000)
     }
     waitToDOMById(tableLeaguesEventListener, "league_tab_table", 5000)
-
     function scoutReportEventListeners() {
         document.querySelectorAll('.player_icon_placeholder.scout_report')
             .forEach(element => {
@@ -470,236 +488,6 @@
 
                 });
             });
-    }
-    async function profilePage() {
-        let h2hMax = false
-        let h2h12 = false
-        let link = document.querySelector('a[href*="p=challenges&challenge-tid="]');
-        if (link) {
-            let href = link.getAttribute("href");
-            let params = new URLSearchParams(href.split("?")[1]);
-            let rivaltid = params.get("challenge-tid");
-
-            let urlParams = new URLSearchParams(window.location.search)
-            if (urlParams.has('uid')) {
-                h2hMax = await fetchH2HMatches(rivaltid, "max")
-                if (h2hMax) {
-                    h2h12 = await fetchH2HMatches(rivaltid, "2")
-                }
-            }
-        }
-
-        let elems = document.getElementsByClassName("flex-wrap");
-        let tables = elems[0].getElementsByTagName("table");
-        let segundoTr = tables[1].rows[0]
-        let username = segundoTr.cells[1].innerText
-        let html = '<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
-        elems[0].insertAdjacentHTML("afterend", html);
-
-        let divToInserT = document.getElementById("streakAndCupInfo")
-        let clase = "loader-" + window.sport
-        divToInserT.innerHTML =
-            "<br>" +
-            "<div style='text-align:center;'>" +
-            "<div id='hp_loader' style='width:50%; margin:0 auto;'>" +
-            "<div style='text-align:center;'><b>Loading...</b></div>" +
-            "<div id='loader' class='" + clase + "' style='height:25px;'></div>" +
-            "</div>" +
-            "</div>" + divToInserT.innerHTML;
-        GM_xmlhttpRequest({
-            method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&username=" + username,
-            headers: {
-                "Content-Type": "application/json"
-            },
-            onerror: function () {
-                notifySnackBarError("Detailed Teams");
-            },
-            onload: function (response) {
-                let jsonResponse = JSON.parse(response.responseText);
-                let aux = jsonResponse["username"]
-                let top = "TOP 11"
-                let team_id = jsonResponse["username"]
-                let team_name = jsonResponse["team_name"]
-
-                if (window.sport === "hockey") {
-                    top = "TOP 21"
-                }
-
-                getDeviceFormat()
-                let teamTable = '<div style="width:100%; display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
-                let style = "max-width: 100%; overflow-x: auto; display: block; width:100%;"
-                if (window.stx_device === "computer") {
-                    style = "margin: 0 auto; text-align: center;"
-                }
-                teamTable += '<table class="matchValuesTable" style="' + style + '"><thead><tr>'
-                teamTable += '<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
-                teamTable += '<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
-                teamTable += '<th >' + top + '</th><th>ELO</th>'
-                teamTable += '<th>ELO Pos</th>'
-                teamTable += '<th>Age</th>'
-                teamTable += '<th>Salary</th>'
-                teamTable += '<th>Players</th>'
-                teamTable += '<th style="border-top-right-radius: 5px;"></th>'
-                teamTable += '</tr></thead><tbody>'
-                let valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
-                let valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSenior']))
-                let valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
-                let elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo']))
-                let edad = Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
-                let salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
-                let numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">Senior</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
-                teamTable += '<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
-
-                teamTable += '</td></tr>'
-
-                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor23']))
-                valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB23']))
-                valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_23']))
-                elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo23']))
-                edad = Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
-                salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
-                numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
-                teamTable += '<tr><th>U23</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo23_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
-                teamTable += '<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
-                teamTable += '</td></tr>'
-
-
-
-                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor21']))
-                valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB21']))
-                valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_21']))
-                elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo21']))
-                edad = Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
-                salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
-                numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
-                teamTable += '<tr><th>U21</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo21_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
-                teamTable += '<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
-                teamTable += '</td></tr>'
-
-
-
-
-                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor18']))
-                valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB18']))
-                valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_18']))
-                elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo18']))
-                edad = Number.parseFloat(jsonResponse[aux]['age18']).toFixed(2)
-                salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary18']))
-                numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players18']))
-                teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + edad + '</td><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + salario + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + numJugs + '</td>'
-                teamTable += '<td style="border-radius: 0 0 10px 0; border-bottom:1px solid ' + GM_getValue("bg_native") + '; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
-                teamTable += '<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
-                teamTable += '</td></tr>'
-                teamTable += '<tr><td colspan=10>'
-                teamTable += '<button class="btn-save" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
-                teamTable += '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history"'
-                teamTable += ' style="font-style:normal;"> ELO History</i></button>'
-
-
-                if (h2h12) {
-                    teamTable += ' <button class="btn-save" style="width:8.5em; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
-                    teamTable += '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="h2hButton"><i class="bi bi-trophy-fill"'
-                    teamTable += ' style="font-style:normal;"> H2H Matches</i></button>'
-                }
-
-                if ((!h2h12) && (h2hMax)) {
-                    teamTable += "</br></br><div style='padding: 5px;display:flex;align-items:center;justify-content:center;font-weight:600;margin:0 auto;border-radius:4px;width:50%;background-color:#AD4039;color:" + GM_getValue("color_native") + ";gap:6px;'>";
-                    teamTable += "<img alt='' src='https://statsxente.com/MZ1/View/Images/idea.png' width='15' height='15'/>";
-                    teamTable += "<span>H2H matches found</span>";
-                    teamTable += "</div>"
-                }
-
-
-
-                teamTable += '</tr>'
-                teamTable += '</tbody></table></div>'
-
-
-                let divToInserT = document.getElementById("streakAndCupInfo")
-                divToInserT.innerHTML = teamTable + divToInserT.innerHTML
-
-                document.getElementById("hp_loader").remove()
-
-                let color = GM_getValue("bg_native")
-                let darkerColor = darkenColor(color, 25);
-
-                document.styleSheets[0].insertRule(
-                    '.btn-save:hover { background-color: ' + darkerColor + ' !important; }',
-                    document.styleSheets[0].cssRules.length
-                );
-
-                if (h2h12) {
-                    document.getElementById("h2hButton").addEventListener('click', function () {
-                        let link = `https://statsxente.com/MZ1/Functions/loadTeamsCompareData.php?idioma=${window.lang}&tid1=${GM_getValue(window.sport + "_team_id")}&sport=${window.sport}&tid2=${team_id}&type=all&range=12&senior=yes&sub23=yes&sub21=yes&sub18=yes&fecha_inicio=-1&fecha_fin=-1`
-                        openWindow(link, 0.95, 1.25);
-                    });
-                }
-
-                document.getElementById("eloHistoryButton").addEventListener('click', function () {
-                    let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id + "&sport=" + window.sport
-                    openWindow(link, 0.95, 1.25);
-                });
-
-
-
-                document.getElementById("seniorButton").addEventListener('click', function () {
-                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category=senior&elo_category=SENIOR&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
-                        + team_name + "&divisa=" + GM_getValue("currency")
-                    openWindow(link, 0.95, 1.25);
-                });
-                document.getElementById("sub23Button").addEventListener('click', function () {
-                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category=SUB23&elo_category=U23&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
-                        + team_name + "&divisa=" + GM_getValue("currency")
-                    openWindow(link, 0.95, 1.25);
-                });
-
-                document.getElementById("sub21Button").addEventListener('click', function () {
-                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category=SUB21&elo_category=U21&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
-                        + team_name + "&divisa=" + GM_getValue("currency")
-                    openWindow(link, 0.95, 1.25);
-                });
-
-
-                document.getElementById("sub18Button").addEventListener('click', function () {
-                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
-                        "&category=SUB18&elo_category=U18&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
-                        + team_name + "&divisa=" + GM_getValue("currency")
-                    openWindow(link, 0.95, 1.25);
-                });
-
-
-
-                const thElements = document.querySelectorAll('table.matchValuesTable th');
-                thElements.forEach(th => {
-                    th.style.backgroundColor = GM_getValue("bg_native");
-                    th.style.color = GM_getValue("color_native");
-                });
-                document.getElementById("thTransparent0").style.backgroundColor = "transparent";
-            }
-        });
-
-
-
     }
     function statsPageEventListeners() {
 
@@ -949,12 +737,45 @@
             let player = e.target.closest('.player_link');
             if (!player) return;
             getDeviceFormat()
+            waitToDOM(insertSkillsNTPlayer,".player_name", 0, 7000)
             waitToDOM(playersPageStats, ".player_name", 0, 7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0, 7000)
             waitToDOM(taxOnSell, ".player_name", 0, 7000)
             waitToDOM(playerPartialSkills, ".player_name", 0, 7000)
+
+
+
         });
 
+
+    }
+    function insertNTPageEventListeners(){
+        document.getElementById("ui-id-1")?.parentNode?.addEventListener('click', function () { //Alternatice View
+            waitToDOMById(nationalTeamPage, "button_national_team", 5000)
+        });
+
+        document.getElementById("ui-id-2")?.parentNode.addEventListener('click', function () { //Players View
+            waitToDOM(insertTacticsOnPlayersPageNT, ".playerContainer", 0, 7000)
+        });
+
+        document.getElementById("ui-id-4").parentNode.addEventListener('click', function () { //Matches Page View
+            waitToDOMById(eloNationalPage, "fixtures-results-list", 5000)
+        });
+
+
+
+        document.getElementById("ui-id-9")?.parentNode?.addEventListener('click', function () { //Alternatice View
+            getDeviceFormat()
+            waitToDOMById(insertAvgRowAltTable, "playerAltViewTable", 5000)
+        });
+
+        document.getElementById("ui-id-10")?.parentNode?.addEventListener('click', function () { //Search view
+            waitToDOMById(insertNTSearchForm,"searchForm",5000)
+        });
+
+        document.getElementById("ui-id-11")?.parentNode?.addEventListener('click', function () { //Tactics View
+            waitToDOMById(getTacticsUseNationalTeam,"player_filters",5000)
+        });
 
     }
 
@@ -1146,9 +967,7 @@ self.onmessage = function (e) {
 
         }
     }
-
-
-
+    //Telegram players monitors
     function insertPlayerMonitor(link) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -1166,7 +985,6 @@ self.onmessage = function (e) {
 
         });
     }
-
     function getMonitors(link) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -1184,8 +1002,293 @@ self.onmessage = function (e) {
 
         });
     }
+    //Transfer monitor
+    function insertGameNotificationsForm(){
+        if (GM_getValue("notifications_own-players"+window.sport) === undefined) GM_setValue("notifications_own-players"+window.sport, true);
+        if (GM_getValue("notifications_outbids"+window.sport) === undefined) GM_setValue("notifications_outbids"+window.sport, true);
+        if (GM_getValue("notifications_deadline"+window.sport) === undefined) GM_setValue("notifications_deadline"+window.sport, true);
+        if (GM_getValue("notifications_deadline_minutes"+window.sport) === undefined) GM_setValue("notifications_deadline_minutes"+window.sport, "15");
+
+        let filterDiv = `
+        <div class="tmstx-checkbox-row" style="display: inline-flex;">
+          <input type="checkbox" id="tmstx-chk-own-player" name="own-players">
+          <label for="tmstx-chk-own-player">Own players</label>
+        </div>
+
+        <div class="tmstx-checkbox-row" style="display: inline-flex;">
+          <input type="checkbox" id="tmstx-chk-outbids" name="outbids">
+          <label for="tmstx-chk-outbids">Outbids</label>
+        </div>
+
+        <div class="tmstx-checkbox-row" style="display: inline-flex;">
+          <input type="checkbox" id="tmstx-chk-deadline" name="deadline">
+          <label for="tmstx-chk-deadline">Deadline</label>
+          <select id="deadline_minutes" class="statsxente" style="background-color:rgb(228, 200, 0);
+          padding: 6px 3px;
+          border-radius: 3px;
+          width: 9em;
+          border-color:rgb(228, 200, 0);
+          color: white
+          font-family: Roboto;
+          font-weight: bold;
+          font-size: revert;">
+           <option value="15">15 Minutes</option>
+           <option value="30">30 Minutes</option>
+           <option value="60">60 Minutes</option>
+          </select>
+        </div>
+   `;
+        let el = document.querySelector('[name="monitorform"]');
+
+        el.insertAdjacentHTML('afterend', filterDiv);
+        document.getElementById("tmstx-chk-own-player").checked = GM_getValue("notifications_own-players"+window.sport, true);
+        document.getElementById("tmstx-chk-outbids").checked = GM_getValue("notifications_outbids"+window.sport, true);
+        document.getElementById("tmstx-chk-deadline").checked = GM_getValue("notifications_deadline"+window.sport, true);
+        document.getElementById("deadline_minutes").value = GM_getValue("notifications_deadline_minutes"+window.sport, "15");
+
+        ["tmstx-chk-own-player","tmstx-chk-outbids","tmstx-chk-deadline"].forEach(id => {
+            document.getElementById(id).addEventListener("change", function() {
+                GM_setValue("notifications_" + this.name+window.sport, this.checked);
+            });
+        });
+
+        document.getElementById("deadline_minutes").addEventListener("change", function() {
+            GM_setValue("notifications_deadline_minutes"+window.sport, this.value);
+        });
 
 
+    }
+    //Profile
+    async function profilePage() {
+        let h2hMax = false
+        let h2h12 = false
+        let link = document.querySelector('a[href*="p=challenges&challenge-tid="]');
+        if (link) {
+            let href = link.getAttribute("href");
+            let params = new URLSearchParams(href.split("?")[1]);
+            let rivaltid = params.get("challenge-tid");
+
+            let urlParams = new URLSearchParams(window.location.search)
+            if (urlParams.has('uid')) {
+                h2hMax = await fetchH2HMatches(rivaltid, "max")
+                if (h2hMax) {
+                    h2h12 = await fetchH2HMatches(rivaltid, "2")
+                }
+            }
+        }
+
+        let elems = document.getElementsByClassName("flex-wrap");
+        let tables = elems[0].getElementsByTagName("table");
+        let segundoTr = tables[1].rows[0]
+        let username = segundoTr.cells[1].innerText
+        let html = '<fieldset class="grouping"><legend>ELO Data</legend><div id=streakAndCupInfo></div></fieldset>'
+        elems[0].insertAdjacentHTML("afterend", html);
+
+        let divToInserT = document.getElementById("streakAndCupInfo")
+        let clase = "loader-" + window.sport
+        divToInserT.innerHTML =
+            "<br>" +
+            "<div style='text-align:center;'>" +
+            "<div id='hp_loader' style='width:50%; margin:0 auto;'>" +
+            "<div style='text-align:center;'><b>Loading...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:25px;'></div>" +
+            "</div>" +
+            "</div>" + divToInserT.innerHTML;
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&username=" + username,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            onerror: function () {
+                notifySnackBarError("Detailed Teams");
+            },
+            onload: function (response) {
+                let jsonResponse = JSON.parse(response.responseText);
+                let aux = jsonResponse["username"]
+                let top = "TOP 11"
+                let team_id = jsonResponse["username"]
+                let team_name = jsonResponse["team_name"]
+
+                if (window.sport === "hockey") {
+                    top = "TOP 21"
+                }
+
+                getDeviceFormat()
+                let teamTable = '<div style="width:100%; display: block;justify-content: center;align-items: center;max-height: 100%; text-align: center;">'
+                let style = "max-width: 100%; overflow-x: auto; display: block; width:100%;"
+                if (window.stx_device === "computer") {
+                    style = "margin: 0 auto; text-align: center;"
+                }
+                teamTable += '<table class="matchValuesTable" style="' + style + '"><thead><tr>'
+                teamTable += '<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
+                teamTable += '<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
+                teamTable += '<th >' + top + '</th><th>ELO</th>'
+                teamTable += '<th>ELO Pos</th>'
+                teamTable += '<th>Age</th>'
+                teamTable += '<th>Salary</th>'
+                teamTable += '<th>Players</th>'
+                teamTable += '<th style="border-top-right-radius: 5px;"></th>'
+                teamTable += '</tr></thead><tbody>'
+                let valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
+                let valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSenior']))
+                let valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
+                let elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo']))
+                let edad = Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
+                let salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
+                let numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">Senior</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
+                teamTable += '<td>' + jsonResponse[aux]['elo_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
+                teamTable += '<td>' + numJugs + '</td>'
+                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+
+                teamTable += '</td></tr>'
+
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor23']))
+                valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB23']))
+                valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_23']))
+                elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo23']))
+                edad = Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
+                salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
+                numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
+                teamTable += '<tr><th>U23</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
+                teamTable += '<td>' + jsonResponse[aux]['elo23_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
+                teamTable += '<td>' + numJugs + '</td>'
+                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable += '</td></tr>'
+
+
+
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor21']))
+                valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB21']))
+                valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_21']))
+                elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo21']))
+                edad = Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
+                salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
+                numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
+                teamTable += '<tr><th>U21</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
+                teamTable += '<td>' + jsonResponse[aux]['elo21_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
+                teamTable += '<td>' + numJugs + '</td>'
+                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable += '</td></tr>'
+
+
+
+
+                valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor18']))
+                valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSUB18']))
+                valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_18']))
+                elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo18']))
+                edad = Number.parseFloat(jsonResponse[aux]['age18']).toFixed(2)
+                salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary18']))
+                numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players18']))
+                teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
+                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
+                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
+                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
+                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
+                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + edad + '</td><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + salario + '</td>'
+                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + numJugs + '</td>'
+                teamTable += '<td style="border-radius: 0 0 10px 0; border-bottom:1px solid ' + GM_getValue("bg_native") + '; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable += '</td></tr>'
+                teamTable += '<tr><td colspan=10>'
+                teamTable += '<button class="btn-save" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
+                teamTable += '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloHistoryButton"><i class="bi bi-clock-history"'
+                teamTable += ' style="font-style:normal;"> ELO History</i></button>'
+
+
+                if (h2h12) {
+                    teamTable += ' <button class="btn-save" style="width:8.5em; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
+                    teamTable += '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="h2hButton"><i class="bi bi-trophy-fill"'
+                    teamTable += ' style="font-style:normal;"> H2H Matches</i></button>'
+                }
+
+                if ((!h2h12) && (h2hMax)) {
+                    teamTable += "</br></br><div style='padding: 5px;display:flex;align-items:center;justify-content:center;font-weight:600;margin:0 auto;border-radius:4px;width:50%;background-color:#AD4039;color:" + GM_getValue("color_native") + ";gap:6px;'>";
+                    teamTable += "<img alt='' src='https://statsxente.com/MZ1/View/Images/idea.png' width='15' height='15'/>";
+                    teamTable += "<span>H2H matches found</span>";
+                    teamTable += "</div>"
+                }
+
+
+
+                teamTable += '</tr>'
+                teamTable += '</tbody></table></div>'
+
+
+                let divToInserT = document.getElementById("streakAndCupInfo")
+                divToInserT.innerHTML = teamTable + divToInserT.innerHTML
+
+                document.getElementById("hp_loader").remove()
+
+                let color = GM_getValue("bg_native")
+                let darkerColor = darkenColor(color, 25);
+
+                document.styleSheets[0].insertRule(
+                    '.btn-save:hover { background-color: ' + darkerColor + ' !important; }',
+                    document.styleSheets[0].cssRules.length
+                );
+
+                if (h2h12) {
+                    document.getElementById("h2hButton").addEventListener('click', function () {
+                        let link = `https://statsxente.com/MZ1/Functions/loadTeamsCompareData.php?idioma=${window.lang}&tid1=${GM_getValue(window.sport + "_team_id")}&sport=${window.sport}&tid2=${team_id}&type=all&range=12&senior=yes&sub23=yes&sub21=yes&sub18=yes&fecha_inicio=-1&fecha_fin=-1`
+                        openWindow(link, 0.95, 1.25);
+                    });
+                }
+
+                document.getElementById("eloHistoryButton").addEventListener('click', function () {
+                    let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=elo_history&team_id=" + team_id + "&sport=" + window.sport
+                    openWindow(link, 0.95, 1.25);
+                });
+
+
+
+                document.getElementById("seniorButton").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category=senior&elo_category=SENIOR&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
+                        + team_name + "&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+                document.getElementById("sub23Button").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category=SUB23&elo_category=U23&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
+                        + team_name + "&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+
+                document.getElementById("sub21Button").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category=SUB21&elo_category=U21&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
+                        + team_name + "&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+
+
+                document.getElementById("sub18Button").addEventListener('click', function () {
+                    let link = "https://www.statsxente.com/MZ1/Functions/tamper_teams_stats.php?team_id=" + team_id +
+                        "&category=SUB18&elo_category=U18&sport=" + window.sport + "&idioma=" + window.lang + "&team_name="
+                        + team_name + "&divisa=" + GM_getValue("currency")
+                    openWindow(link, 0.95, 1.25);
+                });
+
+
+
+                const thElements = document.querySelectorAll('table.matchValuesTable th');
+                thElements.forEach(th => {
+                    th.style.backgroundColor = GM_getValue("bg_native");
+                    th.style.color = GM_getValue("color_native");
+                });
+                document.getElementById("thTransparent0").style.backgroundColor = "transparent";
+            }
+        });
+
+
+
+    }
     //Seller info transfer market
     async function processTMPlayer(el) {
         try {
@@ -1688,8 +1791,11 @@ self.onmessage = function (e) {
                     if (profit < 0) {
                         gross_profit = venta - fee
                     }
+                    if (!('salary' in player_data)) {
+                        player_data.salary = 0;
+                    }
                     target.innerHTML = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax), Math.round(tax + fee), Math.round(profit),
-                        tax_rate, Math.round(gross_profit), player_data['value']);
+                        tax_rate, Math.round(gross_profit), player_data['value'], player_data['salary']);
                 }
             }
 
@@ -2317,7 +2423,18 @@ self.onmessage = function (e) {
     }
     //Alternative players
     function insertAvgRowAltTable() {
-        if ((GM_getValue("positionsColors")) && (!document.getElementById("positionsFilter"))) {
+        let positionsColors=GM_getValue("positionsColors")
+        let urlParams1 = new URLSearchParams(window.location.search);
+        let nationalTeam=false
+        if ((urlParams1.has('p')) && (urlParams1.get('p') === 'national_teams')) {
+            positionsColors=false
+            nationalTeam=true;
+        }
+
+
+
+
+        if ((positionsColors) && (!document.getElementById("positionsFilter"))) {
 
 
 
@@ -2368,6 +2485,10 @@ self.onmessage = function (e) {
             if (window.sport === "soccer") {
                 excluded = [17, 18]
                 fieldIndexes = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+                if(nationalTeam){
+                    excluded = [14, 15]
+                    fieldIndexes = [2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+                }
             } else {
                 fieldIndexes = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
                 excluded = [6]
@@ -2382,7 +2503,7 @@ self.onmessage = function (e) {
 
 
 
-        if (GM_getValue("positionsColors")) {
+        if (positionsColors) {
             document.addEventListener('change', (e) => {
                 if (!e.target.classList.contains('statsxente')) return;
                 if (e.target.id === "posAll") {
@@ -2415,7 +2536,7 @@ self.onmessage = function (e) {
 
 
         ///Positions colors
-        if (GM_getValue("positionsColors")) {
+        if (positionsColors) {
             table.querySelectorAll('tbody tr').forEach(row => {
                 const cells = row.querySelectorAll('td');
                 const a = cells[nameIndex].querySelector('a');
@@ -2479,6 +2600,9 @@ self.onmessage = function (e) {
             thAtIndex10.insertAdjacentElement('afterend', th);
 
             let startIndex = 2;
+            if(nationalTeam){
+                startIndex=1
+            }
             if (isMobile) {
                 startIndex = 1;
             }
@@ -2577,7 +2701,9 @@ self.onmessage = function (e) {
 
         table.querySelector('thead').appendChild(avgRow);
         table.style.borderCollapse = 'collapse';
+        //if ((urlParams1.has('p')) && (urlParams1.get('p') !== 'national_teams')) {
         altTableEventListeners(table, fieldIndexes, isMobile)
+        // }
 
     }
     function updateAltTable(table, fieldIndexes, isMobile) {
@@ -3788,8 +3914,219 @@ self.onmessage = function (e) {
 
 
     }
+    //NT players page
+    async function insertSkillsNTPlayer(){
+        let contenedor = document.getElementById("players_container");
+        if(!contenedor){
+            contenedor = document.getElementById("thePlayers_0");
+        }
+        let enlace = contenedor?.querySelector(
+            'a[href*="p=national_teams"][href*="sub=search"]'
+        );
+        if (enlace) {
+            let url = new URL(enlace.href, window.location.origin);
+            let pid = url.searchParams.get("pid");
+            let ntid=GM_getValue("ntid","none")
+            if(ntid!=="none"){
+                let type="skills"
+                let data=await getNTPlayerData(ntid,pid,type)
+                let contenedor = document.querySelector(".skills-container.floatLeft.clearfix."+window.sport);
+                let skills_names = document.querySelectorAll(".skill_name");
+                if (contenedor && skills_names.length===0) {
+                    contenedor.innerHTML += data.outerHTML;
+                    let skill_vals= contenedor.querySelectorAll(".skillval");
+                    skill_vals.forEach(skill => {
+                        let skillValue = skill.querySelectorAll("span")
+                        let valor = parseInt(skillValue[0].innerHTML, 10);
+                        let dataToInsert = '<div class="skill" style="white-space: nowrap; font-size:0;padding: 0 0 0 4px;">'
+                        for (let i = 0; i < valor; i++) {
+                            if (skillValue[0].classList.contains('maxed')) {
+                                dataToInsert += maxed_imgs.get('maxed_'+window.sport)
+                            } else {
+                                dataToInsert += maxed_imgs.get('unmaxed_'+window.sport)
+                            }
+                        }
+                        let balls_td = skill.previousElementSibling;
+                        balls_td.querySelector("#container").innerHTML=dataToInsert
+                    });
+                }
+            }
+        }
+    }
+    function getTacticsUseNationalTeam(){
+        playersTacticsNT.clear();
+        teamTactic.tacticsData.TeamTactics.Tactic.forEach((tactic, key) => {
+            tactic?.TacticPlayer?.forEach((player, key) => {
+                let y_=(0.328*parseFloat(player["@attributes"].y)) - 1.96
+                let position=player["@attributes"].pos
+                if(position==="on field"){
+                    position = "Mf";
+                    if (y_ < 112) position = "St";
+                    if (y_ > 215) position = "De";
+                    if (y_ > 300) position = "Gk";
+                }
+                switch(position){
+                    case "subst mid":
+                        position="Su, Mf"
+                        break;
+                    case "subst att":
+                        position="Su, St"
+                        break;
+                    case "subst def":
+                        position="Su, De"
+                        break;
+                    case "subst gk":
+                        position="Su, Gk"
+                        break;
+                    case "subst ext":
+                        position="Su"
+                        break
+                    case "gk":
+                        position="Gk"
+                        break;
+
+                }
+                let playerObj = {
+                    id:player["@attributes"].playerId,
+                    pos:position,
+                    tactic:tactic["@attributes"].name,
+                    y:y_,
+                    yO:player["@attributes"].y
+                };
+                if (!playersTacticsNT.has(player["@attributes"].playerId)) {
+                    playersTacticsNT.set(player["@attributes"].playerId, [playerObj]);
+                } else {
+                    playersTacticsNT.get(player["@attributes"].playerId).push(playerObj);
+                }
+            });
+        });
+        GM_setValue("playersTacticsNT"+window.sport, JSON.stringify([...playersTacticsNT]));
+    }
+    //NT tactics page
+    function insertTacticsOnPlayersPageNT(){
+        let elementos1 = document.getElementsByClassName('playerContainer');
+        for (let i = 0; i < elementos1.length; i++) {
+            let id = elementos1[i].querySelector('.player_id_span').textContent;
 
 
+
+
+            let skill_vals= elementos1[i].querySelectorAll(".skillval");
+
+            skill_vals.forEach(skill => {
+                let skillValue = skill.querySelectorAll("span")
+                let valor = parseInt(skillValue[0].innerHTML, 10);
+                let dataToInsert = '<div class="skill" style="white-space: nowrap; font-size:0;padding: 0 0 0 4px;">'
+                for (let i = 0; i < valor; i++) {
+                    if (skillValue[0].classList.contains('maxed')) {
+                        dataToInsert += maxed_imgs.get('maxed_'+window.sport)
+                    } else {
+                        dataToInsert += maxed_imgs.get('unmaxed_'+window.sport)
+                    }
+
+                }
+                let balls_td = skill.previousElementSibling;
+                balls_td.querySelector("#container").innerHTML=dataToInsert
+
+            });
+
+
+
+            const divs = elementos1[i].querySelectorAll("div.floatLeft");
+            const lastDiv = divs[divs.length - 1];
+            let txt=`<div class="tactics-block tactics-block-responsive"><strong>On tactics:</strong><br>`
+            let tactics = playersTacticsNT.get(id);
+            let flag=false
+            if (tactics) {
+                flag=true
+                tactics.forEach((tactic) => {
+                    txt+='<a class="player_tactic gradientSunriseIcon" href="/?p=national_teams&sub=tactics&type=national_team">'+tactic.tactic.toUpperCase()+' ( <span title="">'+tactic.pos+'</span> )</a>'
+                });
+            }
+            txt+="</div>"
+            if (lastDiv && flag) {
+                lastDiv.innerHTML =txt;
+            }
+        }
+    }
+    //NT Search page
+    function insertNTSearchForm(){
+
+        if(document.getElementById("stxFilterBar")) return;
+
+
+        let txt = `
+</br></br><div class="stx-filter-bar" id="stxFilterBar">
+
+
+<div class="stx-range-wrap">
+  <label>Age: <span id="stxAgeMinVal">16</span>–<span id="stxAgeMaxVal">40</span></label>
+  <div class="stx-range-dual">
+    <div class="stx-range-track" id="stxTrack"></div>
+    <input type="range" min="16" max="40" value="16" id="stxAgeMin">
+    <input type="range" min="16" max="40" value="40" id="stxAgeMax">
+  </div>
+</div>
+
+
+
+  <div class="stx-field">
+    <label>Min. Value</label>
+    <input type="text" id="stxMinValue" min="0" placeholder="0">
+  </div>
+  <div class="stx-field">
+    <label>Min. Salary</label>
+    <input type="text" id="stxMinSalary" min="0" placeholder="0">
+  </div>
+  <div class="stx-field">
+    <label>Min. Cost</label>
+    <input type="text" id="stxMinCost" min="0" placeholder="0">
+  </div>
+    <div class="stx-field">
+    <label>Order</label>
+    <select id="stxOrderBy">
+      <option value="valor">Value</option>
+      <option value="salario">Salary</option>
+      <option value="transfer_value">Transfer Cost</option>
+    </select>
+  </div>
+
+   <div class="stx-field">
+    <label>NT Players</label>
+    <input class="statsxente" type="checkbox" id="ntPlayers" checked/>
+  </div>
+
+    <div class="stx-field">
+    <label>U21 NT Players</label>
+    <input class="statsxente" type="checkbox" id="u21ntPlayers" checked/>
+  </div>
+
+
+  <button class="stx-btn-nt" id="stxBtnBuscar">Search</button>
+</div>
+`;
+
+
+        document.getElementById("searchBtn")
+            ?.insertAdjacentHTML("afterend", txt);
+
+
+        document.getElementById("stxBtnBuscar").addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            searchNTPlayers()
+        });
+
+
+
+
+        document.getElementById('stxAgeMin').addEventListener('input', stxUpdateRange);
+        document.getElementById('stxAgeMax').addEventListener('input', stxUpdateRange);
+        stxUpdateRange();
+
+
+    }
+    //Profile and team page h2h
     function fetchH2HMatches(rival_tid, limit) {
         return new Promise((resolve, reject) => {
             const params = new URLSearchParams();
@@ -3825,7 +4162,6 @@ self.onmessage = function (e) {
 
         });
     }
-
     //Team page
     async function teamPage() {
 
@@ -5247,7 +5583,7 @@ self.onmessage = function (e) {
             values.set('edadTop11', 'TOP 11 Age');
             values.set('edadSUB23', 'U23 TOP 11 Age');
         } else {
-            values.set('edadTop11', 'TOP 21 Age');
+            values.set('edadSenior', 'TOP 21 Age');
             values.set('edadSUB23', 'U23 TOP 21 Age');
         }
 
@@ -5828,14 +6164,14 @@ self.onmessage = function (e) {
 
 
                         (function (currentId, currentLSport, lang) {
-                            document.getElementById("but1" + currentId).addEventListener('click', function () {
+                            document.getElementById("but1" + currentId)?.addEventListener('click', function () {
                                 let link = "https://statsxente.com/MZ1/Functions/graphLoader.php?graph=team_progress&idEquipo=" + currentId + "&idioma=" + lang + "&divisa=" + GM_getValue("currency") + "&deporte=" + currentLSport;
                                 openWindow(link, 0.95, 1.25);
                             });
                         })(id, window.lsport, window.lang);
 
                         (function (currentId, currentLSport, lang) {
-                            document.getElementById("but2" + currentId).addEventListener('click', function () {
+                            document.getElementById("but2" + currentId)?.addEventListener('click', function () {
                                 let src = "filtroGraficoEquiposHistoricoHockey";
                                 if (currentLSport === "F") {
                                     src = "filtroGraficoLinealEquiposHistorico";
@@ -5846,7 +6182,7 @@ self.onmessage = function (e) {
                         })(id, window.lsport, window.lang, cat);
 
                         (function (currentId, currentEquipo, currentCat, currentSport, lang) {
-                            document.getElementById("but" + currentId).addEventListener('click', function () {
+                            document.getElementById("but" + currentId)?.addEventListener('click', function () {
 
                                 let link = "https://statsxente.com/MZ1/View/filtroStatsEquiposHistorico.php?tamper=no&idEquipo=" + currentId + "&idioma=" + lang + "&modal=yes&deporte=" + currentSport + "&season=77&season_actual=77&categoria=" + currentCat + "&equipo=" + currentEquipo + "&cerrar=no";
                                 openWindow(link, 0.95, 1.25);
@@ -5854,7 +6190,7 @@ self.onmessage = function (e) {
                         })(id, equipo, cat, window.sport, window.lang);
 
                         (function (currentId, type, currentCat, currentSport, lang, flagS, flagS23, flagS21, flagS18) {
-                            document.getElementById("but3" + currentId).addEventListener('click', function () {
+                            document.getElementById("but3" + currentId)?.addEventListener('click', function () {
                                 let link = "https://statsxente.com/MZ1/Graficos/graficoRachaEquipoELO.php?tamper=yes&team_id=" + currentId + "&idioma=" + lang + "&deporte=" + currentSport + "&type=" + type + "&cat=" + currentCat + "&flagSenior=" +
                                     flagS + "&flagSub23=" + flagS23 + "&flagSub21=" + flagS21 + "&flagSub18=" + flagS18;
                                 openWindow(link, 0.95, 1.25);
@@ -7733,6 +8069,7 @@ self.onmessage = function (e) {
     }
     //Players page
     async function playersPage() {
+        let currentPlayerIds=[]
         let colors = ['Goalkeeper_hockey', 'Defender_hockey', 'Center', 'Wing_hockey', 'None',];
         if (window.sport === "soccer") {
             colors = ['Goalkeeper', 'Defender', 'Midfielder', 'Striker', 'Wing', 'None',];
@@ -7851,6 +8188,7 @@ self.onmessage = function (e) {
             let elementos1 = document.getElementsByClassName('playerContainer');
             for (let i = 0; i < elementos1.length; i++) {
                 let ids = elementos1[i].getElementsByClassName('player_id_span');
+                currentPlayerIds.push(ids[0].textContent)
                 let playerName = elementos1[i].querySelector('.player_name').textContent
                 let elementos_ = elementos1[i].getElementsByClassName('p_sublinks');
                 let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
@@ -8033,6 +8371,19 @@ self.onmessage = function (e) {
 
 
         };
+
+        //DELETE SOLD/FIRED/SWAPED PLAYERS
+        let toDelete=false
+        currentPlayerIds.forEach(id => {
+            filtered.delete(id)
+        });
+        filtered.forEach((value, key) => {
+            toDelete=true
+            playerPositions.delete(key)
+        });
+        if(toDelete){
+            GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+        }
     }
     async function maximizationsPlayersPage() {
         let elementos1 = document.getElementsByClassName('weeklyReportBox weeklyReportBoxResponsive');
@@ -8185,7 +8536,8 @@ self.onmessage = function (e) {
 
         }
 
-        contenidoNuevo += `
+        if(isCM){
+            contenidoNuevo += `
   <div style="width:95%; margin:0 auto;">
     <div style="display:flex; align-items:center; gap:6px;">
       <input id="tag-input-box" type="text" placeholder="Write a tag and press Enter…" />
@@ -8201,125 +8553,60 @@ self.onmessage = function (e) {
 
 
 
-        container.innerHTML += contenidoNuevo;
+            container.innerHTML += contenidoNuevo;
 
 
 
-        // ── helpers ──────────────────────────────────────────────
-        function getSavedSets() {
-            return GM_getValue('savedTagSets', []);
-        }
-        function saveSets(sets) {
-            GM_setValue('savedTagSets', sets);
-        }
-        function getActiveTags() {
-            return [...document.querySelectorAll('#tag-container .tag span')].map(s => s.textContent);
-        }
-
-        // ── render saved panel ────────────────────────────────────
-        function renderSavedPanel() {
-            const panel = document.getElementById('saved-tags-panel');
-            const sets = getSavedSets();
-            panel.innerHTML = '';
-
-            if (sets.length === 0) {
-                panel.innerHTML = '<span style="color:#888; font-size:12px;">No saved tag sets yet.</span>';
-                return;
-            }
-
-            sets.forEach((set, i) => {
-                const item = document.createElement('div');
-                item.style.cssText = 'display:flex; align-items:center; gap:4px; background:#fff; border:1px solid #b0c4ff; border-radius:16px; padding:3px 10px; cursor:pointer; font-size:12px;';
-                item.innerHTML = `
-            <span title="Load this set" style="cursor:pointer;"><img alt="" src="https://statsxente.com/MZ1/View/Images/tag.png" width="15" height="15"/> ${set.join(', ')}</span>
-            <button title="Delete" style="background:none; border:none; cursor:pointer; color:#e05; font-size:11px; padding:0 2px;">✕</button>
-        `;
-                // click label → load tags
-                item.querySelector('span').addEventListener('click', () => {
-                    set.forEach(t => addTag(t));
-                    document.getElementById('tag-container').style.display = 'flex';
-                    document.getElementById('tag-container').style.visibility = 'visible';
+            document.getElementById('save-tag-btn').addEventListener('click', () => {
+                const tags = getActiveTags();
+                if (tags.length === 0) return;
+                const sets = getSavedSets();
+                tags.forEach(tag => {
+                    const exists = sets.some(s => s.length === 1 && s[0] === tag);
+                    if (!exists) sets.push([tag]);
                 });
-                // click ✕ → delete set
-                item.querySelector('button').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (!confirm(`¿Delete stored tag "${set.join(', ')}"?`)) return;
-                    const updated = getSavedSets();
-                    updated.splice(i, 1);
-                    saveSets(updated);
-                    renderSavedPanel();
-                });
-                panel.appendChild(item);
-            });
-        }
-
-        // ── save current tags ─────────────────────────────────────
-        document.getElementById('save-tag-btn').addEventListener('click', () => {
-            const tags = getActiveTags();
-            if (tags.length === 0) return;
-            const sets = getSavedSets();
-            tags.forEach(tag => {
-                const exists = sets.some(s => s.length === 1 && s[0] === tag);
-                if (!exists) sets.push([tag]);
-            });
-            saveSets(sets);
-            const panel = document.getElementById('saved-tags-panel');
-            panel.style.display = 'flex';
-            panel.style.visibility = 'visible';
-            renderSavedPanel();
-        });
-
-        // ── toggle saved panel ────────────────────────────────────
-        document.getElementById('show-saved-btn').addEventListener('click', () => {
-            const panel = document.getElementById('saved-tags-panel');
-            const visible = panel.style.visibility !== 'hidden';
-            if (visible) {
-                panel.style.display = 'none';
-                panel.style.visibility = 'hidden';
-            } else {
+                saveSets(sets);
+                const panel = document.getElementById('saved-tags-panel');
                 panel.style.display = 'flex';
                 panel.style.visibility = 'visible';
                 renderSavedPanel();
-            }
-        });
-        // ── clear all active tags ─────────────────────────────────
-        document.getElementById('clear-tags').addEventListener('click', () => {
-            document.getElementById('tag-container').style.display = 'none';
-            document.getElementById('tag-container').innerHTML = '';
-            filterPlayers();
-        });
+            });
 
-        // ── input enter ───────────────────────────────────────────
-        document.getElementById('tag-input-box').addEventListener('keydown', function (e) {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            const val = this.value.trim();
-            if (!val) return;
-            addTag(val);
-            this.value = '';
-            document.getElementById('tag-container').style.display = 'flex';
-            document.getElementById('tag-container').style.visibility = 'visible';
-        });
-
-        // ── add tag ───────────────────────────────────────────────
-        function addTag(text) {
-            const existing = [...document.querySelectorAll('#tag-container .tag span')].map(s => s.textContent);
-            if (existing.includes(text)) return;
-            const div = document.createElement('div');
-            div.className = 'tag';
-            div.innerHTML = `<span>${text}</span><button>✕</button>`;
-            div.querySelector('button').addEventListener('click', () => {
-                div.remove();
-                const remaining = document.querySelectorAll('#tag-container .tag');
-                if (remaining.length === 0) {
-                    document.getElementById('tag-container').style.display = 'none';
-                    document.getElementById('tag-container').style.visibility = 'hidden';
+            document.getElementById('show-saved-btn').addEventListener('click', () => {
+                const panel = document.getElementById('saved-tags-panel');
+                const visible = panel.style.visibility !== 'hidden';
+                if (visible) {
+                    panel.style.display = 'none';
+                    panel.style.visibility = 'hidden';
+                } else {
+                    panel.style.display = 'flex';
+                    panel.style.visibility = 'visible';
+                    renderSavedPanel();
                 }
+            });
+            document.getElementById('clear-tags').addEventListener('click', () => {
+                document.getElementById('tag-container').style.display = 'none';
+                document.getElementById('tag-container').innerHTML = '';
                 filterPlayers();
             });
-            document.getElementById('tag-container').appendChild(div);
-            filterPlayers();
+
+            document.getElementById('tag-input-box').addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const val = this.value.trim();
+                if (!val) return;
+                addTag(val);
+                this.value = '';
+                document.getElementById('tag-container').style.display = 'flex';
+                document.getElementById('tag-container').style.visibility = 'visible';
+            });
+
+        }else{
+            container.innerHTML += contenidoNuevo;
+
         }
+
+
 
 
 
@@ -9427,7 +9714,7 @@ self.onmessage = function (e) {
 
     } // acaba aqui
     //Tax boxex
-    function renderTaxBoxes(fee_, compra_, venta_, dias, tax_, all_taxes_, profit_, tax_rate, gross_, value_) {
+    function renderTaxBoxes(fee_, compra_, venta_, dias, tax_, all_taxes_, profit_, tax_rate, gross_, value_,salary_) {
         let disp = "block";
 
 
@@ -9460,6 +9747,23 @@ self.onmessage = function (e) {
         }
 
 
+        let disp_row_salary = "";
+        let t_salary=0;
+        if (salary_ === 0) {
+            disp_row_salary = "none"
+        }else{
+            let current_value_SEK=convertCurrency(value_, GM_getValue("currency"), 'SEK');;
+            let t_salary_EnTuDivisa=salary_
+            let ofertaSEK = convertCurrency(venta_,GM_getValue("currency"), 'SEK');
+            let salarioSEK = Math.round((ofertaSEK + current_value_SEK) / 200);
+            let nuevoSalario = Math.max(
+                Math.round(convertCurrency(salarioSEK, 'SEK',GM_getValue("currency"))),
+                t_salary_EnTuDivisa
+            );
+            t_salary=nuevoSalario;
+        }
+
+
 
         let compra = compra_.toLocaleString('es-ES').replace(/\./g, ' ') + " " + GM_getValue("currency")
         let venta = venta_.toLocaleString('es-ES').replace(/\./g, ' ') + " " + GM_getValue("currency")
@@ -9470,6 +9774,7 @@ self.onmessage = function (e) {
         let gross = gross_.toLocaleString('es-ES').replace(/\./g, ' ') + " " + GM_getValue("currency")
 
         let value = value_.toLocaleString('es-ES').replace(/\./g, ' ') + " " + GM_getValue("currency")
+        let t_salary_ = t_salary.toLocaleString('es-ES').replace(/\./g, ' ') + " " + GM_getValue("currency")
 
         let txt = "Purchase Price"
         let compra_val = compra
@@ -9532,7 +9837,13 @@ self.onmessage = function (e) {
                     <span>Total</span>
                     <span id="pc-imp-eur" class="pc-danger">${all_taxes}</span>
                 </div>
+
                 <div class="pc-divider-sm"></div>
+                 <div class="pc-total-row" style="display:${disp_row_salary};">
+                    <span class="pc-total-label">Salary</span>
+                    <span class="pc-total-value" id="pc-neto" style="font-size:11px;">${t_salary_}</span>
+                </div>
+
                  <div class="pc-total-row" style="display:${dispg};">
                     <span class="pc-total-label">Gross Profit</span>
                     <span class="pc-total-value ${classg_}" id="pc-neto">${gross}</span>
@@ -9583,6 +9894,10 @@ self.onmessage = function (e) {
                 <span class="pc-danger">${all_taxes}</span>
             </div>
             <div class="pc-divider-sm"></div>
+             <div class="pc-total-row" style="display:${disp_row_salary};">
+                    <span class="pc-total-label">Salary</span>
+                    <span class="pc-total-value" id="pc-neto" style="font-size:11px;">${t_salary_}</span>
+                </div>
             <div class="pc-total-row" style="display:${dispg};">
                 <span class="pc-total-label">Gross Profit</span>
                 <span class="pc-total-value ${classg_}">${gross}</span>
@@ -9635,7 +9950,7 @@ self.onmessage = function (e) {
                     let gross_profit = venta - tax - fee
                     if (profit < 0) { gross_profit = venta - fee }
                     let html_ = renderTaxBoxes(Math.round(fee), player_data['purchase_price'], venta, player_data['days'], Math.round(tax),
-                        Math.round(tax + fee), Math.round(profit), tax_rate, Math.round(gross_profit), player_data['value']);
+                        Math.round(tax + fee), Math.round(profit), tax_rate, Math.round(gross_profit), player_data['value'],0);
                     let html = "<div id='tax_data'>" + html_ + "</div>"
                     if (document.getElementById('tax_data')) { document.getElementById('tax_data').remove() }
                     tds[0].innerHTML = html + tds[0].innerHTML
@@ -10042,6 +10357,139 @@ self.onmessage = function (e) {
             cont++;
         }
         GM_setValue("TMplayersFinancesData_" + window.sport, JSON.stringify([...teamFinancesCache]));
+    }
+    //Notify in-game
+    async function notifyBids(){
+        if (GM_getValue("notifications_own-players"+window.sport) === undefined) GM_setValue("notifications_own-players"+window.sport, true);
+        if (GM_getValue("notifications_outbids"+window.sport) === undefined) GM_setValue("notifications_outbids"+window.sport, true);
+        if (GM_getValue("notifications_deadline"+window.sport) === undefined) GM_setValue("notifications_deadline"+window.sport, true);
+        if (GM_getValue("notifications_deadline_minutes"+window.sport) === undefined) GM_setValue("notifications_deadline_minutes"+window.sport, "15");
+        let deadline_mins=parseInt(GM_getValue("notifications_deadline_minutes"+window.sport))
+        let doc=await getBids("your-bids")
+        let username= GM_getValue("stx_u","")
+        doc.querySelectorAll('[name*="yourbids___title_"]').forEach(el => {
+            let bid_id= el?.getAttribute("name").replace("yourbids___title_", "");
+            let bid_body=doc.getElementById("yourbids___body_"+bid_id)
+            let img = el?.querySelector('img[src*="icon_deadline.gif"]');
+            let siguienteTd = img?.closest("td")?.nextElementSibling;
+            let deadlineText=siguienteTd?.textContent
+            let [fecha, hora] = deadlineText.split(" ");
+            let [dia, mes, anho] = fecha.split("-");
+            let [hh, mm] = hora.split(":");
+            let fechaDate = new Date(anho, mes - 1, dia, hh, mm);
+            let actual_user_=bid_body?.querySelector('a[href*="p=profile"][href*="uid="]');
+            let actual_user=actual_user_?.textContent
+            let enlace = el?.querySelector(
+                'a[href*="/?p=transfer"][href*="sub=players"]'
+            );
+
+            if(enlace){
+                let obj
+                let u = enlace
+                    ? new URL(enlace.href, window.location.origin).searchParams.get("u")
+                    : null;
+
+                if (new Date() < bids.get(u).deadline_date) {
+                    if (bids.has(u)) {
+                        obj=bids.get(u)
+                    }else{
+                        obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false}
+                    }
+
+                    if(GM_getValue("notifications_outbids"+window.sport)){
+                        //NOTIFY OUTBID
+                        if((username!==actual_user)&&(obj.outbid===false)){
+                            openOutbidPopup(obj.player_id,obj.player_name,-1,"outbid");
+                            obj.outbid=true
+                        }
+
+                        if(username===actual_user){
+                            obj.outbid=false
+                        }
+                    }
+
+                    if(GM_getValue("notifications_deadline"+window.sport)){
+                        //NOTIFY DEADLINE
+                        let ahora = new Date();
+                        let diffMs = fechaDate - ahora;
+                        let mins = deadline_mins * 60 * 1000;
+
+                        if (diffMs > 0 && diffMs < mins) {
+                            if(obj.deadline===false){
+                                openOutbidPopup(obj.player_id,obj.player_name,-1,"deadline");
+                                obj.deadline=true
+                            }
+                        }
+                    }
+
+                    obj["deadline_date"]=fechaDate
+                    bids.set(obj.player_id,obj)
+                    GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
+                }
+            }
+
+
+
+        })
+
+        if(GM_getValue("notifications_own-players"+window.sport)){
+            doc=await getBids("your-players")
+            doc.querySelectorAll('[name*="yourplayer_title_"]').forEach(el => {
+                let bid_id= el?.getAttribute("name").replace("yourplayer_title_", "");
+                let bid_body=doc.getElementById("yourplayer_body_"+bid_id)
+                let img = el?.querySelector('img[src*="icon_deadline.gif"]');
+                let siguienteTd = img?.closest("td")?.nextElementSibling;
+                let deadlineText=siguienteTd?.textContent
+                let [fecha, hora] = deadlineText.split(" ");
+                let [dia, mes, anho] = fecha.split("-");
+                let [hh, mm] = hora.split(":");
+                let fechaDate = new Date(anho, mes - 1, dia, hh, mm);
+                let bidders=bid_body?.querySelectorAll('a[href*="p=profile"][href*="uid="]');
+                let enlace = el?.querySelector(
+                    'a[href*="/?p=transfer"][href*="sub=players"]'
+                );
+                let obj
+                //NOTIFY OWN
+                if(enlace){
+                    let obj
+                    let u = enlace
+                        ? new URL(enlace.href, window.location.origin).searchParams.get("u")
+                        : null;
+                    if (new Date() < bids.get(u).deadline_date) {
+                        if(bidders.length>0){
+                            if (bids.has(u)) {
+                                obj=bids.get(u)
+                            }else{
+                                obj={player_id:u,player_name:enlace.textContent,own:true}
+                            }
+                            openOutbidPopup(obj.player_id,obj.player_name,-1,"own");
+                        }else{
+                            if (bids.has(u)) {
+                                obj=bids.get(u)
+                            }else{
+                                obj={player_id:u,player_name:enlace.textContent,own:true}
+                            }
+
+                        }
+                        obj["deadline_date"]=fechaDate
+                        bids.set(obj.player_id,obj)
+                        GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
+                    }
+                }
+            })
+        }
+        let days=2
+        let toChange=false;
+        bids.forEach((obj, key)=> {
+            if (new Date() > new Date(new Date(obj.deadline_date).getTime() + days * 24 * 60 * 60 * 1000)){
+                bids.delete(key)
+                toChange=true;
+            }
+
+        });
+        if(toChange){
+            GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
+        }
     }
 
 
@@ -10675,12 +11123,9 @@ self.onmessage = function (e) {
         });
     }
     function getDataPlayerTM(id) {
-
         if (playersCache.has(id)) {
             return playersCache.get(id);
         }
-
-
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
@@ -10724,12 +11169,31 @@ self.onmessage = function (e) {
                         ?.textContent
                         ?.trim();
 
-                    let value = [5, 6, 7]
+
+
+
+                    /*let value = [5, 6, 7]
                         .map(n => doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim())
                         .find(Boolean);
                     value = value.replace(GM_getValue("currency"), "")
                     value = value.replace(/\s+/g, '');
+                    value = parseInt(value)*/
+
+
+                    let rowsIndex = [5, 6, 7];
+                    let index = rowsIndex.findIndex(n => doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim());
+
+                    let value = doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${rowsIndex[index]}) td:first-child span`)?.textContent?.trim();
+                    let salary = doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${rowsIndex[index] + 1}) td:first-child span`)?.textContent?.trim();
+
+
+                    value = value.replace(GM_getValue("currency"), "")
+                    value = value.replace(/\s+/g, '');
                     value = parseInt(value)
+
+                    salary = salary.replace(GM_getValue("currency"), "")
+                    salary = salary.replace(/\s+/g, '');
+                    salary = parseInt(salary)
 
 
                     let fechaStr = tds[0].textContent.trim();
@@ -10738,7 +11202,7 @@ self.onmessage = function (e) {
                     let hoy = new Date();
                     let diff = hoy - fecha;
                     let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    let data = { "age": age, "days": days, "purchase_price": price, "value": value }
+                    let data = { "age": age, "days": days, "purchase_price": price, "value": value,"salary":salary }
                     playersCache.set(id, data)
                     resolve(data);
                 }
@@ -11169,9 +11633,451 @@ self.onmessage = function (e) {
             });
         });
     }
+    function getNTPlayerData(ntid,player_id,type) {
+        let link=`https://www.managerzone.com/ajax.php?p=nationalTeams&sub=search&ntid=${ntid}&type=national_team&pid=${player_id}&sport=${window.sport}`
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: link,
+                onload: function (response) {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(response.responseText, "text/html");
+                    if(type==="all"){
+                        resolve(doc.querySelector(".playerContainer"));
+                    }else{
+                        let el = doc.querySelector(".playerContainer")
+                        resolve(el.querySelector(".player_skills.player_skills_responsive"))
+                    }
+                },
+                onerror: function (error) {
+                    reject(error)
+                }
+            });
+
+        });
+    }
+    function getBids(key) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: "https://www.managerzone.com/ajax.php?p=transfer&sub="+key+"&sport="+window.sport,
+                onload: function (response) {
+                    let data = JSON.parse(response.responseText);
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(data['content'], "text/html");
+                    resolve(doc)
+                },
+                onerror: function (error) {
+                    reject(error)
+                }
+            });
+
+        });
+    }
 
 
     //UTILS FUNCTIONS
+    function getSavedSets() {
+        return GM_getValue('savedTagSets', []);
+    }
+    function openOutbidPopup(playerId, playerName, autoclose = AUTOCLOSE, type = 'outbid') {
+        const cfg = TOAST_TYPES[type] || TOAST_TYPES.outbid;
+        const tc = getOrCreateContainer();
+        const toast = document.createElement('div');
+        toast.className = 'mz-toast';
+        toast.style.borderLeftColor = cfg.color;
+
+        toast.innerHTML = `
+    <div class="toast-top">
+      <span class="toast-label" style="color:${cfg.color}">${cfg.icon} ${cfg.label}</span>
+      <button class="toast-close">✕</button>
+    </div>
+    <div class="toast-name">${playerName}</div>
+    <div class="toast-id">ID: ${playerId}</div>
+    <div class="toast-actions">
+      <button class="toast-btn-view" style="border-color:${cfg.color}; color:${cfg.color}">Show Player</button>
+    </div>
+    ${autoclose !== -1 ? `<div class="toast-progress" style="background:${cfg.color}"></div>` : ''}
+  `;
+
+        toast.querySelector('.toast-btn-view').addEventListener('click', () => {
+            window.open(`https://www.managerzone.com/?p=transfer&sub=players&u=${playerId}`, '_blank');
+        });
+        toast.querySelector('.toast-btn-view').addEventListener('mouseenter', function() {
+            this.style.background = cfg.color;
+            this.style.color = '#111';
+        });
+        toast.querySelector('.toast-btn-view').addEventListener('mouseleave', function() {
+            this.style.background = 'none';
+            this.style.color = cfg.color;
+        });
+
+        const timer = autoclose !== -1 ? setTimeout(() => removeToast(toast, timer), autoclose) : null;
+        toast.querySelector('.toast-close').addEventListener('click', () => removeToast(toast, timer));
+
+        tc.appendChild(toast);
+        queue.push(toast);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));
+
+        if (autoclose !== -1) {
+            const prog = toast.querySelector('.toast-progress');
+            prog.style.transition = `width ${autoclose}ms linear`;
+            requestAnimationFrame(() => requestAnimationFrame(() => prog.style.width = '0%'));
+        }
+    }
+    function removeToast(toast, timer) {
+        clearTimeout(timer);
+        toast.classList.add('removing');
+        setTimeout(() => {
+            toast.remove();
+            queue = queue.filter(t => t !== toast);
+        }, 300);
+    }
+    function getOrCreateContainer() {
+        let tc = document.getElementById('mz-toast-container');
+        if (!tc) {
+            tc = document.createElement('div');
+            tc.id = 'mz-toast-container';
+            document.body.appendChild(tc);
+        }
+        return tc;
+    }
+    function saveSets(sets) {
+        GM_setValue('savedTagSets', sets);
+    }
+    function getActiveTags() {
+        return [...document.querySelectorAll('#tag-container .tag span')].map(s => s.textContent);
+    }
+    function renderSavedPanel() {
+        const panel = document.getElementById('saved-tags-panel');
+        const sets = getSavedSets();
+        panel.innerHTML = '';
+
+        if (sets.length === 0) {
+            panel.innerHTML = '<span style="color:#888; font-size:12px;">No saved tag sets yet.</span>';
+            return;
+        }
+
+        sets.forEach((set, i) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'display:flex; align-items:center; gap:4px; background:#fff; border:1px solid #b0c4ff; border-radius:16px; padding:3px 10px; cursor:pointer; font-size:12px;';
+            item.innerHTML = `
+            <span title="Load this set" style="cursor:pointer;"><img alt="" src="https://statsxente.com/MZ1/View/Images/tag.png" width="15" height="15"/> ${set.join(', ')}</span>
+            <button title="Delete" style="background:none; border:none; cursor:pointer; color:#e05; font-size:11px; padding:0 2px;">✕</button>
+        `;
+            // click label → load tags
+            item.querySelector('span').addEventListener('click', () => {
+                set.forEach(t => addTag(t));
+                document.getElementById('tag-container').style.display = 'flex';
+                document.getElementById('tag-container').style.visibility = 'visible';
+            });
+            // click ✕ → delete set
+            item.querySelector('button').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!confirm(`¿Delete stored tag "${set.join(', ')}"?`)) return;
+                const updated = getSavedSets();
+                updated.splice(i, 1);
+                saveSets(updated);
+                renderSavedPanel();
+            });
+            panel.appendChild(item);
+        });
+    }
+    function addTag(text) {
+        const existing = [...document.querySelectorAll('#tag-container .tag span')].map(s => s.textContent);
+        if (existing.includes(text)) return;
+        const div = document.createElement('div');
+        div.className = 'tag';
+        div.innerHTML = `<span>${text}</span><button>✕</button>`;
+        div.querySelector('button').addEventListener('click', () => {
+            div.remove();
+            const remaining = document.querySelectorAll('#tag-container .tag');
+            if (remaining.length === 0) {
+                document.getElementById('tag-container').style.display = 'none';
+                document.getElementById('tag-container').style.visibility = 'hidden';
+            }
+            filterPlayers();
+        });
+        document.getElementById('tag-container').appendChild(div);
+        filterPlayers();
+    }
+    function searchNTPlayers(){
+
+        if(document.getElementById("searchDiv")){
+            document.getElementById("searchDiv").remove()
+        }
+
+        if(document.getElementById("excludedDivs")){
+            document.getElementById("excludedDivs").remove()
+        }
+
+        let clase = "loader-" + window.sport
+        let loader =
+            "</br>" +
+            "<div id='nt_loader'>" +
+            "<div style='text-align:center;'><b>Loading...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:25px'></div>" +
+            "</div>";
+
+        document.getElementById("stxFilterBar")
+            ?.insertAdjacentHTML("afterend", loader);
+
+
+        let txt=""
+
+        let ntid = new URL(
+            document.getElementById("searchForm").action,
+            location.origin
+        ).searchParams.get("ntid");
+
+        GM_setValue("ntid",ntid)
+
+        let excluded = new Map(JSON.parse(GM_getValue("excluded-"+window.sport+"-"+document.getElementById("type").value, "[]")));
+        let filters = {
+            sport:"soccer",
+            currency:"EUR",
+            ntid:ntid,
+            ageMin:    parseInt(document.getElementById('stxAgeMin').value),
+            ageMax:    parseInt(document.getElementById('stxAgeMax').value),
+            minValue:  parseFloat(document.getElementById('stxMinValue').value)  || 0,
+            minSalary: parseFloat(document.getElementById('stxMinSalary').value) || 0,
+            minCost:   parseFloat(document.getElementById('stxMinCost').value)   || 0,
+            orderBy:   document.getElementById('stxOrderBy').value,
+            ntPlayers:    document.getElementById('ntPlayers').checked ? 1 : 0,
+            u21ntPlayers:    document.getElementById('u21ntPlayers').checked ? 1 : 0,
+            excluded:Array.from(excluded.keys())
+        };
+
+        GM_xmlhttpRequest({
+            method: "POST",
+            url: "https://statsxente.com/MZ1/Functions/tamper_national_teams_search.php",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            data: JSON.stringify(filters),
+            onerror: function () {
+                notifySnackBarError("Detailed Teams");
+            },
+            onload: function (response) {
+                let jsonResponse = JSON.parse(response.responseText);
+                txt+=jsonResponse.data
+                txt+=`<div id="excludedDivs" style="padding-top:15px; text-align:center; margin:0 auto;">
+                <button class="stx-btn-nt" id="btn-show">Show</button>
+                <button class="stx-btn-nt" id="btn-exclude">Exclude</button>
+                <button class="stx-btn-nt" id="btn-reset">Reset</button></div>
+                `
+
+                document.getElementById("nt_loader")?.remove()
+                document.getElementById("stxFilterBar")
+                    ?.insertAdjacentHTML("afterend", txt);
+
+
+                document.getElementById('btn-exclude').addEventListener('click', (e) => {
+                    let excluded = new Map(JSON.parse(GM_getValue("excluded-"+window.sport+"-"+document.getElementById("type").value, "[]")));
+                    e.preventDefault();
+                    e.stopPropagation();
+                    document.querySelectorAll('#searchDiv input[type="checkbox"]:checked').forEach(cb => {
+                        excluded.set(cb.value,{
+                            id: cb.value,
+                            player_name: cb.dataset.nombre,
+                            team:cb.dataset.equipo
+                        });
+                        const tr = cb.closest('tr');
+                        if (tr) {
+                            tr.remove();
+                        }
+                    });
+                    GM_setValue("excluded-"+window.sport+"-"+document.getElementById("type").value, JSON.stringify([...excluded]));
+                });
+
+                document.getElementById('btn-reset').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!confirm("Are you sure?")) {
+                        return;
+                    }
+                    GM_setValue("excluded-" + window.sport + "-" + document.getElementById("type").value, "[]");
+                    excluded = new Map();
+                });
+
+
+
+                document.getElementById('btn-show').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    let excluded = new Map(JSON.parse(GM_getValue("excluded-"+window.sport+"-"+document.getElementById("type").value, "[]")));
+
+                    let rows = '';
+                    let i = 1;
+                    excluded.forEach(item => {
+                        rows += `<tr>
+        <td>${i++}</td>
+        <td>${item.id}</td>
+        <td>${item.player_name}</td>
+        <td>${item.team}</td>
+        <td><button class="mz-excl-del" data-id="${item.id}">🗑</button></td>
+    </tr>`;
+                    });
+
+                    const modal = document.createElement('div');
+                    modal.id = 'mz-reset-modal';
+                    modal.innerHTML = `
+    <div class="mz-modal-overlay">
+      <div class="mz-modal-box">
+        <div class="mz-modal-header">
+          <span>Excluded players</span>
+          <button class="mz-modal-close">✕</button>
+        </div>
+        <div class="mz-modal-body">
+          <table class="ntSearch">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Player ID</th>
+                <th>Name</th>
+                <th>Team</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+                    modal.querySelector('.mz-modal-close').addEventListener('click', () => modal.remove());
+                    modal.querySelector('.mz-modal-overlay').addEventListener('click', (e) => {
+                        if (e.target === e.currentTarget) modal.remove();
+                    });
+                    document.body.appendChild(modal);
+                    modal.querySelectorAll('.mz-excl-del').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            excluded.delete(btn.dataset.id);
+                            btn.closest('tr').remove();
+                            GM_setValue("excluded-"+window.sport+"-"+document.getElementById("type").value, JSON.stringify([...excluded]));
+                        });
+                    });
+                });
+
+
+
+
+
+
+
+
+                document.querySelectorAll('[id*="ver_"]').forEach(el => {
+                    el.addEventListener("click", (e) => {
+                        const id = el.id;
+                        const numero = id.split("ver_")[1];
+                        let link = "https://www.managerzone.com/?p=national_teams&sub=search&pid="+numero
+                        openPopup(ntid,numero)
+                    });
+                });
+
+
+
+                // injectPopup()
+
+
+
+
+
+
+
+            }
+
+        });
+
+
+
+    }
+    function injectPopup() {
+        if (document.getElementById('mz-player-popup')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'mz-popup-overlay';
+        overlay.addEventListener('click', closePopup);
+        document.body.appendChild(overlay);
+
+        const popup = document.createElement('div');
+        popup.id = 'mz-player-popup';
+        popup.innerHTML = `
+    <div class="popup-close">
+    <h3 style="position: relative; margin: 0 auto;">NT Player</h3>
+      <button title="Cerrar">✕</button>
+    </div>
+    <div id="mz-popup-content">
+      <div id="popup-loading" class="popup-loading">Loading player...</div>
+    </div>
+  `;
+        popup.querySelector('.popup-close button').addEventListener('click', closePopup);
+        document.body.appendChild(popup);
+    }
+    function openPopup(ntid,playerId) {
+        injectPopup();
+        document.getElementById('mz-popup-overlay').classList.add('open');
+        document.getElementById('mz-player-popup').classList.add('open');
+        document.getElementById("popup-loading").innerHTML="Loading player..."
+        renderPopupContent(ntid,playerId);
+    }
+    function closePopup() {
+        document.getElementById('mz-player-popup')?.classList.remove('open');
+        document.getElementById('mz-popup-overlay')?.classList.remove('open');
+    }
+    async function renderPopupContent(ntid,playerId) {
+        let data=await getNTPlayerData(ntid,playerId,"all")
+        const content = document.getElementById('mz-popup-content');
+        content.innerHTML = `
+    <div class="popup-header" style="display:none;">
+    </div>
+
+    <div class="popup-section" style="margin-top: 18em;">
+      <div id="popup-loading" class="popup-loading">${data.outerHTML}</div>
+    </div>
+  `;
+
+
+        let skill_vals= document.querySelectorAll(".skillval");
+        skill_vals.forEach(skill => {
+            let skillValue = skill.querySelectorAll("span")
+            let valor = parseInt(skillValue[0].innerHTML, 10);
+            let dataToInsert = '<div class="skill" style="white-space: nowrap; font-size:0;padding: 0 0 0 4px;">'
+            for (let i = 0; i < valor; i++) {
+                if (skillValue[0].classList.contains('maxed')) {
+                    dataToInsert += maxed_imgs.get('maxed_'+window.sport)
+                } else {
+                    dataToInsert += maxed_imgs.get('unmaxed_'+window.sport)
+                }
+            }
+            let balls_td = skill.previousElementSibling;
+            balls_td.querySelector("#container").innerHTML=dataToInsert
+        });
+
+
+    }
+    function stxUpdateRange() {
+        const min = parseInt(document.getElementById('stxAgeMin').value);
+        const max = parseInt(document.getElementById('stxAgeMax').value);
+
+        if (min > max) {
+            document.getElementById('stxAgeMin').value = max;
+            document.getElementById('stxAgeMax').value = min;
+        }
+
+        const lo = Math.min(min, max);
+        const hi = Math.max(min, max);
+
+        document.getElementById('stxAgeMinVal').textContent = lo;
+        document.getElementById('stxAgeMaxVal').textContent = hi;
+
+        const pct = (v) => ((v - 16) / (40 - 16)) * 100;
+        const track = document.getElementById('stxTrack');
+        track.style.left  = pct(lo) + '%';
+        track.style.width = (pct(hi) - pct(lo)) + '%';
+    }
     function deleteCols(tabla, numColumnas) {
         let filas = tabla.rows;
 
@@ -11609,7 +12515,7 @@ self.onmessage = function (e) {
             transfersTaxFlag: true, showSkillsResume: false, tacticsSkillsResume: true, teamsFinancialMarket: true,
             onlySinglePages: true, eloChangeCalendar: true, trainingPercentages: true, partialSkills: true, onlySinglePagesSkills: true,
             positionsColors: true, positionsColorsBG: false, collapseLeagueButtons: false, transfersPlayerCompare: true, floatingDropdown: true,
-            telegramNotifications: true
+            telegramNotifications: true,gameNotifications:true
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -11684,7 +12590,9 @@ self.onmessage = function (e) {
             // Finance
             { key: 'teamsFinancialMarket', id: 'teamsFinancialMarket', label: 'Teams financial data' },
             { key: 'positionsColors', id: 'positionsColors', label: 'Positions colors' },
+
             { key: 'telegramNotifications', id: 'telegramNotifications', label: 'Telegram Notifications' },
+            { key: 'gameNotifications', id: 'gameNotifications', label: 'Game Notifications' },
         ];
 
         let html = '<div class="stx-modal">';
@@ -11836,6 +12744,10 @@ self.onmessage = function (e) {
 
         html += '<div><div class="stx-section-title">Telegram Chat ID</div><div class="stx-checkrow">';
         html += `<input style="border-radius:3px; width:7em; background-color: ${lightedColor1};" type="text" value="${telegramChatId}" id="telegramChatId" placeholder="Your chat id">`;
+        if (telegramChatId !== "") {
+            html +=`<a target="_blank" href="https://statsxente.com/MZ1/View/telegramTransfersBot.php?sport=${window.sport}&notify_to=${telegramChatId}&username=${GM_getValue("stx_u")}">`
+            html +='<img src="https://statsxente.com/MZ1/View/Images/telegram.png" width="25" height="25" style="cursor:pointer;"/></a>'
+        }
         html += '</div></div>'
 
 
@@ -12386,8 +13298,6 @@ self.onmessage = function (e) {
 
 
     }
-
-
     function notifySnackBar(status, msg) {
 
         let x = document.getElementById("snackbar_stx");
@@ -12400,9 +13310,6 @@ self.onmessage = function (e) {
         let elementos = document.querySelectorAll('.' + clase);
         elementos.forEach(elemento => elemento.remove());
     }
-
-
-
     function notifySnackBarError(id) {
 
         let x = document.getElementById("snackbar_stx");
@@ -12417,7 +13324,6 @@ self.onmessage = function (e) {
         let elementos = document.querySelectorAll('.' + clase);
         elementos.forEach(elemento => elemento.remove());
     }
-
     function getDate(first_of_month) {
         let hoy = new Date();
         let day = "01"
@@ -12843,7 +13749,6 @@ self.onmessage = function (e) {
         if (n >= 1_000) return (n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1) + "K";
         return n.toString();
     }
-
     function getPreviousElement(elem, class_) {
         let el = elem.previousElementSibling
         let maxIterations = 10; // límite
@@ -12854,7 +13759,6 @@ self.onmessage = function (e) {
         }
         return el
     }
-
     function filterPlayers() {
         const tags = [...document.querySelectorAll('#tag-container .tag span')]
             .map(span => span.textContent.trim().toLowerCase());
@@ -13764,6 +14668,490 @@ cursor:pointer;
     }
     #tmstx-close-btn:hover { color: #374151; }
 
+
+
+
+
+
+
+
+
+
+/* Tabla principal */
+.ntSearch {
+    width: 100%;
+   border-collapse: separate;
+    border-spacing: 0;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+}
+
+/* Cabecera */
+.ntSearch thead tr {
+    background: ${GM_getValue("bg_native")};
+    color: ${GM_getValue("color_native")};
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.ntSearch thead th {
+    padding: 10px 4px;
+    text-align: left;
+    border-bottom: 3px solid black;
+    font-weight: 700;
+    white-space: nowrap;
+    color:  ${GM_getValue("color_native")};
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    background: ${GM_getValue("bg_native")};
+}
+
+/* Filas odd/even */
+.ntSearch tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+.ntSearch tbody tr:nth-child(even) {
+    background: #e8e8e8;
+}
+
+.ntSearch tbody tr:hover {
+    background: #fff3b0;
+    cursor: pointer;
+}
+
+/* Celdas */
+.ntSearch tbody td {
+    padding: 8px 4px;
+    vertical-align: middle;
+    color: #1a1a2e;
+    border-right: 1px solid #d0d0d0;
+}
+
+.ntSearch tbody td:last-child {
+    border-right: none;
+}
+
+.ntSearch tbody td:first-child {
+    color: #888;
+    font-size: 11px;
+    text-align: center;
+    width: 30px;
+}
+
+.ntSearch tbody td:nth-child(2) {
+    font-weight: 600;
+    color: #111;
+}
+
+.ntSearch tbody td:nth-child(5) {
+    color: #b8860b;
+    font-weight: 600;
+}
+
+/* Columna Salary */
+.ntSearch tbody td:nth-child(6) {
+    color: #2e7d60;
+}
+
+.ntSearch tbody td:nth-child(7) {
+    color: #c0392b;
+}
+
+/* Link "Ver" */
+.ntSearch tbody td a {
+    color: #b8860b;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 2px 4px;
+    border: 1px solid #f0c04066;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.ntSearch tbody td a:hover {
+    background: #f0c040;
+    color: #1a1a2e;
+}
+
+
+
+
+.ntSearch tbody td:nth-child(3) {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ntSearch tbody td:nth-child(4) {
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ntSearch tbody td:nth-child(2) {
+ max-width: 120px;
+    white-space: nowrap;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ntSearch tbody td:nth-child(2) img {
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+
+
+
+
+
+ .stx-filter-bar{display:flex;align-items:flex-end;gap:10px;padding:8px 10px;background:#cccccc;border-bottom:2px solid ${GM_getValue("bg_native")};flex-wrap:wrap;border-radius:5px;}
+  .stx-field{display:flex;flex-direction:column;gap:3px}
+  .stx-field label{font-size:10px;font-weight:700;color:black;text-transform:uppercase;letter-spacing:.5px}
+  .stx-field input[type=number]{width:3em;background:#f7f7ff;border:1px solid #444;color:#fff;padding:4px 7px;font-size:13px;border-radius:3px;outline:none}
+  .stx-field input[type=number]:focus{border-color:#f0c040}
+  .stx-field input[type=text]{width:5em;background:#f7f7ff;border:1px solid #444;color:black;padding:4px 7px;font-size:12px;border-radius:3px;outline:none}
+  .stx-field input[type=text]:focus{border-color:black}
+  .stx-range-wrap{display:flex;flex-direction:column;gap:3px}
+  .stx-range-wrap label{font-size:10px;font-weight:700;color:black;text-transform:uppercase;letter-spacing:.5px}
+  .stx-range-row{display:flex;align-items:center;gap:6px}
+  .stx-range-row input[type=range]{width:6em;accent-color:${GM_getValue("bg_native")}}
+  .stx-range-val{font-size:12px;color:black;min-width:14px;text-align:center}
+  .stx-btn-nt{background:${GM_getValue("bg_native")};color:${GM_getValue("color_native")};border:none;padding:6px 16px;font-size:13px;font-weight:700;border-radius:3px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;align-self:flex-end;height:28px}
+  .stx-btn-nt:hover{background:${GM_getValue("bg_native")}; filter: brightness(75%);}
+  .stx-field select{width: 5em;background:#f7f7ff;border:1px solid #444;color:black;padding:4px 1px;font-size:11px;border-radius:3px;outline:none;cursor:pointer}
+  .stx-field select:focus{border-color:#f0c040}
+
+
+  .stx-range-dual{position:relative;width:7em;height:20px}
+.stx-range-dual input[type=range]{position:absolute;width:100%;height:4px;background:transparent;pointer-events:none;appearance:none;-webkit-appearance:none;top:50%;transform:translateY(-50%)}
+.stx-range-dual input[type=range]::-webkit-slider-thumb{pointer-events:all;width:16px;height:16px;border-radius:50%;background:${GM_getValue("bg_native")};border:2px solid #1a1a2e;cursor:pointer;appearance:none;-webkit-appearance:none}
+.stx-range-dual::before{content:'';position:absolute;height:4px;background:#444;width:100%;top:50%;transform:translateY(-50%);border-radius:2px}
+.stx-range-track{position:absolute;height:4px;background:${GM_getValue("bg_native")};top:50%;transform:translateY(-50%);pointer-events:none}
+
+
+#mz-player-popup {
+  position: fixed;
+  top: 0;
+  right: -420px; /* oculto fuera de pantalla */
+  width: 400px;
+  height: 100vh;
+  background: #ffffff;
+  border-left: 3px solid ${GM_getValue("bg_native")};
+  box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+  z-index: 99999;
+  overflow-y: auto;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Oswald', 'Source Sans 3', sans-serif;
+  color: #e0e0e0;
+}
+
+#mz-player-popup.open {
+  right: 0;
+}
+
+/* Botón cerrar */
+#mz-player-popup .popup-close {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: #1e1e1e;
+  padding: 10px 14px;
+  border-bottom: 1px solid #333;
+  z-index: 1;
+}
+
+#mz-player-popup .popup-close button {
+  background: none;
+  border: 1px solid #555;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 18px;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+#mz-player-popup .popup-close button:hover {
+  border-color: #F5C800;
+  color: #F5C800;
+}
+
+/* Header del jugador */
+#mz-player-popup .popup-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+#mz-player-popup .popup-header h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #F5C800;
+  letter-spacing: 0.5px;
+}
+
+#mz-player-popup .popup-header .popup-team {
+  font-size: 13px;
+  color: #aaa;
+}
+
+
+/* Secciones internas */
+#mz-player-popup .popup-section {
+  padding: 12px 18px;
+}
+
+#mz-player-popup .popup-section h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #F5C800;
+}
+
+/* Loading state */
+#mz-player-popup .popup-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #555;
+  font-size: 13px;
+  gap: 10px;
+}
+
+/* Overlay opcional para cerrar clicando fuera */
+#mz-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 99998;
+}
+
+#mz-popup-overlay.open {
+  display: block;
+}
+
+
+#mz-toast-container {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 300px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  z-index: 99999;
+  font-family: 'Oswald', 'Source Sans 3', Arial, sans-serif;
+}
+
+.mz-toast {
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  border-left: 3px solid #ef5350;
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+  box-shadow: -4px 4px 16px rgba(0,0,0,0.5);
+}
+
+.mz-toast.visible  { transform: translateX(0); opacity: 1; }
+.mz-toast.removing { transform: translateX(120%); opacity: 0; }
+
+.toast-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.toast-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ef5350;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.toast-label::before {
+  font-size: 13px;
+}
+
+.toast-close {
+  background: none;
+  border: 1px solid #444;
+  color: #888;
+  cursor: pointer;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  border-color: #F5C800;
+  color: #F5C800;
+}
+
+.toast-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ededed;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-id {
+  font-size: 11px;
+  color: #888;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: #ef5350;
+  border-radius: 0 0 0 6px;
+}
+
+.toast-actions {
+  margin-top: 6px;
+}
+
+.toast-btn-view {
+  background: none;
+  border: 1px solid #F5C800;
+  color: #F5C800;
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.toast-btn-view:hover {
+  background: #F5C800;
+  color: #111;
+}
+
+
+.mz-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mz-modal-box {
+  background: #e6e6e6;
+  border: 1px solid #333;
+  border-top: 3px solid #F5C800;
+  border-radius: 6px;
+  min-width: 380px;
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mz-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #F5C800;
+}
+
+.mz-modal-close {
+  background: none;
+  border: 1px solid #444;
+  color: #888;
+  cursor: pointer;
+  font-size: 13px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.mz-modal-close:hover {
+  border-color: #F5C800;
+  color: #F5C800;
+}
+
+.mz-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.mz-excl-del {
+  background: none;
+  border: 1px solid #444;
+  color: #ef5350;
+  cursor: pointer;
+  font-size: 13px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.mz-excl-del:hover {
+  border-color: #ef5350;
+}
 
   `)
 
