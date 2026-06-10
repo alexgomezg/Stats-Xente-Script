@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.262
+// @version      0.263
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -4186,11 +4186,67 @@ self.onmessage = function (e) {
 
 
 <div class="stx-range-wrap">
-  <label>Age: <span id="stxAgeMinVal">16</span>–<span id="stxAgeMaxVal">40</span></label>
-  <div class="stx-range-dual">
-    <div class="stx-range-track" id="stxTrack"></div>
-    <input type="range" min="16" max="40" value="16" id="stxAgeMin">
-    <input type="range" min="16" max="40" value="40" id="stxAgeMax">
+  <label>Age</label>
+  <div class="stx-range-row">
+    <div class="stx-field">
+      <select id="stxAgeMin">
+      <option value="16" selected>16</option>
+<option value="17">17</option>
+<option value="18">18</option>
+<option value="19">19</option>
+<option value="20">20</option>
+<option value="21">21</option>
+<option value="22">22</option>
+<option value="23">23</option>
+<option value="24">24</option>
+<option value="25">25</option>
+<option value="26">26</option>
+<option value="27">27</option>
+<option value="28">28</option>
+<option value="29">29</option>
+<option value="30">30</option>
+<option value="31">31</option>
+<option value="32">32</option>
+<option value="33">33</option>
+<option value="34">34</option>
+<option value="35">35</option>
+<option value="36">36</option>
+<option value="37">37</option>
+<option value="38">38</option>
+<option value="39">39</option>
+<option value="40">40</option>
+      </select>
+    </div>
+    <span style="color:black;font-size:11px">–</span>
+    <div class="stx-field">
+      <select id="stxAgeMax">
+      <option value="16">16</option>
+<option value="17">17</option>
+<option value="18">18</option>
+<option value="19">19</option>
+<option value="20">20</option>
+<option value="21">21</option>
+<option value="22">22</option>
+<option value="23">23</option>
+<option value="24">24</option>
+<option value="25">25</option>
+<option value="26">26</option>
+<option value="27">27</option>
+<option value="28">28</option>
+<option value="29">29</option>
+<option value="30">30</option>
+<option value="31">31</option>
+<option value="32">32</option>
+<option value="33">33</option>
+<option value="34">34</option>
+<option value="35">35</option>
+<option value="36">36</option>
+<option value="37">37</option>
+<option value="38">38</option>
+<option value="39">39</option>
+<option value="40" selected>40</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -4242,13 +4298,6 @@ self.onmessage = function (e) {
             e.stopPropagation();
             searchNTPlayers()
         });
-
-
-
-
-        document.getElementById('stxAgeMin').addEventListener('input', stxUpdateRange);
-        document.getElementById('stxAgeMax').addEventListener('input', stxUpdateRange);
-        stxUpdateRange();
 
 
     }
