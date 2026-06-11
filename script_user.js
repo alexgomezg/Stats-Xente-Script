@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.266
+// @version      0.267
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -10587,7 +10587,7 @@ self.onmessage = function (e) {
                         //NOTIFY OUTBID
                         if((username!==actual_user)&&(obj.outbid===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"outbid");
-                            //obj.outbid=true
+                            obj.outbid=true
                         }
 
                         if(username===actual_user){
@@ -10603,7 +10603,7 @@ self.onmessage = function (e) {
                         if (diffMs > 0 && diffMs < mins) {
                             if(obj.deadline===false){
                                 openOutbidPopup(obj.player_id,obj.player_name,-1,"deadline");
-                                //obj.deadline=true
+                                obj.deadline=true
                             }
                         }
                     }
@@ -10652,7 +10652,7 @@ self.onmessage = function (e) {
                     if (new Date() < deadlineDate) {
                         if((bidders.length>0) && (obj.own===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"own");
-                            //obj.own=true
+                            obj.own=true
                         }else{
                             if (bids.has(u)) {
                                 obj=bids.get(u)
