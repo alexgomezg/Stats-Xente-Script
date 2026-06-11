@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.264
+// @version      0.265
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1042,7 +1042,10 @@ self.onmessage = function (e) {
            <option value="30">30 Minutes</option>
            <option value="60">60 Minutes</option>
           </select>
+          <button class="stx-btn-nt" id="reset-bids" style="align-self: stretch; height:auto;">Reset</button>
         </div>
+
+
    `;
         let el = document.querySelector('[name="monitorform"]');
 
@@ -1060,6 +1063,11 @@ self.onmessage = function (e) {
 
         document.getElementById("deadline_minutes").addEventListener("change", function() {
             GM_setValue("notifications_deadline_minutes"+window.sport, this.value);
+        });
+
+        document.getElementById("reset-bids").addEventListener("click", function() {
+            GM_setValue("bids"+window.sport, "[]")
+            bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
         });
 
 
@@ -10637,7 +10645,7 @@ self.onmessage = function (e) {
                     if (bids.has(u)) {
                         obj=bids.get(u)
                     }else{
-                        obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false,deadline_date:fechaDate}
+                        obj={player_id:u,player_name:enlace.textContent,own:false,outbid:false,deadline:false,deadline_date:fechaDate}
                         bids.set(u,obj)
                     }
                     let deadlineDate = new Date(bids.get(u).deadline_date);
