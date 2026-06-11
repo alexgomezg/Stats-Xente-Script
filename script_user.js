@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.267
+// @version      0.268
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -10587,7 +10587,7 @@ self.onmessage = function (e) {
                         //NOTIFY OUTBID
                         if((username!==actual_user)&&(obj.outbid===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"outbid");
-                            obj.outbid=true
+                            //obj.outbid=true
                         }
 
                         if(username===actual_user){
@@ -10603,7 +10603,7 @@ self.onmessage = function (e) {
                         if (diffMs > 0 && diffMs < mins) {
                             if(obj.deadline===false){
                                 openOutbidPopup(obj.player_id,obj.player_name,-1,"deadline");
-                                obj.deadline=true
+                                //obj.deadline=true
                             }
                         }
                     }
@@ -10652,7 +10652,7 @@ self.onmessage = function (e) {
                     if (new Date() < deadlineDate) {
                         if((bidders.length>0) && (obj.own===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"own");
-                            obj.own=true
+                            //obj.own=true
                         }else{
                             if (bids.has(u)) {
                                 obj=bids.get(u)
@@ -11878,6 +11878,7 @@ self.onmessage = function (e) {
         return GM_getValue('savedTagSets', []);
     }
     function openOutbidPopup(playerId, playerName, autoclose = AUTOCLOSE, type = 'outbid') {
+        if(document.getElementById("toast_"+playerId+"_"+type)){return;}
         const cfg = TOAST_TYPES[type] || TOAST_TYPES.outbid;
         const tc = getOrCreateContainer();
         const toast = document.createElement('div');
@@ -11885,7 +11886,7 @@ self.onmessage = function (e) {
         toast.style.borderLeftColor = cfg.color;
 
         toast.innerHTML = `
-    <div class="toast-top">
+    <div class="toast-top" id="toast_${playerId}_${type}">
       <span class="toast-label" style="color:${cfg.color}">${cfg.icon} ${cfg.label}</span>
       <button class="toast-close">✕</button>
     </div>
@@ -11932,7 +11933,7 @@ self.onmessage = function (e) {
         queue.push(toast);
 
         requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));
-
+        updateCloseAllButton();
         if (autoclose !== -1) {
             const prog = toast.querySelector('.toast-progress');
             prog.style.transition = `width ${autoclose}ms linear`;
@@ -11945,8 +11946,30 @@ self.onmessage = function (e) {
         setTimeout(() => {
             toast.remove();
             queue = queue.filter(t => t !== toast);
+            updateCloseAllButton();
         }, 300);
     }
+
+    function updateCloseAllButton() {
+        const tc = document.getElementById('mz-toast-container');
+        if (!tc) return;
+        let btn = document.getElementById('mz-toast-close-all');
+        const visible = queue.filter(t => !t.classList.contains('removing'));
+        if (visible.length > 1) {
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.id = 'mz-toast-close-all';
+                btn.textContent = 'Close';
+                btn.addEventListener('click', () => {
+                    [...queue].forEach(t => t.querySelector('.toast-close')?.click());
+                });
+            }
+            tc.insertBefore(btn, tc.firstChild);
+        } else {
+            btn?.remove();
+        }
+    }
+
     function getOrCreateContainer() {
         let tc = document.getElementById('mz-toast-container');
         if (!tc) {
@@ -15234,8 +15257,8 @@ cursor:pointer;
 }
 
 .toast-close:hover {
-  border-color: #F5C800;
-  color: #F5C800;
+  border-color: #ef5350;
+  color: #ef5350;
 }
 
 .toast-name {
@@ -15284,6 +15307,27 @@ cursor:pointer;
 .toast-btn-view:hover {
   background: #F5C800;
   color: #111;
+}
+
+#mz-toast-close-all {
+    font-weight: 700;
+    display: block;
+    width: 100%;
+    margin-top: 0px;
+    padding: 7px 0;
+    background: #1e1e1e;
+    color: #ef5350;
+    border: 1px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: 'Source Sans 3', sans-serif;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, color 0.2s;
+}
+#mz-toast-close-all:hover {
+    background: #ef5350;
+    color: #1e1e1e;
 }
 
 
