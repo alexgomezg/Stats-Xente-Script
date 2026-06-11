@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.265
+// @version      0.266
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1068,6 +1068,7 @@ self.onmessage = function (e) {
         document.getElementById("reset-bids").addEventListener("click", function() {
             GM_setValue("bids"+window.sport, "[]")
             bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
+            window.location.reload();
         });
 
 
@@ -10580,14 +10581,13 @@ self.onmessage = function (e) {
                     obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false,deadline_date:fechaDate}
                     bids.set(u,obj)
                 }
-
                 let deadlineDate = new Date(bids.get(u).deadline_date);
                 if (new Date() < deadlineDate) {
                     if(GM_getValue("notifications_outbids"+window.sport)){
                         //NOTIFY OUTBID
                         if((username!==actual_user)&&(obj.outbid===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"outbid");
-                            obj.outbid=true
+                            //obj.outbid=true
                         }
 
                         if(username===actual_user){
@@ -10603,7 +10603,7 @@ self.onmessage = function (e) {
                         if (diffMs > 0 && diffMs < mins) {
                             if(obj.deadline===false){
                                 openOutbidPopup(obj.player_id,obj.player_name,-1,"deadline");
-                                obj.deadline=true
+                                //obj.deadline=true
                             }
                         }
                     }
@@ -10652,7 +10652,7 @@ self.onmessage = function (e) {
                     if (new Date() < deadlineDate) {
                         if((bidders.length>0) && (obj.own===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"own");
-                            obj.own=true
+                            //obj.own=true
                         }else{
                             if (bids.has(u)) {
                                 obj=bids.get(u)
@@ -11898,6 +11898,13 @@ self.onmessage = function (e) {
   `;
 
         toast.querySelector('.toast-btn-view').addEventListener('click', () => {
+            let bid = bids.get(playerId);
+            if (bid) {
+                if (type === 'outbid') bid.outbid = true;
+                else if (type === 'own') bid.own = true;
+                else if (type === 'deadline') bid.deadline = true;
+            }
+            GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
             window.open(`https://www.managerzone.com/?p=transfer&sub=players&u=${playerId}`, '_blank');
         });
         toast.querySelector('.toast-btn-view').addEventListener('mouseenter', function() {
@@ -11910,7 +11917,16 @@ self.onmessage = function (e) {
         });
 
         const timer = autoclose !== -1 ? setTimeout(() => removeToast(toast, timer), autoclose) : null;
-        toast.querySelector('.toast-close').addEventListener('click', () => removeToast(toast, timer));
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            let bid = bids.get(playerId);
+            if (bid) {
+                if (type === 'outbid') bid.outbid = true;
+                else if (type === 'own') bid.own = true;
+                else if (type === 'deadline') bid.deadline = true;
+            }
+            GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
+            removeToast(toast, timer);
+        });
 
         tc.appendChild(toast);
         queue.push(toast);
