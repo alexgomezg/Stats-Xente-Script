@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.263
+// @version      0.264
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -4015,11 +4015,7 @@ self.onmessage = function (e) {
             let lines=["n1","n2","n3","n4"]
             teamTactic.tacticsData.TeamTactics.Tactic.forEach((tactic, key) => {
                 tactic?.TacticLine?.forEach((line, key) => {
-
-                    // console.log(line["@attributes"].name)
                     if(lines.includes(line["@attributes"].name)){
-
-
                         line.LinePlayer?.forEach((player, key) => {
                             let position=player["@attributes"].pos
                             switch(position){
@@ -4298,6 +4294,13 @@ self.onmessage = function (e) {
             e.stopPropagation();
             searchNTPlayers()
         });
+
+
+
+
+        /*document.getElementById('stxAgeMin').addEventListener('input', stxUpdateRange);
+        document.getElementById('stxAgeMax').addEventListener('input', stxUpdateRange);
+        stxUpdateRange();*/
 
 
     }
@@ -10570,9 +10573,8 @@ self.onmessage = function (e) {
                     bids.set(u,obj)
                 }
 
-                if (new Date() < bids.get(u).deadline_date) {
-
-
+                let deadlineDate = new Date(bids.get(u).deadline_date);
+                if (new Date() < deadlineDate) {
                     if(GM_getValue("notifications_outbids"+window.sport)){
                         //NOTIFY OUTBID
                         if((username!==actual_user)&&(obj.outbid===false)){
@@ -10590,7 +10592,6 @@ self.onmessage = function (e) {
                         let ahora = new Date();
                         let diffMs = fechaDate - ahora;
                         let mins = deadline_mins * 60 * 1000;
-
                         if (diffMs > 0 && diffMs < mins) {
                             if(obj.deadline===false){
                                 openOutbidPopup(obj.player_id,obj.player_name,-1,"deadline");
@@ -10598,6 +10599,7 @@ self.onmessage = function (e) {
                             }
                         }
                     }
+                    obj["deadline_date"]=fechaDate
                     bids.set(obj.player_id,obj)
                     GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
                 }
@@ -10619,13 +10621,15 @@ self.onmessage = function (e) {
                 let [dia, mes, anho] = fecha.split("-");
                 let [hh, mm] = hora.split(":");
                 let fechaDate = new Date(anho, mes - 1, dia, hh, mm);
-                let bidders=bid_body?.querySelectorAll('a[href*="p=profile"][href*="uid="]');
+                //let bidders=bid_body?.querySelectorAll('a[href*="p=profile"][href*="uid="]');
+                let bidders=bid_body?.querySelectorAll('a');
                 let enlace = el?.querySelector(
                     'a[href*="/?p=transfer"][href*="sub=players"]'
                 );
                 let obj
                 //NOTIFY OWN
                 if(enlace){
+
                     let obj
                     let u = enlace
                         ? new URL(enlace.href, window.location.origin).searchParams.get("u")
@@ -10636,16 +10640,17 @@ self.onmessage = function (e) {
                         obj={player_id:u,player_name:enlace.textContent,outbid:false,deadline:false,deadline_date:fechaDate}
                         bids.set(u,obj)
                     }
-                    if (new Date() < bids.get(u).deadline_date) {
-                        if(bidders.length>0){
+                    let deadlineDate = new Date(bids.get(u).deadline_date);
+                    if (new Date() < deadlineDate) {
+                        if((bidders.length>0) && (obj.own===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"own");
+                            obj.own=true
                         }else{
                             if (bids.has(u)) {
                                 obj=bids.get(u)
                             }else{
-                                obj={player_id:u,player_name:enlace.textContent,own:true}
+                                obj={player_id:u,player_name:enlace.textContent,own:false}
                             }
-
                         }
                         obj["deadline_date"]=fechaDate
                         bids.set(obj.player_id,obj)
@@ -12243,6 +12248,8 @@ self.onmessage = function (e) {
 
     }
     function stxUpdateRange() {
+        document.getElementById('stxAgeMin').style.pointerEvents
+        document.getElementById('stxAgeMax').style.pointerEvents
         const min = parseInt(document.getElementById('stxAgeMin').value);
         const max = parseInt(document.getElementById('stxAgeMax').value);
 
