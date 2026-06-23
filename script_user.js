@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.268
+// @version      0.269
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -195,6 +195,8 @@
             getDeviceFormat()
             waitToDOM(playersPageStatsAll, ".player_name", 0, 7000)
             waitToDOM(scoutReportEventListeners, ".player_name", 0, 7000)
+            waitToDOM(comparePlayerOnTeams, ".player_name", 0, 7000)
+
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'players') && (urlParams.has('pid'))) {
@@ -405,12 +407,9 @@
             insertGameNotificationsForm()
         }
 
-        /*  if ((urlParams.has('p')) && (urlParams.get('p') === 'stadium') ) {
-
-
-
-notifyBids()
-        }*/
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'shortlist')) {
+            waitToDOMById(transfersShortList, "shortlist_window", 5000)
+        }
 
     }, 1000);
 
@@ -424,9 +423,15 @@ notifyBids()
 
 
 
+
+
+
+
     /*openOutbidPopup(230814719, 'Jurre de Rooy',-1,"outbid");
     openOutbidPopup(230814719, 'Jurre de Rooy',-1,"deadline");
     openOutbidPopup(230814719, 'Jurre de Rooy',-1,"own");*/
+
+    //openOutbidPopup(230814719, 'Jurre de Rooy',-1,"deadline");
 
     //BUTTONS EVENT LISTENERS
     const urlParams = new URLSearchParams(window.location.search);
@@ -10680,6 +10685,444 @@ self.onmessage = function (e) {
             GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
         }
     }
+    //Comapre on Teams
+    async function comparePlayerOnTeams(){
+        let elementos1 = document.getElementsByClassName('playerContainer');
+        let playersToCompare = await fetchTeamPlayers()
+        let select= `<select class="statsxente" id="comparing_players" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
+        select += playersToCompare
+        select += '</select>';
+
+
+        document.getElementById("player_navigation").insertAdjacentHTML('beforeend', "</br></br>"+select);
+
+        for (let j = 0; j < elementos1.length; j++) {
+
+            let skills = elementos1[j].querySelectorAll(".player_skills.player_skills_responsive")
+            if(skills.length>0){
+
+                let currentId=elementos1[j].querySelector('.player_id_span').textContent;
+
+                let span11=elementos1[j].querySelector("span.player_icon_placeholder.monitor_add_link")
+                let newSpan1 = document.createElement('span');
+                newSpan1.innerHTML = `<span id="but_stx_compare_${currentId}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-scale-balanced compare-icon"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>
+`
+                newSpan1.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                span11.after(newSpan1);
+
+
+
+
+                (function (currentId, el) {
+                    el.querySelector("#but_stx_compare_" + currentId).addEventListener('click', async function (e) {
+                        let skillsTable = elementos1[j].querySelector('table.player_skills.player_skills_responsive');
+                        let clase = "loader-" + window.sport
+                        let txtToInsert =
+                            "<div style='text-align:center;'>" +
+                            "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                            "<div style='text-align:center;'><b>Loading...</b></div>" +
+                            "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                            "</div>" +
+                            "</div>";
+
+                        skillsTable.insertAdjacentHTML('afterend', txtToInsert);
+
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (document.getElementById("player_comparing_" + currentId)) { document.getElementById("player_comparing_" + currentId).remove() }
+                        let actual_id = document.getElementById("comparing_players").value
+                        let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid=" + actual_id);
+                        let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+                        let tableData
+                        let tds = skillsTablePlayer.querySelectorAll("td.skillval");
+                        let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
+                        let table = test.querySelector(".dg_playerview_info." + window.sport + " table");
+                        let tr = table.querySelectorAll("tr")[0];
+                        let td = tr.querySelectorAll("td")[0];
+                        let strong = td.querySelector("strong");
+                        edad = strong ? strong.textContent.trim() : null;
+                        let trs = table.querySelectorAll("tr");
+                        let start = 4;
+                        let maxChecks = 5;
+                        let index = 4;
+                        for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                            let tr = trs[i];
+                            if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                                break;
+                            }
+                            index++
+                        }
+                        tr = table.querySelectorAll("tr")[index];
+                        td = tr.querySelectorAll("td")[0];
+                        let span = td.querySelector("span");
+                        valor = span ? span.textContent.trim() : null;
+                        valor = valor.replace(GM_getValue("currency"), "")
+                        valor = valor.replace(/\s+/g, '');
+                        valor = formatNum(valor)
+                        index++
+                        tr = table.querySelectorAll("tr")[index];
+                        if (tr.innerHTML.includes(GM_getValue("currency"))) {
+                            td = tr.querySelectorAll("td")[0];
+                            span = td.querySelector("span");
+                            salario = span ? span.textContent.trim() : null;
+                            salario = salario.replace(GM_getValue("currency"), "")
+                            salario = salario.replace(/\s+/g, '');
+                            salario = formatNum(salario)
+                        } else {
+                            salario = "Youth"
+                        }
+                        index++;
+                        tr = table.querySelectorAll("tr")[index];
+                        td = tr.querySelectorAll("td")[0];
+                        span = td.querySelector("span.bold");
+                        skillsTotal = span ? span.textContent.trim() : null;
+                        tr = table.querySelectorAll("tr")[2];
+                        td = tr.querySelectorAll("td")[0];
+                        strong = td.querySelector("strong");
+                        season = strong ? strong.textContent.trim() : null;
+                        let icon = "fa-hockey-puck"
+                        if (window.sport == "soccer") {
+                            icon = "fa-futbol"
+                        }
+                        tableData = skillsTablePlayer.outerHTML
+                        let font_size = "12px"
+                        let bg = "#f7f6f2"
+                        let infoGrid = `
+
+<div style="padding:4px 4px 6px;font-family:sans-serif;">
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
+      <span style="font-size:11px;color:#AD4039;">Age</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
+    </div>
+
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
+      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
+      <span style="font-size:11px;color:#AD4039;">Value</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
+      <span style="font-size:11px;color:#AD4039;">Salary</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
+    </div>
+
+  </div>
+</div>`;
+
+                        let playerName = test.querySelector('span.player_name');
+                        let txt = "<div id='player_comparing_" + currentId + "' style='margin: 0 auto;'>"
+                        txt += "<h2 style='margin-bottom: 1px; text-align: center; color:" + GM_getValue("color_native") + "; background-color: " + GM_getValue("bg_native") + "; border-radius:5px; text-shadow: 1px 1px black;'>"
+                        txt += playerName.textContent + "</h2>"
+                        txt += infoGrid
+                        txt += tableData + "</div>"
+                        skillsTable.insertAdjacentHTML('afterend',txt);
+                        document.getElementById("hp_loader_comparing" + currentId).remove()
+
+                    });
+                })(currentId, elementos1[j]);
+
+            }
+
+
+        }
+
+
+        document.getElementById("comparing_players").addEventListener("change", async function () {
+            let elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
+            for (let i = 0; i < elementos1.length; i++) {
+                let el = elementos1[i]
+                let currentId = el.id.replace('player_comparing_', '');
+                let clase = "loader-" + window.sport
+                let txtToInsert =
+                    "<div style='text-align:center;'>" +
+                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                    "</div>" +
+                    "</div>";
+                document.getElementById("player_comparing_" + currentId).innerHTML = txtToInsert;
+            }
+
+            let actual_id = document.getElementById("comparing_players").value
+            let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid=" + actual_id);
+            let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+            let tableData = skillsTablePlayer.outerHTML
+            let playerName = test.querySelector('span.player_name');
+
+
+            let table = test.querySelector(".dg_playerview_info." + window.sport + " table");
+            let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
+            let tr = table.querySelectorAll("tr")[0];
+            let td = tr.querySelectorAll("td")[0];
+            let strong = td.querySelector("strong");
+            edad = strong ? strong.textContent.trim() : null;
+
+            let trs = table.querySelectorAll("tr");
+            let start = 4;
+            let maxChecks = 5;
+            let index = 4;
+            for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                let tr = trs[i];
+                if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                    break;
+                    index++
+                }
+            }
+
+
+            tr = table.querySelectorAll("tr")[index];
+            td = tr.querySelectorAll("td")[0];
+            let span = td.querySelector("span");
+            valor = span ? span.textContent.trim() : null;
+            valor = valor.replace(GM_getValue("currency"), "")
+            valor = valor.replace(/\s+/g, '');
+            valor = formatNum(valor)
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            if (tr.innerHTML.includes(GM_getValue("currency"))) {
+                td = tr.querySelectorAll("td")[0];
+                span = td.querySelector("span");
+                salario = span ? span.textContent.trim() : null;
+                salario = salario.replace(GM_getValue("currency"), "")
+                salario = salario.replace(/\s+/g, '');
+                salario = formatNum(salario)
+            } else {
+                salario = "Youth"
+            }
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            td = tr.querySelectorAll("td")[0];
+            span = td.querySelector("span.bold");
+            skillsTotal = span ? span.textContent.trim() : null;
+
+            tr = table.querySelectorAll("tr")[2];
+            td = tr.querySelectorAll("td")[0];
+            strong = td.querySelector("strong");
+            season = strong ? strong.textContent.trim() : null;
+            let icon = "fa-hockey-puck"
+            if (window.sport == "soccer") {
+                icon = "fa-futbol"
+            }
+            tableData = skillsTablePlayer.outerHTML
+            let font_size = "12px"
+            let bg = "#f7f6f2"
+
+            const infoGrid = `
+
+<div style="padding:4px 4px 6px;font-family:sans-serif;">
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
+      <span style="font-size:11px;color:#AD4039;">Age</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
+    </div>
+
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
+      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
+      <span style="font-size:11px;color:#AD4039;">Value</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
+      <span style="font-size:11px;color:#AD4039;">Salary</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
+    </div>
+
+  </div>
+</div>`;
+
+
+
+
+
+
+            elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
+            for (let i = 0; i < elementos1.length; i++) {
+                let el = elementos1[i]
+                let currentId = el.id.replace('player_comparing_', '');
+                let clase = "loader-" + window.sport
+                let txtToInsert =
+                    "<div style='text-align:center;'>" +
+                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                    "</div>" +
+                    "</div>";
+                document.getElementById("player_comparing_" + currentId).innerHTML = txtToInsert;
+                //let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color: "+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                let txt = "<div id='player_comparing_" + currentId + "' style='margin: 0 auto;'>"
+                txt += "<h2 style='margin-bottom: 1px; text-align: center; color:" + GM_getValue("color_native") + "; background-color: " + GM_getValue("bg_native") + "; border-radius:5px; text-shadow: 1px 1px black;'>"
+                txt += playerName.textContent + "</h2>"
+                txt += infoGrid
+                txt += tableData + "</div>"
+                document.getElementById("player_comparing_" + currentId).innerHTML = txt;
+            }
+
+        });
+
+
+
+    }
+    //Shortlist
+    function transfersShortList(){
+        let playersMap=new Map();
+        let elementos1 = document.getElementsByClassName('playerContainer')
+        for (let i = 0; i < elementos1.length; i++) {
+
+            let playerName = elementos1[i].querySelector('span.player_name');
+            let table = elementos1[i].querySelector(".dg_playerview_info." + window.sport + " table");
+            let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
+            let tr = table.querySelectorAll("tr")[0];
+            let td = tr.querySelectorAll("td")[0];
+            let strong = td.querySelector("strong");
+            edad = strong ? strong.textContent.trim() : null;
+            if(edad.includes("cm")){edad=100}
+
+            let trs = table.querySelectorAll("tr");
+            let start = 4;
+            let maxChecks = 5;
+            let index = 4;
+            for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                let tr = trs[i];
+                if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                    break;
+                    index++
+                }
+            }
+
+            let rows = table.querySelectorAll("tr");
+            tr = rows[index];
+            while (tr && tr.querySelector("img")) {
+                index++;
+                tr = rows[index];
+            }
+            td = tr.querySelectorAll("td")[0];
+            let span = td.querySelector("span");
+            valor = span ? span.textContent.trim() : null;
+            valor = valor.replace(GM_getValue("currency"), "")
+            valor = valor.replace(/\s+/g, '');
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            if (tr.innerHTML.includes(GM_getValue("currency"))) {
+                td = tr.querySelectorAll("td")[0];
+                span = td.querySelector("span");
+                salario = span ? span.textContent.trim() : null;
+                salario = salario.replace(GM_getValue("currency"), "")
+                salario = salario.replace(/\s+/g, '');
+            }
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            td = tr.querySelectorAll("td")[0];
+            span = td.querySelector("span.bold");
+            skillsTotal = span ? span.textContent.trim() : 0;
+
+            let dl = elementos1[i].querySelector('.bid_history_lite');
+            let secondDd = dl?.querySelectorAll('dd')[1];
+            let spanDd=secondDd?.querySelectorAll('span')[1];
+            let date = new Date(2020, 0, 1);
+            if(spanDd){
+                let deadlineText=spanDd?.textContent
+                let [fecha, hora] = deadlineText.split(" ");
+                let [dia, mes, anho] = fecha.split("-");
+                let [hh, mm] = hora.split(":");
+                date = new Date(anho, mes - 1, dia, hh, mm);
+            }
+
+            let obj={player_name:playerName.textConnten,age:edad,value:valor,salary:salario,skills:skillsTotal,deadline:date}
+            playersMap.set(elementos1[i].id,obj)
+
+        }
+
+
+        let txt=`<div class="tmstx-checkbox-row" style="display: inline-flex; padding-left: 5px;">
+          <label for="tmstx-chk-deadline">Value</label>
+          <select id="sort_select" class="statsxente" style="background-color:rgb(228, 200, 0);
+          padding: 6px 3px;
+          border-radius: 3px;
+          width: 9em;
+          border-color:rgb(228, 200, 0);
+          color: white
+          font-family: Roboto;
+          font-weight: bold;
+          font-size: revert;">
+          <option value="deadline">Deadline</option>
+           <option value="age">Age</option>
+           <option value="value">Value</option>
+           <option value="salary">Salary</option>
+           <option value="skills">Total Skills</option>
+          </select>
+
+
+           <label for="tmstx-chk-deadline">Order</label>
+          <select id="order_select" class="statsxente" style="background-color:rgb(228, 200, 0);
+          padding: 6px 3px;
+          border-radius: 3px;
+          width: 9em;
+          border-color:rgb(228, 200, 0);
+          color: white
+          font-family: Roboto;
+          font-weight: bold;
+          font-size: revert;">
+           <option value="desc">Desc</option>
+           <option value="asc">Asc</option>
+          </select>
+
+          <button class="stx-btn-nt" id="order-players" style="align-self: stretch; height:auto;">Sort</button>
+        </div>`
+
+        document.getElementById("players_container").insertAdjacentHTML('beforebegin', txt);
+
+        let container=document.getElementById("players_container")
+
+
+
+        document.getElementById("order-players").addEventListener("click", function() {
+
+            let order=document.getElementById("order_select").value
+            let toSort=document.getElementById("sort_select").value
+
+            let sorted = [...playersMap.entries()].sort((a, b) =>
+                order === 'asc'
+                    ? a[1][toSort] - b[1][toSort]
+                    : b[1][toSort] - a[1][toSort]
+            );
+            sorted.forEach(([id]) => {
+                container.appendChild(document.getElementById(id));
+            });
+        });
+
+
+
+    }
 
 
     //HANDLERS FUNCTIONS
@@ -11083,14 +11526,14 @@ self.onmessage = function (e) {
                     withCredentials: true,
 
                     onload: function (response) {
+                        let cont
                         let parser = new DOMParser();
                         let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
                         let players = xmlDoc.getElementsByTagName("Player");
                         for (let i = 0; i < players.length; i++) {
-                            options += "<option style='font-weight:bold;' value='" + players[i].getAttribute("id") + "'>(" + players[i].getAttribute("shirtNo") + ") " + players[i].getAttribute("name") + "</option>";
+                            options += "<option style='font-weight:bold;' value='" + players[i].getAttribute("id") + "'>" + players[i].getAttribute("shirtNo") + ". " + players[i].getAttribute("name") + "</option>";
                         }
                         resolve(options)
-
                     },
                     onerror: function () {
                         reject("none");
@@ -11104,7 +11547,7 @@ self.onmessage = function (e) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_selects.php",
+                url: "https://statsxente.com/MZ1/Functions/tamper_selects.php?stx_u="+GM_getValue("stx_u","")+"&sport="+window.sport,
                 headers: {
                     "Content-Type": "application/json"
                 },
