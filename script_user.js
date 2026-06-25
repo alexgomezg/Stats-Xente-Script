@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.271
+// @version      0.272
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -511,7 +511,7 @@
             const lastBid = parseInt(bidStrong.textContent.replace(/\D/g, ""), 10);
 
             const valueBox = container.querySelector(".box_dark:not(.scout_report_row)");
-            const valueSpan = valueBox.querySelector("span[title$='EUR']");
+            const valueSpan = valueBox.querySelector("span[title$='"+GM_getValue("currency")+"']");
             const valueTitle = valueSpan.getAttribute("title");
             const playerValue = parseInt(valueTitle.replace(/\D/g, ""), 10);
 
@@ -567,9 +567,7 @@
         // No es necesario si el número de jugadores en venta no es enorme; déjalo en un número
         // alto (o usa Infinity) si quieres máxima velocidad y no ves errores de red.
         const CONCURRENCY_PER_TEAM = Infinity;
-
         const idsBuscados = new Set();
-
         const a = document.getElementById("league_tab_table");
         const li = a.closest("li");
         const id = li.getAttribute("aria-controls");
