@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.269
+// @version      0.270
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -41,6 +41,7 @@
     let searchResults = []
     let percent = 0;
     let currentPage = 1;
+    let contPlayersTM=1;
     let totalPages = 20
     let teamCache;
     let playersCache;
@@ -102,6 +103,7 @@
     checkScriptVersion().then()
     getSelects().then()
 
+    let tmPlayerLeagues = new Map(JSON.parse(GM_getValue("tmPlayerLeagues" + window.sport, "[]")));
     let playersTacticsNT = new Map(JSON.parse(GM_getValue("playersTacticsNT"+window.sport, "[]")));
     let bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
     let filtered
@@ -142,6 +144,10 @@
                 }
                 waitToDOM(() => calendarEloChange(type), ".mainContent", 0, 5000);
             });
+
+
+
+            waitToDOM(onSalePlayers, ".nice_table", 0, 7000)
 
         }
 
@@ -422,8 +428,702 @@
     }
 
 
+    async function runWithConcurrency(items, limit, worker) {
+        const results = new Array(items.length);
+        let index = 0;
+
+        async function next() {
+            while (index < items.length) {
+                const current = index++;
+                results[current] = await worker(items[current]);
+            }
+        }
+
+        const workers = Array.from({ length: Math.min(limit, items.length) }, () => next());
+        await Promise.all(workers);
+        return results;
+    }
+    async function fetchPlayerIdsOnTeam(team_id) {
+        let link = "https://www.managerzone.com/?p=players&tid=" + team_id;
+        try {
+            const response = await fetch(link, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const text = await response.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(text, 'text/html');
+            let players_on_sale = doc.querySelectorAll(".special_player");
+
+            const pids = [];
+            for (const el of players_on_sale) {
+                const a = el.closest("a");
+                if (!a) continue;
+                if (a.href.includes("transfer")) {
+                    const url = new URL(a.href, window.location.origin);
+                    const pid = url.searchParams.get("u");
+                    if (pid) pids.push(pid);
+                }
+            }
+            return pids;
+        } catch (error) {
+            console.warn("Error loading: " + link, error);
+            return [];
+        }
+    }
+    async function fetchPlayerDataTM(player_id) {
+        let link = "https://www.managerzone.com/?p=transfer&sub=players&u=" + player_id;
+        try {
+            const response = await fetch(link, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const text = await response.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(text, 'text/html');
+            let container = doc.querySelector(".playerContainer");
+
+            const headerDiv = container.querySelector(".subheader.clearfix > div[title]");
+            const headerTitle = headerDiv.getAttribute("title");
+            const headerMatch = headerTitle.match(/^(.+?)\s\((\d+)\)\s.+@\s(.+)$/);
+
+            const playerName = headerMatch[1].trim();
+            const playerId = parseInt(headerMatch[2], 10);
+            const deadline = headerMatch[3].trim();
+
+            const teamLink = container.querySelector("a[href*='p=team']");
+            const teamName = teamLink.textContent.trim();
+            const teamId = parseInt(teamLink.href.match(/tid=(\d+)/)[1], 10);
+
+            const flagImg = container.querySelector("img[src*='/flags/']");
+            const nationality = flagImg.src.match(/flags\/\d+\/(\w+)\.png/)[1];
+
+            const totalAttrCell = container.querySelector(".help_button[onclick*='Total']");
+            const infoTable = totalAttrCell.closest("table");
+            const ageValue = infoTable.querySelector("tr:first-child strong").textContent.trim();
+            const age = parseInt(ageValue, 10);
+
+            const bidButton = container.querySelector(".bid_button");
+            const bidTable = bidButton.closest("table");
+            const bidCell = Array.from(bidTable.querySelectorAll("td"))
+                .find(td => td.querySelector("strong"));
+            const bidStrong = bidCell.querySelector("strong");
+            const lastBid = parseInt(bidStrong.textContent.replace(/\D/g, ""), 10);
+
+            const valueBox = container.querySelector(".box_dark:not(.scout_report_row)");
+            const valueSpan = valueBox.querySelector("span[title$='EUR']");
+            const valueTitle = valueSpan.getAttribute("title");
+            const playerValue = parseInt(valueTitle.replace(/\D/g, ""), 10);
+
+            return {
+                playerName,
+                playerId,
+                teamName,
+                teamId,
+                lastBid,
+                age,
+                nationality,
+                playerValue,
+                deadline
+            };
+        } catch (error) {
+            console.warn("Error loading: " + link, error);
+            return null;
+        }
+    }
+    function upsertPlayerRow(player, num) {
+        const trId = `player-${player.playerId}`;
+        const rowHtml = `<tr id="${trId}">
+<td>${num}</td>
+<td><img src="nocache-956/img/flags/15/${player.nationality}.png" alt="" title="" width="15" height="15" style="vertical-align: middle"> ${player.playerName}</td>
+<td><img src="dynimg/badge.php?team_id=${player.teamId}&sport=${window.sport}&location=team_main" alt="" title="" width="15" height="15" style="vertical-align: middle"> ${player.teamName}</td>
+<td>${player.age}</td>
+<td>${new Intl.NumberFormat(window.userLocal).format(player.playerValue)}</td>
+<td style="font-weight:bold;">${new Intl.NumberFormat(window.userLocal).format(player.lastBid)}</td>
+<td>${player.deadline}</td>
+<td><a target="_blank" href="https://www.managerzone.com/?p=transfer&sub=players&u=${player.playerId}">Show</a></td>
+</tr>`;
+
+        const existing = document.getElementById(trId);
+
+        if (existing) {
+            existing.outerHTML = rowHtml;
+            const newRow = document.getElementById(trId);
+            if (newRow) {
+                const computedBg = getComputedStyle(newRow).backgroundColor;
+                newRow.style.setProperty("--row-final-bg", computedBg);
+                newRow.classList.add("row-fade-in");
+                newRow.addEventListener("animationend", () => {
+                    newRow.classList.remove("row-fade-in");
+                }, { once: true });
+            }
+        } else {
+            document.querySelector("#players-tbody").insertAdjacentHTML("beforeend", rowHtml);
+        }
+    }
+    async function onSalePlayers() {
+        const inicio = performance.now();
+        // Límite opcional de concurrencia POR EQUIPO en la fase de detalle de jugador.
+        // No es necesario si el número de jugadores en venta no es enorme; déjalo en un número
+        // alto (o usa Infinity) si quieres máxima velocidad y no ves errores de red.
+        const CONCURRENCY_PER_TEAM = Infinity;
+
+        const idsBuscados = new Set();
+
+        const a = document.getElementById("league_tab_table");
+        const li = a.closest("li");
+        const id = li.getAttribute("aria-controls");
+
+        let as = document.getElementById(id).querySelectorAll("a");
+        let main_divs = document.getElementById(id).querySelectorAll(".mainContent");
+
+        let loader = `<div style='text-align:center;'>
+  <div id='hp_loader' style='width:100%; margin:0 auto;'>
+    <div style='text-align:center;'><b>Refreshing Market Info...</b></div>
+    <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%; margin:0 auto;'></div>
+  </div></div>
+`;
+        main_divs[2].insertAdjacentHTML('beforeend', loader);
+
+        let tids = [];
+        for (const a of as) {
+            let href = a.href;
+            if (href.includes("&tid=")) {
+                let tid = new URL(href).searchParams.get("tid");
+                tids.push(tid);
+                idsBuscados.add(parseInt(tid));
+            }
+        }
+
+        // 1) Tabla vacía + pintado inmediato con caché (datos viejos)
+        let tableHtml = `
+ <h2 class="subheader clearfix">Players on sale</h2>
+ </br>
+<table id="players-table" class="ntSearch">
+    <thead>
+        <tr>
+            <th>Num</th>
+            <th>Player</th>
+            <th>Team</th>
+            <th>Age</th>
+            <th>Value</th>
+            <th>Bid</th>
+            <th>Deadline</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="players-tbody">
+`;
+        tableHtml += "</tbody></table>";
+        main_divs[2].insertAdjacentHTML('beforeend', tableHtml);
+
+        let contPlayersTM = 1;
+        const jugadoresCache = Array.from(tmPlayerLeagues.values())
+            .filter(player => idsBuscados.has(player.teamId));
+
+        jugadoresCache.forEach(player => {
+            upsertPlayerRow(player, contPlayersTM++);
+        });
+
+        // 2) FASE FUSIONADA: cada equipo, en cuanto sabe sus propios pids, dispara YA
+        //    el fetch de detalle de esos jugadores, sin esperar a los demás equipos.
+        //    Esto elimina el punto de sincronización secuencial entre "ronda de pids"
+        //    y "ronda de detalle" que hacía que los tiempos se sumaran en vez de solaparse.
+        const seenPlayerIds = new Set(); // evita pintar/duplicar si un jugador aparece en más de un equipo
+
+        const perTeamJobs = tids.map(async (tid) => {
+            const pids = await fetchPlayerIdsOnTeam(tid);
+            if (pids.length === 0) return;
+
+            const fetchDetail = async (pid) => {
+                const player = await fetchPlayerDataTM(pid);
+                if (player) {
+                    tmPlayerLeagues.set(player.playerId, player);
+                    if (idsBuscados.has(player.teamId) && !seenPlayerIds.has(player.playerId)) {
+                        seenPlayerIds.add(player.playerId);
+                        upsertPlayerRow(player, contPlayersTM++);
+                    }
+                }
+                return player;
+            };
+
+            if (CONCURRENCY_PER_TEAM === Infinity) {
+                return Promise.all(pids.map(fetchDetail));
+            }
+            return runWithConcurrency(pids, CONCURRENCY_PER_TEAM, fetchDetail);
+        });
+
+        await Promise.all(perTeamJobs);
+
+        // 3) Persistencia
+        GM_setValue("tmPlayerLeagues" + window.sport, JSON.stringify([...tmPlayerLeagues]));
+
+        const loaderEl = document.getElementById("hp_loader");
+        if (loaderEl) loaderEl.remove();
+        const fin = performance.now();
+
+        console.log(`Tiempo: ${fin - inicio} ms`)
+    }
 
 
+
+
+    async function comparePlayerOnTeams(){
+        let elementos1 = document.getElementsByClassName('playerContainer');
+        let playersToCompare = await fetchTeamPlayers()
+        let select= `<select class="statsxente" id="comparing_players" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
+        select += playersToCompare
+        select += '</select>';
+
+
+        document.getElementById("player_navigation").insertAdjacentHTML('beforeend', "</br></br>"+select);
+
+        for (let j = 0; j < elementos1.length; j++) {
+
+            let skills = elementos1[j].querySelectorAll(".player_skills.player_skills_responsive")
+            if(skills.length>0){
+
+                let currentId=elementos1[j].querySelector('.player_id_span').textContent;
+
+                let span11=elementos1[j].querySelector("span.player_icon_placeholder.monitor_add_link")
+                let newSpan1 = document.createElement('span');
+                newSpan1.innerHTML = `<span id="but_stx_compare_${currentId}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-scale-balanced compare-icon"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>
+`
+                newSpan1.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                span11.after(newSpan1);
+
+
+
+
+                (function (currentId, el) {
+                    el.querySelector("#but_stx_compare_" + currentId).addEventListener('click', async function (e) {
+                        let skillsTable = elementos1[j].querySelector('table.player_skills.player_skills_responsive');
+                        let clase = "loader-" + window.sport
+                        let txtToInsert =
+                            "<div style='text-align:center;'>" +
+                            "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                            "<div style='text-align:center;'><b>Loading...</b></div>" +
+                            "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                            "</div>" +
+                            "</div>";
+
+                        skillsTable.insertAdjacentHTML('afterend', txtToInsert);
+
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (document.getElementById("player_comparing_" + currentId)) { document.getElementById("player_comparing_" + currentId).remove() }
+                        let actual_id = document.getElementById("comparing_players").value
+                        let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid=" + actual_id);
+                        let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+                        let tableData
+                        let tds = skillsTablePlayer.querySelectorAll("td.skillval");
+                        let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
+                        let table = test.querySelector(".dg_playerview_info." + window.sport + " table");
+                        let tr = table.querySelectorAll("tr")[0];
+                        let td = tr.querySelectorAll("td")[0];
+                        let strong = td.querySelector("strong");
+                        edad = strong ? strong.textContent.trim() : null;
+                        let trs = table.querySelectorAll("tr");
+                        let start = 4;
+                        let maxChecks = 5;
+                        let index = 4;
+                        for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                            let tr = trs[i];
+                            if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                                break;
+                            }
+                            index++
+                        }
+                        tr = table.querySelectorAll("tr")[index];
+                        td = tr.querySelectorAll("td")[0];
+                        let span = td.querySelector("span");
+                        valor = span ? span.textContent.trim() : null;
+                        valor = valor.replace(GM_getValue("currency"), "")
+                        valor = valor.replace(/\s+/g, '');
+                        valor = formatNum(valor)
+                        index++
+                        tr = table.querySelectorAll("tr")[index];
+                        if (tr.innerHTML.includes(GM_getValue("currency"))) {
+                            td = tr.querySelectorAll("td")[0];
+                            span = td.querySelector("span");
+                            salario = span ? span.textContent.trim() : null;
+                            salario = salario.replace(GM_getValue("currency"), "")
+                            salario = salario.replace(/\s+/g, '');
+                            salario = formatNum(salario)
+                        } else {
+                            salario = "Youth"
+                        }
+                        index++;
+                        tr = table.querySelectorAll("tr")[index];
+                        td = tr.querySelectorAll("td")[0];
+                        span = td.querySelector("span.bold");
+                        skillsTotal = span ? span.textContent.trim() : null;
+                        tr = table.querySelectorAll("tr")[2];
+                        td = tr.querySelectorAll("td")[0];
+                        strong = td.querySelector("strong");
+                        season = strong ? strong.textContent.trim() : null;
+                        let icon = "fa-hockey-puck"
+                        if (window.sport == "soccer") {
+                            icon = "fa-futbol"
+                        }
+                        tableData = skillsTablePlayer.outerHTML
+                        let font_size = "12px"
+                        let bg = "#f7f6f2"
+                        let infoGrid = `
+
+<div style="padding:4px 4px 6px;font-family:sans-serif;">
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
+      <span style="font-size:11px;color:#AD4039;">Age</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
+    </div>
+
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
+      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
+      <span style="font-size:11px;color:#AD4039;">Value</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
+      <span style="font-size:11px;color:#AD4039;">Salary</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
+    </div>
+
+  </div>
+</div>`;
+
+                        let playerName = test.querySelector('span.player_name');
+                        let txt = "<div id='player_comparing_" + currentId + "' style='margin: 0 auto;'>"
+                        txt += "<h2 style='margin-bottom: 1px; text-align: center; color:" + GM_getValue("color_native") + "; background-color: " + GM_getValue("bg_native") + "; border-radius:5px; text-shadow: 1px 1px black;'>"
+                        txt += playerName.textContent + "</h2>"
+                        txt += infoGrid
+                        txt += tableData + "</div>"
+                        skillsTable.insertAdjacentHTML('afterend',txt);
+                        document.getElementById("hp_loader_comparing" + currentId).remove()
+
+                    });
+                })(currentId, elementos1[j]);
+
+            }
+
+
+        }
+
+
+        document.getElementById("comparing_players").addEventListener("change", async function () {
+            let elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
+            for (let i = 0; i < elementos1.length; i++) {
+                let el = elementos1[i]
+                let currentId = el.id.replace('player_comparing_', '');
+                let clase = "loader-" + window.sport
+                let txtToInsert =
+                    "<div style='text-align:center;'>" +
+                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                    "</div>" +
+                    "</div>";
+                document.getElementById("player_comparing_" + currentId).innerHTML = txtToInsert;
+            }
+
+            let actual_id = document.getElementById("comparing_players").value
+            let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid=" + actual_id);
+            let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
+            let tableData = skillsTablePlayer.outerHTML
+            let playerName = test.querySelector('span.player_name');
+
+
+            let table = test.querySelector(".dg_playerview_info." + window.sport + " table");
+            let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
+            let tr = table.querySelectorAll("tr")[0];
+            let td = tr.querySelectorAll("td")[0];
+            let strong = td.querySelector("strong");
+            edad = strong ? strong.textContent.trim() : null;
+
+            let trs = table.querySelectorAll("tr");
+            let start = 4;
+            let maxChecks = 5;
+            let index = 4;
+            for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                let tr = trs[i];
+                if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                    break;
+                    index++
+                }
+            }
+
+
+            tr = table.querySelectorAll("tr")[index];
+            td = tr.querySelectorAll("td")[0];
+            let span = td.querySelector("span");
+            valor = span ? span.textContent.trim() : null;
+            valor = valor.replace(GM_getValue("currency"), "")
+            valor = valor.replace(/\s+/g, '');
+            valor = formatNum(valor)
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            if (tr.innerHTML.includes(GM_getValue("currency"))) {
+                td = tr.querySelectorAll("td")[0];
+                span = td.querySelector("span");
+                salario = span ? span.textContent.trim() : null;
+                salario = salario.replace(GM_getValue("currency"), "")
+                salario = salario.replace(/\s+/g, '');
+                salario = formatNum(salario)
+            } else {
+                salario = "Youth"
+            }
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            td = tr.querySelectorAll("td")[0];
+            span = td.querySelector("span.bold");
+            skillsTotal = span ? span.textContent.trim() : null;
+
+            tr = table.querySelectorAll("tr")[2];
+            td = tr.querySelectorAll("td")[0];
+            strong = td.querySelector("strong");
+            season = strong ? strong.textContent.trim() : null;
+            let icon = "fa-hockey-puck"
+            if (window.sport == "soccer") {
+                icon = "fa-futbol"
+            }
+            tableData = skillsTablePlayer.outerHTML
+            let font_size = "12px"
+            let bg = "#f7f6f2"
+
+            const infoGrid = `
+
+<div style="padding:4px 4px 6px;font-family:sans-serif;">
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
+      <span style="font-size:11px;color:#AD4039;">Age</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
+    </div>
+
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
+      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
+      <span style="font-size:11px;color:#AD4039;">Value</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
+    </div>
+
+    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
+      <span style="font-size:11px;color:#AD4039;">Salary</span>
+      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
+    </div>
+
+  </div>
+</div>`;
+
+
+
+
+
+
+            elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
+            for (let i = 0; i < elementos1.length; i++) {
+                let el = elementos1[i]
+                let currentId = el.id.replace('player_comparing_', '');
+                let clase = "loader-" + window.sport
+                let txtToInsert =
+                    "<div style='text-align:center;'>" +
+                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
+                    "<div style='text-align:center;'><b>Loading...</b></div>" +
+                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
+                    "</div>" +
+                    "</div>";
+                document.getElementById("player_comparing_" + currentId).innerHTML = txtToInsert;
+                //let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color: "+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
+                let txt = "<div id='player_comparing_" + currentId + "' style='margin: 0 auto;'>"
+                txt += "<h2 style='margin-bottom: 1px; text-align: center; color:" + GM_getValue("color_native") + "; background-color: " + GM_getValue("bg_native") + "; border-radius:5px; text-shadow: 1px 1px black;'>"
+                txt += playerName.textContent + "</h2>"
+                txt += infoGrid
+                txt += tableData + "</div>"
+                document.getElementById("player_comparing_" + currentId).innerHTML = txt;
+            }
+
+        });
+
+
+
+    }
+
+    function transfersShortList(){
+        let playersMap=new Map();
+        let elementos1 = document.getElementsByClassName('playerContainer')
+        for (let i = 0; i < elementos1.length; i++) {
+
+            let playerName = elementos1[i].querySelector('span.player_name');
+            let table = elementos1[i].querySelector(".dg_playerview_info." + window.sport + " table");
+            let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
+            let tr = table.querySelectorAll("tr")[0];
+            let td = tr.querySelectorAll("td")[0];
+            let strong = td.querySelector("strong");
+            edad = strong ? strong.textContent.trim() : null;
+            if(edad.includes("cm")){edad=100}
+
+            let trs = table.querySelectorAll("tr");
+            let start = 4;
+            let maxChecks = 5;
+            let index = 4;
+            for (let i = start; i < trs.length && i < start + maxChecks; i++) {
+                let tr = trs[i];
+                if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                    break;
+                    index++
+                }
+            }
+
+            let rows = table.querySelectorAll("tr");
+            tr = rows[index];
+            while (tr && tr.querySelector("img")) {
+                index++;
+                tr = rows[index];
+            }
+            td = tr.querySelectorAll("td")[0];
+            let span = td.querySelector("span");
+            valor = span ? span.textContent.trim() : null;
+            valor = valor.replace(GM_getValue("currency"), "")
+            valor = valor.replace(/\s+/g, '');
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            if (tr.innerHTML.includes(GM_getValue("currency"))) {
+                td = tr.querySelectorAll("td")[0];
+                span = td.querySelector("span");
+                salario = span ? span.textContent.trim() : null;
+                salario = salario.replace(GM_getValue("currency"), "")
+                salario = salario.replace(/\s+/g, '');
+            }
+            index++;
+
+            tr = table.querySelectorAll("tr")[index];
+            td = tr.querySelectorAll("td")[0];
+            span = td.querySelector("span.bold");
+            skillsTotal = span ? span.textContent.trim() : 0;
+
+            let dl = elementos1[i].querySelector('.bid_history_lite');
+            let secondDd = dl?.querySelectorAll('dd')[1];
+            let spanDd=secondDd?.querySelectorAll('span')[1];
+            let date = new Date(1969, 0, 1);
+            if(spanDd){
+                let deadlineText=spanDd?.textContent
+                let [fecha, hora] = deadlineText.split(" ");
+                let [dia, mes, anho] = fecha.split("-");
+                let [hh, mm] = hora.split(":");
+                date = new Date(anho, mes - 1, dia, hh, mm);
+            }
+
+            let obj={player_name:playerName.textConnten,age:edad,value:valor,salary:salario,skills:skillsTotal,deadline:date}
+            playersMap.set(elementos1[i].id,obj)
+
+        }
+
+
+        let txt=`<div class="tmstx-checkbox-row" style="display: inline-flex; padding-left: 5px;">
+          <label for="tmstx-chk-deadline">Value</label>
+          <select id="sort_select" class="statsxente" style="background-color:rgb(228, 200, 0);
+          padding: 6px 3px;
+          border-radius: 3px;
+          width: 9em;
+          border-color:rgb(228, 200, 0);
+          color: white
+          font-family: Roboto;
+          font-weight: bold;
+          font-size: revert;">
+          <option value="deadline">Deadline</option>
+           <option value="age">Age</option>
+           <option value="value">Value</option>
+           <option value="salary">Salary</option>
+           <option value="skills">Total Skills</option>
+          </select>
+
+
+           <label for="tmstx-chk-deadline">Order</label>
+          <select id="order_select" class="statsxente" style="background-color:rgb(228, 200, 0);
+          padding: 6px 3px;
+          border-radius: 3px;
+          width: 9em;
+          border-color:rgb(228, 200, 0);
+          color: white
+          font-family: Roboto;
+          font-weight: bold;
+          font-size: revert;">
+           <option value="desc">Desc</option>
+           <option value="asc">Asc</option>
+          </select>
+
+          <button class="stx-btn-nt" id="order-players" style="align-self: stretch; height:auto;">Sort</button>
+          <button class="stx-btn-nt" id="clear" style="align-self: stretch; height:auto;">Clear</button>
+        </div>`
+
+        document.getElementById("players_container").insertAdjacentHTML('beforebegin', txt);
+
+        let container=document.getElementById("players_container")
+
+
+        document.getElementById("order-players").addEventListener("click", function() {
+            let order = document.getElementById("order_select").value;
+            let toSort = document.getElementById("sort_select").value;
+
+            [...playersMap.keys()].forEach(id => {
+                document.getElementById(id).classList.remove('hidden');
+            });
+
+            let sorted = [...playersMap.entries()].sort((a, b) =>
+                order === 'asc'
+                    ? a[1][toSort] - b[1][toSort]
+                    : b[1][toSort] - a[1][toSort]
+            );
+
+
+
+            sorted.forEach(([id, data]) => {
+                let el = document.getElementById(id);
+
+                let shouldHide =
+                    (toSort === 'deadline' && isEpochDate(data.deadline)) ||
+                    (toSort === 'skills' && data.skills === 0);
+
+                el.classList.toggle('hidden', shouldHide);
+                container.appendChild(el);
+            });
+        });
+
+        document.getElementById("clear").addEventListener("click", function() {
+            [...playersMap.keys()].forEach(id => {
+                document.getElementById(id).classList.remove('hidden');
+            });
+        });
+
+
+
+    }
 
 
 
@@ -874,8 +1574,8 @@ self.onmessage = function (e) {
             }
             const elementos = [...tabla.querySelectorAll(".clippable.player_link")];
             const chunks = [];
-            for (let i = 0; i < elementos.length; i += 5) {
-                chunks.push(elementos.slice(i, i + 5));
+            for (let i = 0; i < elementos.length; i += 10) {
+                chunks.push(elementos.slice(i, i + 10));
             }
             let clase = "loader-" + window.sport
             for (let i = 0; i < elementos.length; i++) {
@@ -892,7 +1592,6 @@ self.onmessage = function (e) {
             }
 
             for (const chunk of chunks) {
-                // Lanzar los 5 awaits en paralelo
                 const results = await Promise.all(chunk.map(async (el) => {
                     const href = el.href;
                     const url = new URL(href);
@@ -2568,7 +3267,11 @@ self.onmessage = function (e) {
                 const params = new URLSearchParams(href.split('?')[1]);
                 const pid = params.get('pid');
                 let pos = playerPositions.get(pid);
-                cells[nameIndex].style.setProperty("background-color", playerPosColors.get(pos), "important");
+                if(pos==="None"){
+                    cells[nameIndex].style.setProperty("background-color","#dddddd", "important");
+                }else{
+                    cells[nameIndex].style.setProperty("background-color", playerPosColors.get(pos), "important");
+                }
                 cells[nameIndex].style.borderRadius = "3px";
                 cells[nameIndex].dataset.pos = pos;
             });
@@ -8479,6 +9182,27 @@ self.onmessage = function (e) {
                         dd.appendChild(el);
                     });
 
+
+                    const el = document.createElement('div');
+                    el.className = 'coption'
+                    el.textContent = "X"
+                    el.style.color="red"
+                    el.id = "delete";
+                    el.style.textAlign = "center";
+                    dd.appendChild(el);
+
+                    el.addEventListener('click', () => {
+                        playerPositions.delete(ids[0].textContent)
+                        GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+                        sel.style.background = "#878686"
+                        sel.innerHTML = 'No <i class="bi bi-caret-down-fill"></i>'
+                        player_span.style.backgroundColor = "transparent"
+                        if (GM_getValue("positionsColorsBG")) {
+                            elementos1[i].style.backgroundColor = "transparent"
+                        }
+                        dd.classList.remove('open');
+                    });
+
                     trigger.addEventListener('click', e => {
                         e.stopPropagation();
                         document.querySelectorAll('.cdropdown').forEach(d => {
@@ -8933,6 +9657,26 @@ self.onmessage = function (e) {
                     GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
                 });
                 dd.appendChild(el);
+            });
+
+            const el = document.createElement('div');
+            el.className = 'coption'
+            el.textContent = "X"
+            el.style.color="red"
+            el.id = "delete";
+            el.style.textAlign = "center";
+            dd.appendChild(el);
+
+            el.addEventListener('click', () => {
+                playerPositions.delete(ids[0].textContent)
+                GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
+                sel.style.background = "#878686"
+                sel.innerHTML = 'No <i class="bi bi-caret-down-fill"></i>'
+                player_span.style.backgroundColor = "transparent"
+                if (GM_getValue("positionsColorsBG")) {
+                    element.style.backgroundColor = "transparent"
+                }
+                dd.classList.remove('open');
             });
 
             trigger.addEventListener('click', e => {
@@ -10685,444 +11429,6 @@ self.onmessage = function (e) {
             GM_setValue("bids" + window.sport,JSON.stringify([...bids]));
         }
     }
-    //Comapre on Teams
-    async function comparePlayerOnTeams(){
-        let elementos1 = document.getElementsByClassName('playerContainer');
-        let playersToCompare = await fetchTeamPlayers()
-        let select= `<select class="statsxente" id="comparing_players" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
-        select += playersToCompare
-        select += '</select>';
-
-
-        document.getElementById("player_navigation").insertAdjacentHTML('beforeend', "</br></br>"+select);
-
-        for (let j = 0; j < elementos1.length; j++) {
-
-            let skills = elementos1[j].querySelectorAll(".player_skills.player_skills_responsive")
-            if(skills.length>0){
-
-                let currentId=elementos1[j].querySelector('.player_id_span').textContent;
-
-                let span11=elementos1[j].querySelector("span.player_icon_placeholder.monitor_add_link")
-                let newSpan1 = document.createElement('span');
-                newSpan1.innerHTML = `<span id="but_stx_compare_${currentId}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
-                    <a class="player_icon"><span class="player_icon_wrapper">
-              <span class="fa-stack">
- <i class="fa-duotone fa-scale-balanced compare-icon"></i>
-</span>
-<span class="player_icon_text"></span></span></a></span>
-`
-                newSpan1.className = "player_icon_placeholder training_graphs1 " + window.sport;
-                span11.after(newSpan1);
-
-
-
-
-                (function (currentId, el) {
-                    el.querySelector("#but_stx_compare_" + currentId).addEventListener('click', async function (e) {
-                        let skillsTable = elementos1[j].querySelector('table.player_skills.player_skills_responsive');
-                        let clase = "loader-" + window.sport
-                        let txtToInsert =
-                            "<div style='text-align:center;'>" +
-                            "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
-                            "<div style='text-align:center;'><b>Loading...</b></div>" +
-                            "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
-                            "</div>" +
-                            "</div>";
-
-                        skillsTable.insertAdjacentHTML('afterend', txtToInsert);
-
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (document.getElementById("player_comparing_" + currentId)) { document.getElementById("player_comparing_" + currentId).remove() }
-                        let actual_id = document.getElementById("comparing_players").value
-                        let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid=" + actual_id);
-                        let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
-                        let tableData
-                        let tds = skillsTablePlayer.querySelectorAll("td.skillval");
-                        let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
-                        let table = test.querySelector(".dg_playerview_info." + window.sport + " table");
-                        let tr = table.querySelectorAll("tr")[0];
-                        let td = tr.querySelectorAll("td")[0];
-                        let strong = td.querySelector("strong");
-                        edad = strong ? strong.textContent.trim() : null;
-                        let trs = table.querySelectorAll("tr");
-                        let start = 4;
-                        let maxChecks = 5;
-                        let index = 4;
-                        for (let i = start; i < trs.length && i < start + maxChecks; i++) {
-                            let tr = trs[i];
-                            if (tr && tr.textContent.includes(GM_getValue("currency"))) {
-                                break;
-                            }
-                            index++
-                        }
-                        tr = table.querySelectorAll("tr")[index];
-                        td = tr.querySelectorAll("td")[0];
-                        let span = td.querySelector("span");
-                        valor = span ? span.textContent.trim() : null;
-                        valor = valor.replace(GM_getValue("currency"), "")
-                        valor = valor.replace(/\s+/g, '');
-                        valor = formatNum(valor)
-                        index++
-                        tr = table.querySelectorAll("tr")[index];
-                        if (tr.innerHTML.includes(GM_getValue("currency"))) {
-                            td = tr.querySelectorAll("td")[0];
-                            span = td.querySelector("span");
-                            salario = span ? span.textContent.trim() : null;
-                            salario = salario.replace(GM_getValue("currency"), "")
-                            salario = salario.replace(/\s+/g, '');
-                            salario = formatNum(salario)
-                        } else {
-                            salario = "Youth"
-                        }
-                        index++;
-                        tr = table.querySelectorAll("tr")[index];
-                        td = tr.querySelectorAll("td")[0];
-                        span = td.querySelector("span.bold");
-                        skillsTotal = span ? span.textContent.trim() : null;
-                        tr = table.querySelectorAll("tr")[2];
-                        td = tr.querySelectorAll("td")[0];
-                        strong = td.querySelector("strong");
-                        season = strong ? strong.textContent.trim() : null;
-                        let icon = "fa-hockey-puck"
-                        if (window.sport == "soccer") {
-                            icon = "fa-futbol"
-                        }
-                        tableData = skillsTablePlayer.outerHTML
-                        let font_size = "12px"
-                        let bg = "#f7f6f2"
-                        let infoGrid = `
-
-<div style="padding:4px 4px 6px;font-family:sans-serif;">
-  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
-      <span style="font-size:11px;color:#AD4039;">Age</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
-    </div>
-
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
-      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
-    </div>
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
-      <span style="font-size:11px;color:#AD4039;">Value</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
-    </div>
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
-      <span style="font-size:11px;color:#AD4039;">Salary</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
-    </div>
-
-  </div>
-</div>`;
-
-                        let playerName = test.querySelector('span.player_name');
-                        let txt = "<div id='player_comparing_" + currentId + "' style='margin: 0 auto;'>"
-                        txt += "<h2 style='margin-bottom: 1px; text-align: center; color:" + GM_getValue("color_native") + "; background-color: " + GM_getValue("bg_native") + "; border-radius:5px; text-shadow: 1px 1px black;'>"
-                        txt += playerName.textContent + "</h2>"
-                        txt += infoGrid
-                        txt += tableData + "</div>"
-                        skillsTable.insertAdjacentHTML('afterend',txt);
-                        document.getElementById("hp_loader_comparing" + currentId).remove()
-
-                    });
-                })(currentId, elementos1[j]);
-
-            }
-
-
-        }
-
-
-        document.getElementById("comparing_players").addEventListener("change", async function () {
-            let elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
-            for (let i = 0; i < elementos1.length; i++) {
-                let el = elementos1[i]
-                let currentId = el.id.replace('player_comparing_', '');
-                let clase = "loader-" + window.sport
-                let txtToInsert =
-                    "<div style='text-align:center;'>" +
-                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
-                    "<div style='text-align:center;'><b>Loading...</b></div>" +
-                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
-                    "</div>" +
-                    "</div>";
-                document.getElementById("player_comparing_" + currentId).innerHTML = txtToInsert;
-            }
-
-            let actual_id = document.getElementById("comparing_players").value
-            let test = await fetchPlayerTableSkills("https://www.managerzone.com/?p=players&pid=" + actual_id);
-            let skillsTablePlayer = test.querySelector('table.player_skills.player_skills_responsive');
-            let tableData = skillsTablePlayer.outerHTML
-            let playerName = test.querySelector('span.player_name');
-
-
-            let table = test.querySelector(".dg_playerview_info." + window.sport + " table");
-            let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
-            let tr = table.querySelectorAll("tr")[0];
-            let td = tr.querySelectorAll("td")[0];
-            let strong = td.querySelector("strong");
-            edad = strong ? strong.textContent.trim() : null;
-
-            let trs = table.querySelectorAll("tr");
-            let start = 4;
-            let maxChecks = 5;
-            let index = 4;
-            for (let i = start; i < trs.length && i < start + maxChecks; i++) {
-                let tr = trs[i];
-                if (tr && tr.textContent.includes(GM_getValue("currency"))) {
-                    break;
-                    index++
-                }
-            }
-
-
-            tr = table.querySelectorAll("tr")[index];
-            td = tr.querySelectorAll("td")[0];
-            let span = td.querySelector("span");
-            valor = span ? span.textContent.trim() : null;
-            valor = valor.replace(GM_getValue("currency"), "")
-            valor = valor.replace(/\s+/g, '');
-            valor = formatNum(valor)
-            index++;
-
-            tr = table.querySelectorAll("tr")[index];
-            if (tr.innerHTML.includes(GM_getValue("currency"))) {
-                td = tr.querySelectorAll("td")[0];
-                span = td.querySelector("span");
-                salario = span ? span.textContent.trim() : null;
-                salario = salario.replace(GM_getValue("currency"), "")
-                salario = salario.replace(/\s+/g, '');
-                salario = formatNum(salario)
-            } else {
-                salario = "Youth"
-            }
-            index++;
-
-            tr = table.querySelectorAll("tr")[index];
-            td = tr.querySelectorAll("td")[0];
-            span = td.querySelector("span.bold");
-            skillsTotal = span ? span.textContent.trim() : null;
-
-            tr = table.querySelectorAll("tr")[2];
-            td = tr.querySelectorAll("td")[0];
-            strong = td.querySelector("strong");
-            season = strong ? strong.textContent.trim() : null;
-            let icon = "fa-hockey-puck"
-            if (window.sport == "soccer") {
-                icon = "fa-futbol"
-            }
-            tableData = skillsTablePlayer.outerHTML
-            let font_size = "12px"
-            let bg = "#f7f6f2"
-
-            const infoGrid = `
-
-<div style="padding:4px 4px 6px;font-family:sans-serif;">
-  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-user"></i>
-      <span style="font-size:11px;color:#AD4039;">Age</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${edad} (S:${season})</span>
-    </div>
-
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid ${icon}"></i>
-      <span style="font-size:11px;color:#AD4039;">Skills Total</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${skillsTotal}</span>
-    </div>
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-chart-line"></i>
-      <span style="font-size:11px;color:#AD4039;">Value</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${valor}</span>
-    </div>
-
-    <div style="background:${bg};border:0.5px solid #e0e0e0;border-radius:8px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <i style="font-size:15px;color:#336f93;" class="fa-solid fa-coins"></i>
-      <span style="font-size:11px;color:#AD4039;">Salary</span>
-      <span style="font-size:${font_size};font-weight:600;color:#111;line-height:1;">${salario}</span>
-    </div>
-
-  </div>
-</div>`;
-
-
-
-
-
-
-            elementos1 = document.querySelectorAll('div[id^="player_comparing_"]');
-            for (let i = 0; i < elementos1.length; i++) {
-                let el = elementos1[i]
-                let currentId = el.id.replace('player_comparing_', '');
-                let clase = "loader-" + window.sport
-                let txtToInsert =
-                    "<div style='text-align:center;'>" +
-                    "<div id='hp_loader_comparing" + currentId + "' style='width:50%; margin:0 auto;'>" +
-                    "<div style='text-align:center;'><b>Loading...</b></div>" +
-                    "<div id='loader' class='" + clase + "' style='height:15px;'></div>" +
-                    "</div>" +
-                    "</div>";
-                document.getElementById("player_comparing_" + currentId).innerHTML = txtToInsert;
-                //let txt="<div id='player_comparing_"+currentId+"' style='margin: 0 auto;'><h2 style='text-align: center; color: "+GM_getValue("color_native")+"; background-color: "+GM_getValue("bg_native")+"; border-radius:5px; text-shadow: 1px 1px black;'>"+playerName.textContent+"</h2>"+tableData+"</div>"
-                let txt = "<div id='player_comparing_" + currentId + "' style='margin: 0 auto;'>"
-                txt += "<h2 style='margin-bottom: 1px; text-align: center; color:" + GM_getValue("color_native") + "; background-color: " + GM_getValue("bg_native") + "; border-radius:5px; text-shadow: 1px 1px black;'>"
-                txt += playerName.textContent + "</h2>"
-                txt += infoGrid
-                txt += tableData + "</div>"
-                document.getElementById("player_comparing_" + currentId).innerHTML = txt;
-            }
-
-        });
-
-
-
-    }
-    //Shortlist
-    function transfersShortList(){
-        let playersMap=new Map();
-        let elementos1 = document.getElementsByClassName('playerContainer')
-        for (let i = 0; i < elementos1.length; i++) {
-
-            let playerName = elementos1[i].querySelector('span.player_name');
-            let table = elementos1[i].querySelector(".dg_playerview_info." + window.sport + " table");
-            let edad = 0, valor = 0, salario = 0, skillsTotal = 0, season = 0
-            let tr = table.querySelectorAll("tr")[0];
-            let td = tr.querySelectorAll("td")[0];
-            let strong = td.querySelector("strong");
-            edad = strong ? strong.textContent.trim() : null;
-            if(edad.includes("cm")){edad=100}
-
-            let trs = table.querySelectorAll("tr");
-            let start = 4;
-            let maxChecks = 5;
-            let index = 4;
-            for (let i = start; i < trs.length && i < start + maxChecks; i++) {
-                let tr = trs[i];
-                if (tr && tr.textContent.includes(GM_getValue("currency"))) {
-                    break;
-                    index++
-                }
-            }
-
-            let rows = table.querySelectorAll("tr");
-            tr = rows[index];
-            while (tr && tr.querySelector("img")) {
-                index++;
-                tr = rows[index];
-            }
-            td = tr.querySelectorAll("td")[0];
-            let span = td.querySelector("span");
-            valor = span ? span.textContent.trim() : null;
-            valor = valor.replace(GM_getValue("currency"), "")
-            valor = valor.replace(/\s+/g, '');
-            index++;
-
-            tr = table.querySelectorAll("tr")[index];
-            if (tr.innerHTML.includes(GM_getValue("currency"))) {
-                td = tr.querySelectorAll("td")[0];
-                span = td.querySelector("span");
-                salario = span ? span.textContent.trim() : null;
-                salario = salario.replace(GM_getValue("currency"), "")
-                salario = salario.replace(/\s+/g, '');
-            }
-            index++;
-
-            tr = table.querySelectorAll("tr")[index];
-            td = tr.querySelectorAll("td")[0];
-            span = td.querySelector("span.bold");
-            skillsTotal = span ? span.textContent.trim() : 0;
-
-            let dl = elementos1[i].querySelector('.bid_history_lite');
-            let secondDd = dl?.querySelectorAll('dd')[1];
-            let spanDd=secondDd?.querySelectorAll('span')[1];
-            let date = new Date(2020, 0, 1);
-            if(spanDd){
-                let deadlineText=spanDd?.textContent
-                let [fecha, hora] = deadlineText.split(" ");
-                let [dia, mes, anho] = fecha.split("-");
-                let [hh, mm] = hora.split(":");
-                date = new Date(anho, mes - 1, dia, hh, mm);
-            }
-
-            let obj={player_name:playerName.textConnten,age:edad,value:valor,salary:salario,skills:skillsTotal,deadline:date}
-            playersMap.set(elementos1[i].id,obj)
-
-        }
-
-
-        let txt=`<div class="tmstx-checkbox-row" style="display: inline-flex; padding-left: 5px;">
-          <label for="tmstx-chk-deadline">Value</label>
-          <select id="sort_select" class="statsxente" style="background-color:rgb(228, 200, 0);
-          padding: 6px 3px;
-          border-radius: 3px;
-          width: 9em;
-          border-color:rgb(228, 200, 0);
-          color: white
-          font-family: Roboto;
-          font-weight: bold;
-          font-size: revert;">
-          <option value="deadline">Deadline</option>
-           <option value="age">Age</option>
-           <option value="value">Value</option>
-           <option value="salary">Salary</option>
-           <option value="skills">Total Skills</option>
-          </select>
-
-
-           <label for="tmstx-chk-deadline">Order</label>
-          <select id="order_select" class="statsxente" style="background-color:rgb(228, 200, 0);
-          padding: 6px 3px;
-          border-radius: 3px;
-          width: 9em;
-          border-color:rgb(228, 200, 0);
-          color: white
-          font-family: Roboto;
-          font-weight: bold;
-          font-size: revert;">
-           <option value="desc">Desc</option>
-           <option value="asc">Asc</option>
-          </select>
-
-          <button class="stx-btn-nt" id="order-players" style="align-self: stretch; height:auto;">Sort</button>
-        </div>`
-
-        document.getElementById("players_container").insertAdjacentHTML('beforebegin', txt);
-
-        let container=document.getElementById("players_container")
-
-
-
-        document.getElementById("order-players").addEventListener("click", function() {
-
-            let order=document.getElementById("order_select").value
-            let toSort=document.getElementById("sort_select").value
-
-            let sorted = [...playersMap.entries()].sort((a, b) =>
-                order === 'asc'
-                    ? a[1][toSort] - b[1][toSort]
-                    : b[1][toSort] - a[1][toSort]
-            );
-            sorted.forEach(([id]) => {
-                container.appendChild(document.getElementById(id));
-            });
-        });
-
-
-
-    }
 
 
     //HANDLERS FUNCTIONS
@@ -11754,93 +12060,63 @@ self.onmessage = function (e) {
             });
         });
     }
-    function getDataPlayerTM(id) {
+    async function getDataPlayerTM(id) {
         if (playersCache.has(id)) {
             return playersCache.get(id);
         }
-        return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
+        try {
+            const response = await fetch("https://www.managerzone.com/?p=players&pid=" + id, {
                 method: "GET",
-                url: "https://www.managerzone.com/?p=players&pid=" + id,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onerror: function (err) {
-                    reject(err);
-                },
-                onload: function (response) {
-
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, "text/html");
-
-                    let divs = doc.querySelectorAll('.win_back');
-                    let withTable = Array.from(divs).filter(div =>
-                        div.querySelector('table')
-                    );
-
-                    let lastDiv = withTable[withTable.length - 1];
-                    let hasCurrency = lastDiv?.querySelector('thead').textContent?.includes(GM_getValue("currency"));
-                    if (!hasCurrency) {
-                        lastDiv = withTable[withTable.length - 2];
-                    }
-                    if (!lastDiv) return resolve(null);
-                    let table = lastDiv.querySelector('table');
-                    let rows = table.querySelectorAll('tr');
-                    let lastRow = rows[rows.length - 1];
-                    let tds = lastRow.querySelectorAll('td');
-
-                    let price = 0;
-                    if (tds[4].textContent !== "-") {
-                        price = parseFloat(tds[4].textContent.replace(/\s/g, "").replace("EUR", ""))
-                    }
-
-                    let age = doc
-                        .querySelector('.dg_playerview_info.soccer table tr td strong')
-                        ?.textContent
-                        ?.trim();
-
-
-
-
-                    /*let value = [5, 6, 7]
-                        .map(n => doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim())
-                        .find(Boolean);
-                    value = value.replace(GM_getValue("currency"), "")
-                    value = value.replace(/\s+/g, '');
-                    value = parseInt(value)*/
-
-
-                    let rowsIndex = [5, 6, 7];
-                    let index = rowsIndex.findIndex(n => doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim());
-
-                    let value = doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${rowsIndex[index]}) td:first-child span`)?.textContent?.trim();
-                    let salary = doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${rowsIndex[index] + 1}) td:first-child span`)?.textContent?.trim();
-
-
-                    value = value.replace(GM_getValue("currency"), "")
-                    value = value.replace(/\s+/g, '');
-                    value = parseInt(value)
-
-                    salary = salary.replace(GM_getValue("currency"), "")
-                    salary = salary.replace(/\s+/g, '');
-                    salary = parseInt(salary)
-
-
-                    let fechaStr = tds[0].textContent.trim();
-                    let [dia, mes, anho] = fechaStr.split('-');
-                    let fecha = new Date(anho, mes - 1, dia);
-                    let hoy = new Date();
-                    let diff = hoy - fecha;
-                    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    let data = { "age": age, "days": days, "purchase_price": price, "value": value,"salary":salary }
-                    playersCache.set(id, data)
-                    resolve(data);
-                }
+                credentials: "include"
             });
-
-        });
+            const text = await response.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(text, "text/html");
+            let divs = doc.querySelectorAll('.win_back');
+            let withTable = Array.from(divs).filter(div =>
+                div.querySelector('table')
+            );
+            let lastDiv = withTable[withTable.length - 1];
+            let hasCurrency = lastDiv?.querySelector('thead').textContent?.includes(GM_getValue("currency"));
+            if (!hasCurrency) {
+                lastDiv = withTable[withTable.length - 2];
+            }
+            if (!lastDiv) return null;
+            let table = lastDiv.querySelector('table');
+            let rows = table.querySelectorAll('tr');
+            let lastRow = rows[rows.length - 1];
+            let tds = lastRow.querySelectorAll('td');
+            let price = 0;
+            if (tds[4].textContent !== "-") {
+                price = parseFloat(tds[4].textContent.replace(/\s/g, "").replace("EUR", ""))
+            }
+            let age = doc
+                .querySelector('.dg_playerview_info.soccer table tr td strong')
+                ?.textContent
+                ?.trim();
+            let rowsIndex = [5, 6, 7];
+            let index = rowsIndex.findIndex(n => doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${n}) td:first-child span`)?.textContent?.trim());
+            let value = doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${rowsIndex[index]}) td:first-child span`)?.textContent?.trim();
+            let salary = doc.querySelector(`.dg_playerview_info.${window.sport} table tr:nth-child(${rowsIndex[index] + 1}) td:first-child span`)?.textContent?.trim();
+            value = value.replace(GM_getValue("currency"), "")
+            value = value.replace(/\s+/g, '');
+            value = parseInt(value)
+            salary = salary.replace(GM_getValue("currency"), "")
+            salary = salary.replace(/\s+/g, '');
+            salary = parseInt(salary)
+            let fechaStr = tds[0].textContent.trim();
+            let [dia, mes, anho] = fechaStr.split('-');
+            let fecha = new Date(anho, mes - 1, dia);
+            let hoy = new Date();
+            let diff = hoy - fecha;
+            let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            let data = { "age": age, "days": days, "purchase_price": price, "value": value, "salary": salary }
+            playersCache.set(id, data)
+            return data;
+        } catch (err) {
+            console.warn("Error loading player " + id, err);
+            throw err;
+        }
     }
     function gmTMPlayerRequest(url) {
         return new Promise((resolve, reject) => {
@@ -11856,31 +12132,25 @@ self.onmessage = function (e) {
             });
         });
     }
-    function getTeamFinancialRating(tid) {
-        return new Promise((resolve, reject) => {
-            if (teamFinancesCache.has(tid)) {
-                resolve(teamFinancesCache.get(tid))
-            }
-            GM_xmlhttpRequest({
+    async function getTeamFinancialRating(tid) {
+        if (teamFinancesCache.has(tid)) {
+            return teamFinancesCache.get(tid);
+        }
+        try {
+            const response = await fetch("https://www.managerzone.com/?p=team&tid=" + tid, {
                 method: "GET",
-                url: "https://www.managerzone.com/?p=team&tid=" + tid,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onerror: function (err) {
-                    reject(err);
-                },
-                onload: function (response) {
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, "text/html");
-                    let spans = doc.querySelectorAll("span.financialWealthContainer");
-                    teamFinancesCache.set(tid, spans[0].textContent);
-                    resolve(spans[0].textContent);
-                }
+                credentials: "include"
             });
-        });
+            const text = await response.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(text, "text/html");
+            let spans = doc.querySelectorAll("span.financialWealthContainer");
+            teamFinancesCache.set(tid, spans[0].textContent);
+            return spans[0].textContent;
+        } catch (err) {
+            console.warn("Error loading team finances " + tid, err);
+            throw err;
+        }
     }
     function getCurrencies() {
 
@@ -11948,120 +12218,97 @@ self.onmessage = function (e) {
         });
 
     }
-    function getTrainingHistory(player_id) {
-        return new Promise((resolve, reject) => {
-            var link = "https://www.managerzone.com/ajax.php?p=trainingGraph&sub=getJsonTrainingHistory&sport=" + window.sport + "&player_id=" + player_id
-            let skills = new Map()
-            for (let i = 1; i <= 12; i++) {
-                let obj = getEmptySkillsDistrib(0)
-                skills.set(skillIndex.get(i), obj)
-            }
+    async function getTrainingHistory(player_id) {
+        var link = "https://www.managerzone.com/ajax.php?p=trainingGraph&sub=getJsonTrainingHistory&sport=" + window.sport + "&player_id=" + player_id
+        let skills = new Map()
+        for (let i = 1; i <= 12; i++) {
+            let obj = getEmptySkillsDistrib(0)
+            skills.set(skillIndex.get(i), obj)
+        }
 
-
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: link,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: function (response) {
-                    let texto = response.responseText
-                    if (texto === undefined) {
-                        resolve(undefined)
-                        return;
-                    }
-                    let match = texto.match(/var\s+series\s*=\s*(\[[\s\S]*?\]);(?:\s*var|\s*$)/);
-                    let series = JSON.parse(match[1]);
-                    series.forEach((serie, index0) => {
-                        if (serie["showInNavigator"] === "true") {
-
-                            const dataArray = serie["data"];
-                            for (let i = 0; i < dataArray.length; i++) {
-                                const data = dataArray[i];
-                                //Gained
-                                if (data["marker"]["symbol"].includes("bar_pos")) {
-                                    let texto = data["marker"]["symbol"];
-                                    let match = texto.match(/bar_pos_(\d+)/);
-                                    let numero = parseInt(match[1]);
-
-                                    let index = skillIndex.get(data["y"])
-                                    let aux = skills.get(index);
-                                    if (data["x"] > aux["green"]["last_time"]) {
-                                        aux["green"]["sk" + numero]++;
-                                        aux["green"]["all_time_sum"]++;
-                                        skills.set(index, aux)
-                                    }
-                                }
-
-                                if (data["marker"]["symbol"].includes("gained")) {
-                                    let aux = skills.get(data["name"]);
-                                    let aux1 = getEmptySkillsDistrib(0)
-                                    aux1["green"]["all_time_sum"] = aux["green"]["all_time_sum"]
-                                    aux1["green"]["last_time"] = data["x"]
-                                    skills.set(data["name"], aux1)
-
-                                }
-
-                                //Lost
-                                if (data["marker"]["symbol"].includes("bar_neg")) {
-                                    let texto = data["marker"]["symbol"];
-                                    let match = texto.match(/bar_neg_(\d+)/);
-                                    let numero = parseInt(match[1]);
-                                    let index = skillIndex.get(data["y"])
-                                    let aux = skills.get(index);
-                                    if (data["x"] > aux["red"]["last_time"]) {
-                                        aux["green"]["all_time_sum"] = 0;
-                                        aux["red"]["sk" + numero]++;
-                                        aux["red"]["all_time_sum"]++;
-                                        skills.set(index, aux)
-                                    }
-                                }
-
-                                if (data["marker"]["symbol"].includes("lost")) {
-                                    let numero = 1
-                                    let aux = skills.get(data["name"]);
-                                    skills.set(data["name"], getEmptySkillsDistrib(aux["red"]["all_time_sum"]))
-                                    let aux1 = skills.get(data["name"]);
-                                    aux1["red"]["sk" + numero]++;
-                                    aux1["red"]["all_time_sum"]++;
-                                    aux1["red"]["last_time"] = data["x"]
-                                    skills.set(data["name"], aux1)
-                                }
-
-
-
-
-                            }
-
-                        }
-
-                    });
-
-
-                    skills.forEach((valor, clave) => {
-                        let tr_data = getTrainingPercentage(valor, "green")
-                        valor["green"]['td'] = tr_data['td']
-                        valor["green"]['tp'] = tr_data['tp']
-
-                        let tr_data_red = getTrainingPercentage(valor, "red")
-                        valor["red"]['td'] = tr_data_red['td']
-                        valor["red"]['tp'] = tr_data_red['tp']
-
-                        skills.set(clave, valor)
-                    });
-                    resolve(skills)
-                }
-
-            });
-
-
+        const response = await fetch(link, {
+            method: "GET",
+            credentials: "include"
         });
-        ///aqui
+        let texto = await response.text();
 
+        if (texto === undefined) {
+            return undefined;
+        }
+        let match = texto.match(/var\s+series\s*=\s*(\[[\s\S]*?\]);(?:\s*var|\s*$)/);
+        let series = JSON.parse(match[1]);
+        series.forEach((serie, index0) => {
+            if (serie["showInNavigator"] === "true") {
 
+                const dataArray = serie["data"];
+                for (let i = 0; i < dataArray.length; i++) {
+                    const data = dataArray[i];
+                    //Gained
+                    if (data["marker"]["symbol"].includes("bar_pos")) {
+                        let texto = data["marker"]["symbol"];
+                        let match = texto.match(/bar_pos_(\d+)/);
+                        let numero = parseInt(match[1]);
 
+                        let index = skillIndex.get(data["y"])
+                        let aux = skills.get(index);
+                        if (data["x"] > aux["green"]["last_time"]) {
+                            aux["green"]["sk" + numero]++;
+                            aux["green"]["all_time_sum"]++;
+                            skills.set(index, aux)
+                        }
+                    }
+
+                    if (data["marker"]["symbol"].includes("gained")) {
+                        let aux = skills.get(data["name"]);
+                        let aux1 = getEmptySkillsDistrib(0)
+                        aux1["green"]["all_time_sum"] = aux["green"]["all_time_sum"]
+                        aux1["green"]["last_time"] = data["x"]
+                        skills.set(data["name"], aux1)
+
+                    }
+
+                    //Lost
+                    if (data["marker"]["symbol"].includes("bar_neg")) {
+                        let texto = data["marker"]["symbol"];
+                        let match = texto.match(/bar_neg_(\d+)/);
+                        let numero = parseInt(match[1]);
+                        let index = skillIndex.get(data["y"])
+                        let aux = skills.get(index);
+                        if (data["x"] > aux["red"]["last_time"]) {
+                            aux["green"]["all_time_sum"] = 0;
+                            aux["red"]["sk" + numero]++;
+                            aux["red"]["all_time_sum"]++;
+                            skills.set(index, aux)
+                        }
+                    }
+
+                    if (data["marker"]["symbol"].includes("lost")) {
+                        let numero = 1
+                        let aux = skills.get(data["name"]);
+                        skills.set(data["name"], getEmptySkillsDistrib(aux["red"]["all_time_sum"]))
+                        let aux1 = skills.get(data["name"]);
+                        aux1["red"]["sk" + numero]++;
+                        aux1["red"]["all_time_sum"]++;
+                        aux1["red"]["last_time"] = data["x"]
+                        skills.set(data["name"], aux1)
+                    }
+                }
+            }
+        });
+
+        skills.forEach((valor, clave) => {
+            let tr_data = getTrainingPercentage(valor, "green")
+            valor["green"]['td'] = tr_data['td']
+            valor["green"]['tp'] = tr_data['tp']
+
+            let tr_data_red = getTrainingPercentage(valor, "red")
+            valor["red"]['td'] = tr_data_red['td']
+            valor["red"]['tp'] = tr_data_red['tp']
+
+            skills.set(clave, valor)
+        });
+
+        return skills;
     }
     function getPlayerDataAPI(id) {
         return new Promise((resolve, reject) => {
@@ -12317,6 +12564,12 @@ self.onmessage = function (e) {
 
 
     //UTILS FUNCTIONS
+    function isEpochDate(date) {
+        return date instanceof Date &&
+            date.getFullYear() === 1969 &&
+            date.getMonth() === 0 &&
+            date.getDate() === 1;
+    }
     function getSavedSets() {
         return GM_getValue('savedTagSets', []);
     }
@@ -12392,7 +12645,6 @@ self.onmessage = function (e) {
             updateCloseAllButton();
         }, 300);
     }
-
     function updateCloseAllButton() {
         const tc = document.getElementById('mz-toast-container');
         if (!tc) return;
@@ -12412,7 +12664,6 @@ self.onmessage = function (e) {
             btn?.remove();
         }
     }
-
     function getOrCreateContainer() {
         let tc = document.getElementById('mz-toast-container');
         if (!tc) {
@@ -15853,6 +16104,16 @@ cursor:pointer;
 
 .mz-excl-del:hover {
   border-color: #ef5350;
+}
+
+
+.row-fade-in {
+    animation: rowFadeIn 0.4s ease-in;
+}
+
+@keyframes rowFadeIn {
+    0%   { background-color: #fff3b0; }
+    100% { background-color: var(--row-final-bg, transparent); }
 }
 
   `)
