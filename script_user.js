@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.270
+// @version      0.271
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -3605,35 +3605,29 @@ self.onmessage = function (e) {
                     let clase = "loader-" + window.sport
                     newCell.innerHTML = "<div id='hp_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase + "' style='height:15px'></div></div></div>";
 
-                    new Promise((resolve, reject) => {
-                        GM_xmlhttpRequest({
-                            method: "GET",
-                            url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search,
-                            headers: {
-                                "Cookie": document.cookie,
-                                "Content-Type": "application/json"
-                            },
-                            withCredentials: true,
-                            onload: function (response) {
-                                let parser = new DOMParser();
-                                let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
-                                let userData = xmlDoc.getElementsByTagName("UserData");
-                                resolve(userData[0].getAttribute("countryShortname"));
-
-                            },
-                            onerror: function () {
-                                notifySnackBarError("Manager Data");
-                                reject("none");
+                    fetch("https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search, {
+                        method: "GET",
+                        credentials: "include"
+                    })
+                        .then(response => response.text())
+                        .then(text => {
+                            let parser = new DOMParser();
+                            let xmlDoc = parser.parseFromString(text, "text/xml");
+                            let userData = xmlDoc.getElementsByTagName("UserData");
+                            return userData[0].getAttribute("countryShortname");
+                        })
+                        .then(teamCountry => {
+                            if (imgs.length === 0) {
+                                let flag = '<img title="España" src="img/flags/12/' + teamCountry.toLowerCase() + '.png" width="12" height="12" style="border: none" alt="">'
+                                let spans = tds[3].querySelectorAll('span')
+                                spans[0].innerHTML = flag + " " + spans[0].innerHTML
                             }
+                            newCell.textContent = teamCountry.toLowerCase(); // Aquí insertas el valor recibido
+                        })
+                        .catch(() => {
+                            notifySnackBarError("Manager Data");
+                            newCell.textContent = 'Error';
                         });
-                    }).then(teamCountry => {
-                        if (imgs.length === 0) {
-                            let flag = '<img title="España" src="img/flags/12/' + teamCountry.toLowerCase() + '.png" width="12" height="12" style="border: none" alt="">'
-                            let spans = tds[3].querySelectorAll('span')
-                            spans[0].innerHTML = flag + " " + spans[0].innerHTML
-                        }
-                        newCell.textContent = teamCountry.toLowerCase(); // Aquí insertas el valor recibido
-                    }).catch(() => { newCell.textContent = 'Error'; });
                 }
 
 
@@ -5022,40 +5016,30 @@ self.onmessage = function (e) {
 
     }
     //Profile and team page h2h
-    function fetchH2HMatches(rival_tid, limit) {
-        return new Promise((resolve, reject) => {
-            const params = new URLSearchParams();
-            params.append("type", "played");
-            params.append("hidescore", "false");
-            params.append("selectType", "all");
-            params.append("limit", limit);
-            params.append("tid1", GM_getValue(window.sport + "_team_id"));
-            params.append("tid2", rival_tid);
-            GM_xmlhttpRequest({
-                method: "POST",
-                url: "https://www.managerzone.com/ajax.php?p=matches&sub=list&sport=" + window.sport,
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                data: params.toString(),
+    async function fetchH2HMatches(rival_tid, limit) {
+        const params = new URLSearchParams();
+        params.append("type", "played");
+        params.append("hidescore", "false");
+        params.append("selectType", "all");
+        params.append("limit", limit);
+        params.append("tid1", GM_getValue(window.sport + "_team_id"));
+        params.append("tid2", rival_tid);
 
-                onload: function (response) {
-                    let jsonResponse = JSON.parse(response.responseText);
-                    let flag = false
-                    if (jsonResponse["list"].includes("?p=match&sub=stats&tid=")) {
-                        flag = true
-                    }
-                    resolve(flag)
-                },
-
-                onerror: function (error) {
-                    reject(error)
-                }
-            });
-
+        const response = await fetch("https://www.managerzone.com/ajax.php?p=matches&sub=list&sport=" + window.sport, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: params.toString()
         });
+        const text = await response.text();
+        let jsonResponse = JSON.parse(text);
+        let flag = false
+        if (jsonResponse["list"].includes("?p=match&sub=stats&tid=")) {
+            flag = true
+        }
+        return flag;
     }
     //Team page
     async function teamPage() {
@@ -6115,27 +6099,25 @@ self.onmessage = function (e) {
                                     document.getElementById(user_td_id).innerHTML = "<div id='" + user_td_id + "_loader'></br><div style='width:50%; margin: 0 auto; text-align: center;'><div id='loader' class='" + clase_loader + "' style='height:15px'></div></div></div>";
 
                                     if (!teamHistoryCache[team_id_search]) {
-                                        teamHistoryCache[team_id_search] = new Promise((resolve) => {
-                                            GM_xmlhttpRequest({
-                                                method: "GET",
-                                                url: "https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search,
-                                                headers: { "Content-Type": "application/json", "Cookie": document.cookie }, withCredentials: true,
-                                                onload: function (response) {
-                                                    let parser = new DOMParser();
-                                                    let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
-                                                    let userData = xmlDoc.getElementsByTagName("UserData");
-                                                    let resultado = "mz_dummy_user"
-                                                    if (userData.length > 0) {
-                                                        resultado = userData[0].getAttribute("username");
-                                                    }
-                                                    resolve(resultado);
-                                                },
-                                                onerror: function () {
-                                                    notifySnackBarError("Manager Data");
-                                                    resolve("none");
+                                        teamHistoryCache[team_id_search] = fetch("https://www.managerzone.com/xml/manager_data.php?sport_id=" + window.sport_id + "&team_id=" + team_id_search, {
+                                            method: "GET",
+                                            credentials: "include"
+                                        })
+                                            .then(response => response.text())
+                                            .then(text => {
+                                                let parser = new DOMParser();
+                                                let xmlDoc = parser.parseFromString(text, "text/xml");
+                                                let userData = xmlDoc.getElementsByTagName("UserData");
+                                                let resultado = "mz_dummy_user"
+                                                if (userData.length > 0) {
+                                                    resultado = userData[0].getAttribute("username");
                                                 }
+                                                return resultado;
+                                            })
+                                            .catch(() => {
+                                                notifySnackBarError("Manager Data");
+                                                return "none";
                                             });
-                                        });
                                     }
 
                                     // Siempre usamos la promesa cacheada (nueva o existente)
@@ -8108,19 +8090,15 @@ self.onmessage = function (e) {
                                 let urlParamsAux = new URLSearchParams(window.location.search);
 
                                 let match_id = urlParamsAux.get("mid")
-                                GM_xmlhttpRequest({
+                                fetch("https://www.managerzone.com/matchviewer/getMatchFiles.php?type=stats&mid=" + match_id + "&sport=" + window.sport, {
                                     method: "GET",
-                                    url: "https://www.managerzone.com/matchviewer/getMatchFiles.php?type=stats&mid=" + match_id + "&sport=" + window.sport,
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        "Cookie": document.cookie
-                                    },
-                                    withCredentials: true,
-                                    onload: function (response) {
+                                    credentials: "include"
+                                })
+                                    .then(response => response.text())
+                                    .then(text => {
                                         let parser = new DOMParser();
-                                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                                        let xmlDoc = parser.parseFromString(text, "text/xml");
                                         let players = xmlDoc.getElementsByTagName("Player");
-
 
                                         for (let i = 0; i < players.length; i++) {
                                             let player = players[i];
@@ -8139,7 +8117,6 @@ self.onmessage = function (e) {
                                                     });
                                                 }
                                             }
-
 
                                             let penalties = player.getElementsByTagName("Penalty");
                                             if (penalties.length > 0) {
@@ -8188,8 +8165,6 @@ self.onmessage = function (e) {
                                                             time: save.getAttribute("time"), team_id: save.parentNode.getAttribute("teamId")
                                                         });
                                                     }
-
-
                                                 }
                                             }
 
@@ -8206,15 +8181,8 @@ self.onmessage = function (e) {
                                                     });
                                                 }
                                             }
-
-
-
-
-
                                         }
-
-                                    }
-                                });
+                                    });
 
                                 let porAncho = 0.95; let porAlto = 0.9;
                                 let ventanaAncho = (window.innerWidth) * porAncho
@@ -11790,61 +11758,50 @@ self.onmessage = function (e) {
     //FETCH FUNCTIONS
     function fetchPlayerTableSkills(link) {
         return new Promise((resolve, reject) => {
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url: link,
-                    headers: {
-                        "Cookie": document.cookie
-                    },
-                    withCredentials: true,
-                    onload: function (response) {
-                        let parser = new DOMParser();
-                        let doc = parser.parseFromString(response.responseText, 'text/html');
-                        let player_cointainer = doc.getElementById("thePlayers_0")
-                        if (!player_cointainer) {
-                            reject(new Error("login" + document.getElementById("login_form_content") + " title: " + doc.title + " | status: " + response.status));
-                            return;
-                        }
-                        resolve(player_cointainer)
-                    },
-                    onerror: function (error) {
-                        reject(new Error("Error loading: " + link + " | " + JSON.stringify(error)));
+            fetch(link, {
+                method: 'GET',
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(responseText => {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(responseText, 'text/html');
+                    let player_cointainer = doc.getElementById("thePlayers_0");
+                    if (!player_cointainer) {
+                        reject(new Error("login" + document.getElementById("login_form_content") + " title: " + doc.title));
+                        return;
                     }
+                    resolve(player_cointainer);
+                })
+                .catch(error => {
+                    reject(new Error("Error loading: " + link + " | " + error));
                 });
-
-            }
-        );
+        });
     }
     function fetchTeamPlayers() {
         let options = ""
         let sport_id = 2
         if (window.sport === "soccer") { sport_id = 1 }
-        let link = "http://www.managerzone.com/xml/team_playerlist.php?sport_id=" + sport_id + "&team_id=" + GM_getValue(window.sport + "_team_id")
+        let link = "https://www.managerzone.com/xml/team_playerlist.php?sport_id=" + sport_id + "&team_id=" + GM_getValue(window.sport + "_team_id")
         return new Promise((resolve, reject) => {
 
-                GM_xmlhttpRequest({
+                fetch(link, {
                     method: "GET",
-                    url: link,
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Cookie": document.cookie
-                    },
-                    withCredentials: true,
-
-                    onload: function (response) {
-                        let cont
+                    credentials: 'include'
+                })
+                    .then(response => response.text())
+                    .then(responseText => {
                         let parser = new DOMParser();
-                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                        let xmlDoc = parser.parseFromString(responseText, "text/xml");
                         let players = xmlDoc.getElementsByTagName("Player");
                         for (let i = 0; i < players.length; i++) {
                             options += "<option style='font-weight:bold;' value='" + players[i].getAttribute("id") + "'>" + players[i].getAttribute("shirtNo") + ". " + players[i].getAttribute("name") + "</option>";
                         }
                         resolve(options)
-                    },
-                    onerror: function () {
+                    })
+                    .catch(() => {
                         reject("none");
-                    }
-                });
+                    });
 
             }
         );
@@ -11896,18 +11853,14 @@ self.onmessage = function (e) {
     }
     function fetchAgeRestriction(url) {
         return new Promise((resolve, reject) => {
-
-            GM_xmlhttpRequest({
+            fetch(url, {
                 method: "GET",
-                url: url,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: function (response) {
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(responseText => {
                     let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, "text/html");
+                    let doc = parser.parseFromString(responseText, "text/html");
                     let strongElements = doc.getElementsByTagName("b");
                     let nextSibling = strongElements[1].nextSibling;
                     try {
@@ -11924,28 +11877,24 @@ self.onmessage = function (e) {
                     } catch (error) {
                         reject("none");
                     }
-                },
-                onerror: function () {
+                })
+                .catch(() => {
                     reject("none");
-                }
-            });
+                });
         });
     }
     function fetchCupAgeRestriction(url) {
         return new Promise((resolve, reject) => {
 
-            GM_xmlhttpRequest({
+            fetch(url, {
                 method: "GET",
-                url: url,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: function (response) {
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(responseText => {
                     let parser = new DOMParser();
                     try {
-                        let doc = parser.parseFromString(response.responseText, "text/html")
+                        let doc = parser.parseFromString(responseText, "text/html")
                         let tables = doc.getElementsByTagName("table");
 
                         Array.from(tables).forEach((table) => {
@@ -11960,11 +11909,10 @@ self.onmessage = function (e) {
                     } catch (error) {
                         reject("Error fetching age restriction");
                     }
-                },
-                onerror: function () {
+                })
+                .catch(() => {
                     reject("none");
-                }
-            });
+                });
         });
     }
     function fetchExistPlayers(url) {
@@ -11990,17 +11938,14 @@ self.onmessage = function (e) {
     }
     function fetchAndProcessPlayerData(link, skill, toChange, device) {
         return new Promise((resolve, reject) => {
-                GM_xmlhttpRequest({
+                fetch(link, {
                     method: 'GET',
-                    url: link,
-                    headers: {
-                        "Cookie": document.cookie
-                    },
-                    withCredentials: true,
-                    onload: function (response) {
-
+                    credentials: 'include'
+                })
+                    .then(response => response.text())
+                    .then(responseText => {
                         let parser = new DOMParser();
-                        let doc = parser.parseFromString(response.responseText, 'text/html');
+                        let doc = parser.parseFromString(responseText, 'text/html');
 
                         let player_cointainer = doc.getElementById("thePlayers_0")
 
@@ -12030,11 +11975,10 @@ self.onmessage = function (e) {
 
                         });
                         resolve("Done")
-                    },
-                    onerror: function (error) {
+                    })
+                    .catch(error => {
                         reject(error);
-                    }
-                });
+                    });
 
             }
         );
@@ -12042,22 +11986,18 @@ self.onmessage = function (e) {
     }
     function fetchRequestTM(url, totalUrls) {
         return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
+            fetch(url, {
                 method: "GET",
-                url: url,
-                headers: {
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: r => {
+                credentials: 'include'
+            })
+                .then(response => response.json())
+                .then(data => {
                     percent += Math.floor(100 / totalUrls);
                     document.getElementById("mz_progress_bar").style.width = percent + "%";
                     document.getElementById("mz_progress_text").textContent = percent + "%";
-                    let data = JSON.parse(r.responseText);
                     resolve(data);
-                },
-                onerror: e => reject(e)
-            });
+                })
+                .catch(e => reject(e));
         });
     }
     async function getDataPlayerTM(id) {
@@ -12191,16 +12131,12 @@ self.onmessage = function (e) {
     function trainingSkillsIndex() {
         return new Promise((resolve, reject) => {
             var link = "https://www.managerzone.com/ajax.php?p=trainingGraph&sub=getJsonTrainingSkills&sport=" + window.sport
-            GM_xmlhttpRequest({
+            fetch(link, {
                 method: "GET",
-                url: link,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: function (response) {
-                    let texto = response.responseText
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(texto => {
                     let jsonStr = texto.trim().slice(1, -1);
                     let data = JSON.parse(jsonStr);
 
@@ -12213,10 +12149,9 @@ self.onmessage = function (e) {
 
                     resolve(skillIndex)
 
-                }
-            });
+                })
+                .catch(error => reject(error));
         });
-
     }
     async function getTrainingHistory(player_id) {
         var link = "https://www.managerzone.com/ajax.php?p=trainingGraph&sub=getJsonTrainingHistory&sport=" + window.sport + "&player_id=" + player_id
@@ -12343,18 +12278,16 @@ self.onmessage = function (e) {
             let playersData = new Map();
             let pidsMap = new Map(_pids.map(player => [player.player_id, player.initial]));
             let pids = _pids.map(player => player.player_id);
-            GM_xmlhttpRequest({
+
+            fetch("https://www.managerzone.com/xml/team_playerlist.php?sport_id=" + window.sport_id + "&team_id=" + team_id, {
                 method: "GET",
-                url: "https://www.managerzone.com/xml/team_playerlist.php?sport_id=" + window.sport_id + "&team_id=" + team_id,
-                headers: {
-                    "Content-Type": "application/xml",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onload: async function (response) {
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(async function (responseText) {
                     try {
                         let parser = new DOMParser();
-                        let xmlDoc = parser.parseFromString(response.responseText, "text/xml");
+                        let xmlDoc = parser.parseFromString(responseText, "text/xml");
 
                         let teamData = xmlDoc.getElementsByTagName("TeamPlayers");
                         let teamCurrency = teamData[0].getAttribute("teamCurrency");
@@ -12444,33 +12377,25 @@ self.onmessage = function (e) {
                     } catch (err) {
                         reject(err);
                     }
-                },
-
-                onerror: function (err) {
+                })
+                .catch(function (err) {
                     reject(err);
-                }
-            });
+                });
 
         });
     }
     function getPlayersForm() {
         let formMap = new Map();
         return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
+            fetch("https://www.managerzone.com/?p=players", {
                 method: "GET",
-                url: "https://www.managerzone.com/?p=players",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cookie": document.cookie
-                },
-                withCredentials: true,
-                onerror: function (err) {
-                    reject(err);
-                },
-                onload: function (response) {
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(responseText => {
 
                     let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, "text/html");
+                    let doc = parser.parseFromString(responseText, "text/html");
 
                     let elementos1 = doc.getElementsByClassName('playerContainer');
                     for (let i = 0; i < elementos1.length; i++) {
@@ -12485,8 +12410,10 @@ self.onmessage = function (e) {
                         formMap.set(id, form)
                     }
                     resolve(formMap)
-                }
-            });
+                })
+                .catch(err => {
+                    reject(err);
+                });
 
         });
 
@@ -12512,52 +12439,43 @@ self.onmessage = function (e) {
             });
         });
     }
-    function getNTPlayerData(ntid,player_id,type) {
-        let link=`https://www.managerzone.com/ajax.php?p=nationalTeams&sub=search&ntid=${ntid}&type=national_team&pid=${player_id}&sport=${window.sport}`
+    function getNTPlayerData(ntid, player_id, type) {
+        let link = `https://www.managerzone.com/ajax.php?p=nationalTeams&sub=search&ntid=${ntid}&type=national_team&pid=${player_id}&sport=${window.sport}`
         return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: link,
-                headers: {
-                    "Cookie": document.cookie,
-                    "Content-Type": "application/json"
-                },
-                onload: function (response) {
+            fetch(link, {
+                method: "GET"
+            })
+                .then(response => response.text())
+                .then(responseText => {
                     let parser = new DOMParser();
-                    let doc = parser.parseFromString(response.responseText, "text/html");
-                    if(type==="all"){
+                    let doc = parser.parseFromString(responseText, "text/html");
+                    if (type === "all") {
                         resolve(doc.querySelector(".playerContainer"));
-                    }else{
+                    } else {
                         let el = doc.querySelector(".playerContainer")
                         resolve(el.querySelector(".player_skills.player_skills_responsive"))
                     }
-                },
-                onerror: function (error) {
+                })
+                .catch(error => {
                     reject(error)
-                }
-            });
+                });
 
         });
     }
     function getBids(key) {
         return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: "https://www.managerzone.com/ajax.php?p=transfer&sub="+key+"&sport="+window.sport,
-                headers: {
-                    "Cookie": document.cookie,
-                    "Content-Type": "application/json"
-                },
-                onload: function (response) {
-                    let data = JSON.parse(response.responseText);
+            fetch("https://www.managerzone.com/ajax.php?p=transfer&sub=" + key + "&sport=" + window.sport, {
+                method: "GET"
+            })
+                .then(response => response.json())
+                .then(data => {
                     let parser = new DOMParser();
                     let doc = parser.parseFromString(data['content'], "text/html");
                     resolve(doc)
-                },
-                onerror: function (error) {
+                })
+                .catch(error => {
                     reject(error)
-                }
-            });
+                });
 
         });
     }
