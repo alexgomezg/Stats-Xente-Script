@@ -566,10 +566,6 @@
         }
     }
     async function onSalePlayers() {
-        const inicio = performance.now();
-        // Límite opcional de concurrencia POR EQUIPO en la fase de detalle de jugador.
-        // No es necesario si el número de jugadores en venta no es enorme; déjalo en un número
-        // alto (o usa Infinity) si quieres máxima velocidad y no ves errores de red.
         const CONCURRENCY_PER_TEAM = Infinity;
         const idsBuscados = new Set();
         const a = document.getElementById("league_tab_table");
@@ -585,7 +581,7 @@
     <div id='loader' class='loader-${window.sport}' style='height:1em; width:50%; margin:0 auto;'></div>
   </div></div>
 `;
-        main_divs[2].insertAdjacentHTML('beforeend', loader);
+        main_divs[main_divs.length-1].insertAdjacentHTML('beforeend', loader);
 
         let tids = [];
         for (const a of as) {
@@ -597,7 +593,6 @@
             }
         }
 
-        // 1) Tabla vacía + pintado inmediato con caché (datos viejos)
         let tableHtml = `
  <h2 class="subheader clearfix">Players on sale</h2>
  </br>
@@ -617,7 +612,7 @@
     <tbody id="players-tbody">
 `;
         tableHtml += "</tbody></table>";
-        main_divs[2].insertAdjacentHTML('beforeend', tableHtml);
+        main_divs[main_divs.length-1].insertAdjacentHTML('beforeend', tableHtml);
 
         let contPlayersTM = 1;
         const jugadoresCache = Array.from(tmPlayerLeagues.values())
@@ -626,13 +621,7 @@
         jugadoresCache.forEach(player => {
             upsertPlayerRow(player, contPlayersTM++);
         });
-
-        // 2) FASE FUSIONADA: cada equipo, en cuanto sabe sus propios pids, dispara YA
-        //    el fetch de detalle de esos jugadores, sin esperar a los demás equipos.
-        //    Esto elimina el punto de sincronización secuencial entre "ronda de pids"
-        //    y "ronda de detalle" que hacía que los tiempos se sumaran en vez de solaparse.
-        const seenPlayerIds = new Set(); // evita pintar/duplicar si un jugador aparece en más de un equipo
-
+        const seenPlayerIds = new Set();
         const perTeamJobs = tids.map(async (tid) => {
             const pids = await fetchPlayerIdsOnTeam(tid);
             if (pids.length === 0) return;
@@ -656,15 +645,9 @@
         });
 
         await Promise.all(perTeamJobs);
-
-        // 3) Persistencia
         GM_setValue("tmPlayerLeagues" + window.sport, JSON.stringify([...tmPlayerLeagues]));
-
         const loaderEl = document.getElementById("hp_loader");
         if (loaderEl) loaderEl.remove();
-        const fin = performance.now();
-
-        console.log(`Tiempo: ${fin - inicio} ms`)
     }
 
 
