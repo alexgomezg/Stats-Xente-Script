@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.272
+// @version      0.273
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -102,7 +102,7 @@
     getUsernameData()
     checkScriptVersion().then()
     getSelects().then()
-
+    //GM_setValue("tmPlayerLeagues" + window.sport, "[]")
     let tmPlayerLeagues = new Map(JSON.parse(GM_getValue("tmPlayerLeagues" + window.sport, "[]")));
     let playersTacticsNT = new Map(JSON.parse(GM_getValue("playersTacticsNT"+window.sport, "[]")));
     let bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
@@ -349,6 +349,7 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (GM_getValue("transfersFilterFlag"))) {
             getCurrencies()
+            getDeviceFormat();
             waitToDOMById(insertScoutFilter, "players_container", 5000)
         }
 
@@ -498,7 +499,8 @@
             const flagImg = container.querySelector("img[src*='/flags/']");
             const nationality = flagImg.src.match(/flags\/\d+\/(\w+)\.png/)[1];
 
-            const totalAttrCell = container.querySelector(".help_button[onclick*='Total']");
+            const allHelpButtons = container.querySelectorAll(".help_button");
+            const totalAttrCell = allHelpButtons[allHelpButtons.length - 1];
             const infoTable = totalAttrCell.closest("table");
             const ageValue = infoTable.querySelector("tr:first-child strong").textContent.trim();
             const age = parseInt(ageValue, 10);
@@ -547,9 +549,11 @@
         const existing = document.getElementById(trId);
 
         if (existing) {
+            const originalCont = existing.querySelector("td:first-child").textContent;
             existing.outerHTML = rowHtml;
             const newRow = document.getElementById(trId);
             if (newRow) {
+                newRow.querySelector("td:first-child").textContent = originalCont;
                 const computedBg = getComputedStyle(newRow).backgroundColor;
                 newRow.style.setProperty("--row-final-bg", computedBg);
                 newRow.classList.add("row-fade-in");
@@ -970,7 +974,6 @@
 
 
     }
-
     function transfersShortList(){
         let playersMap=new Map();
         let elementos1 = document.getElementsByClassName('playerContainer')
@@ -6359,6 +6362,8 @@ self.onmessage = function (e) {
         let linkIds = ""
         let elems = document.getElementsByClassName("nice_table");
         let tabla = elems[0]
+
+
         tabla.style.overflowX = 'auto';
         //tabla.style.display='block'
         tabla.style.maxWidth = '100%'
@@ -6480,6 +6485,8 @@ self.onmessage = function (e) {
         values.set('edadUPSUB23', 'U23 LM Age');
         values.set('edadUPSUB21', 'U21 LM Age');
         values.set('edadUPSUB18', 'U18 LM Age');
+        values.set('retiring', 'Retiring Players');
+        values.set('loyal', 'Loyal Players');
 
         let contenidoNuevo = '<div id=testClick style="margin: 0 auto;">';
 
@@ -6585,6 +6592,10 @@ self.onmessage = function (e) {
                 contenidoNuevo += "</tr><tr>";
             }
 
+            if (clave === "retiring") {
+                contenidoNuevo += "</tr><tr>";
+            }
+
 
             if (clave === initialValues[urlParams.get('type')]) {
                 contenidoNuevo += '<td><label><input class="statsxente" type="checkbox" checked value="' + valor + '" id="' + clave + '">' + valor + '</label></td>';
@@ -6604,7 +6615,7 @@ self.onmessage = function (e) {
         cats_elo["u18_world"] = "U18";
 
         //RELLENO EN BLANCO TABLA
-        //contenidoNuevo += "<td></td>";
+        contenidoNuevo += "<td></td><td></td><td></td>";
         //contenidoNuevo += "<td></td>";
 
 
@@ -6647,6 +6658,18 @@ self.onmessage = function (e) {
         elems = document.getElementsByClassName("nice_table");
         tabla = elems[0]
         tabla.insertAdjacentHTML('beforebegin', contenidoNuevo);
+
+
+        let clase = "loader-" + window.sport
+        let loader =
+            "<div id='hp_loader' style='width:50%; margin:0 auto; text-align:center;'>" +
+            "<div style='text-align:center;'><b>Loading loyal and retiring players...</b></div>" +
+            "<div id='loader' class='" + clase + "' style='height:15px'></div>" +
+            "</div>";
+        tabla.insertAdjacentHTML(
+            'afterend',loader
+        );
+
 
 
 
@@ -6830,7 +6853,7 @@ self.onmessage = function (e) {
         if (tabla.getElementsByTagName("tbody")[0].innerHTML.includes("mazyar")) {
             searchClassName = "responsive-hide"
         }
-
+        let team_ids_ret=[]
         let contIds = 0
         let filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
         for (let i = 0; i < filasDatos.length; i++) {
@@ -6838,6 +6861,7 @@ self.onmessage = function (e) {
                 let celda = tabla.rows[i + 1].cells[1];
                 let team_data = extractTeamData(celda.getElementsByTagName("a"));
                 let id = team_data[0]
+                team_ids_ret.push(id)
                 let equipo = team_data[1]
                 linkIds += "&idEquipo" + contIds + "=" + id
                 contIds++
@@ -7089,10 +7113,17 @@ self.onmessage = function (e) {
 
                     });
                 });
+
+                Promise.all(team_ids_ret.map(teamId => fetchTeamLoyalAndRetiring(teamId))) .then(results => {
+                    document.getElementById("hp_loader").remove()
+                }).catch(err => {
+                    document.getElementById("hp_loader").remove()
+                });
+
+
+
             }
         });
-
-
 
 
 
@@ -10312,11 +10343,18 @@ self.onmessage = function (e) {
             const retiredFilter = document.getElementById('compare_player');
             const originalPosition = retiredFilter.getBoundingClientRect().top + window.scrollY;
 
+
             window.addEventListener('scroll', () => {
+                let left="85%"
+                let top="25%"
+                if (window.stx_device === "mobile") {
+                    left="65%"
+                    top="25%"
+                }
                 if (window.scrollY > originalPosition) {
                     retiredFilter.style.position = 'fixed';
-                    retiredFilter.style.left = '85%';
-                    retiredFilter.style.top = '30%';
+                    retiredFilter.style.left = left;
+                    retiredFilter.style.top = top;
                     retiredFilter.style.transform = 'translateY(-50%)';
                     retiredFilter.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)"
                 } else {
@@ -11400,6 +11438,8 @@ self.onmessage = function (e) {
     //HANDLERS FUNCTIONS
     function handleClick(event) {
 
+
+
         if (document.getElementById("eloCompareCol")) {
             document.getElementById("trELOCompare").style.display = "none";
             let elems = document.getElementsByClassName("nice_table");
@@ -12475,6 +12515,33 @@ self.onmessage = function (e) {
                     reject(error)
                 });
 
+        });
+    }
+    function fetchTeamLoyalAndRetiring(team_id) {
+        let link="https://www.managerzone.com/?p=players&tid="+team_id
+        return new Promise((resolve, reject) => {
+            fetch(link, {
+                method: 'GET',
+                credentials: 'include'
+            })
+                .then(response => response.text())
+                .then(responseText => {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(responseText, 'text/html');
+                    let player_container = doc.querySelectorAll(".dg_playerview_retire");
+                    let player_container1 = doc.querySelectorAll(".mainContent.loyal_player_container");
+
+                    let ret=player_container.length
+                    if(ret>0){
+                        ret=ret/2
+                    }
+                    teams_data[team_id]["retiring"]=ret
+                    teams_data[team_id]["loyal"]=player_container1.length
+                    resolve(player_container);
+                })
+                .catch(error => {
+                    reject(new Error("Error loading: " + link + " | " + error));
+                });
         });
     }
 
@@ -14018,6 +14085,7 @@ self.onmessage = function (e) {
                 }
             }
         }
+        return ""
     }
     function getSportByScript() {
         const script = document.createElement('script');
