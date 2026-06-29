@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.275
+// @version      0.276
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -93,7 +93,6 @@
 
 
 
-
     setCSSStyles()
     insertTaxCss()
     setLangSportCats()
@@ -103,6 +102,7 @@
     checkScriptVersion().then()
     getSelects().then()
     //GM_setValue("tmPlayerLeagues" + window.sport, "[]")
+    //GM_setValue("monitoredTeams_" + window.sport,[])
     let tmPlayerLeagues = new Map(JSON.parse(GM_getValue("tmPlayerLeagues" + window.sport, "[]")));
     let playersTacticsNT = new Map(JSON.parse(GM_getValue("playersTacticsNT"+window.sport, "[]")));
     let bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
@@ -10670,12 +10670,10 @@ self.onmessage = function (e) {
                 if (new Date() < deadlineDate) {
                     if(GM_getValue("notifications_outbids"+window.sport)){
                         //NOTIFY OUTBID
-                        console.log(obj)
                         if((username!==actual_user)&&(obj.outbid===false)){
                             openOutbidPopup(obj.player_id,obj.player_name,-1,"outbid","");
                             //obj.outbid=true
                         }
-
                         if(username===actual_user){
                             obj.outbid=false
                         }
@@ -10935,8 +10933,6 @@ self.onmessage = function (e) {
             );
 
         }
-
-
         let tids = GM_getValue("monitoredTeams_" + window.sport, []).map(t => t.teamId);
         let idsBuscados = new Set(GM_getValue("monitoredTeams_" + window.sport, []).map(t => parseInt(t.teamId)));
         let contPlayersTM = 1;
@@ -12635,6 +12631,7 @@ self.onmessage = function (e) {
             const playerValue = parseInt(valueTitle.replace(/\D/g, ""), 10);
             let team_monitored=false
             if (tmPlayerLeagues.has(parseInt(player_id))){
+
                 team_monitored = tmPlayerLeagues.get(parseInt(player_id))?.team_monitored ?? false;
             }
             return {
@@ -12669,6 +12666,22 @@ self.onmessage = function (e) {
         bids = freshBids;
         GM_setValue("bids"+window.sport, JSON.stringify([...bids]));
     }
+
+    function saveMonitoredTeamsBids(playerId, updateFn, defaultObj = null) {
+        let freshTm = new Map(JSON.parse(GM_getValue("tmPlayerLeagues"+window.sport, "[]")));
+        let player = freshTm.get(parseInt(playerId));
+        if (!player) {
+            if (!defaultObj) return;
+            player = defaultObj;
+            freshTm.set(parseInt(playerId), player);
+        }
+        updateFn(player);
+        tmPlayerLeagues = freshTm;
+        GM_setValue("tmPlayerLeagues"+window.sport, JSON.stringify([...tmPlayerLeagues]));
+    }
+
+
+
     function isEpochDate(date) {
         return date instanceof Date &&
             date.getFullYear() === 1969 &&
@@ -12679,7 +12692,6 @@ self.onmessage = function (e) {
         return GM_getValue('savedTagSets', []);
     }
     function openOutbidPopup(playerId, playerName, autoclose = AUTOCLOSE, type = 'outbid',teamName='') {
-        console.log(playerName+" "+type)
         if(document.getElementById("toast_"+playerId+"_"+type)){return;}
         let cfg = TOAST_TYPES[type] || TOAST_TYPES.outbid;
         const tc = getOrCreateContainer();
@@ -12709,10 +12721,11 @@ self.onmessage = function (e) {
             if(type==="team_monitored"){
                 let player = tmPlayerLeagues.get(parseInt(playerId));
                 if (player) {
-                    player.team_monitored=true
-
+                    saveMonitoredTeamsBids(parseInt(playerId), (player) => {
+                        player.team_monitored = true;
+                    });
                 }
-                GM_setValue("tmPlayerLeagues" + window.sport,JSON.stringify([...tmPlayerLeagues]));
+
             }else{
                 let bid = bids.get(playerId);
                 if (bid) {
@@ -12723,7 +12736,9 @@ self.onmessage = function (e) {
                     },bid);
                 }
             }
+            ///setTimeout(function () {
             window.open(`https://www.managerzone.com/?p=transfer&sub=players&u=${playerId}`, '_blank');
+            // }, 1000);
         });
         toast.querySelector('.toast-btn-view').addEventListener('mouseenter', function() {
             this.style.background = cfg.color;
@@ -12733,22 +12748,19 @@ self.onmessage = function (e) {
             this.style.background = 'none';
             this.style.color = cfg.color;
         });
-        console.log("aaalex")
         const timer = autoclose !== -1 ? setTimeout(() => removeToast(toast, timer), autoclose) : null;
         toast.querySelector('.toast-close').addEventListener('click', () => {
-            console.log(type)
-            console.log(playerId)
-            console.log(bids)
             if(type==="team_monitored"){
                 let player = tmPlayerLeagues.get(parseInt(playerId));
                 if (player) {
                     player.team_monitored=true
                 }
-                GM_setValue("tmPlayerLeagues" + window.sport,JSON.stringify([...tmPlayerLeagues]));
+                saveMonitoredTeamsBids(parseInt(playerId), (player) => {
+                    player.team_monitored = true;
+                });
             }else{
                 let bid = bids.get(playerId);
                 if (bid) {
-                    console.log("aaui")
                     /*if (type === 'outbid') bid.outbid = true;
                     else if (type === 'own') bid.own = true;
                     else if (type === 'deadline') bid.deadline = true;*/
@@ -12757,7 +12769,6 @@ self.onmessage = function (e) {
                         else if (type === 'own') bid.own = true;
                         else if (type === 'deadline') bid.deadline = true;
                     },bid);
-
                 }
             }
             removeToast(toast, timer);
