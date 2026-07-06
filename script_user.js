@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.277
+// @version      0.278
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -346,7 +346,7 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage, "button_national_team", 5000)
-            insertNTPageEventListeners()
+            waitToDOMById(insertNTPageEventListeners, "button_national_team",5000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (urlParams.get('sub') === 'tactics')) {
@@ -780,10 +780,18 @@
     function insertNTPageEventListeners(){
         let ul=document.getElementById("nt-tabs").querySelector("ul")
         let lis=ul.querySelectorAll("li")
-        let alt_view="ui-id-9",search="ui-id-10",tactics="ui-id-11"
-        if(lis.length===11){
-            alt_view="ui-id-8";search="ui-id-9";tactics="ui-id-10"
-        }
+
+        let alt_el = [...document.querySelectorAll('a[href]')].find(el => el.getAttribute('href').includes('ajax.php?p=nationalTeams&sub=alt_view'));
+        let alt_view=alt_el?.id || "ui-id-9"
+
+
+        let search_el = [...document.querySelectorAll('a[href]')].find(el => el.getAttribute('href').includes('ajax.php?p=nationalTeams&sub=search'));
+        let search=search_el?.id || "ui-id-10"
+
+        let tactics_el = [...document.querySelectorAll('a[href]')].find(el => el.getAttribute('href').includes('tactics-tab-content'));
+        let tactics=tactics_el?.id || "ui-id-11"
+
+
         document.getElementById("ui-id-1")?.parentNode?.addEventListener('click', function () { //Alternatice View
             waitToDOMById(nationalTeamPage, "button_national_team", 5000)
         });
