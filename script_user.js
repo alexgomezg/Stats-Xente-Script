@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.278
+// @version      0.279
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -347,6 +347,9 @@
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage, "button_national_team", 5000)
             waitToDOMById(insertNTPageEventListeners, "button_national_team",5000)
+
+            waitToDOMById(nationalTeamPage, "button_national_team_u21", 5000)
+            waitToDOMById(insertNTPageEventListeners, "button_national_team_u21",5000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (urlParams.get('sub') === 'tactics')) {
@@ -4529,6 +4532,8 @@ self.onmessage = function (e) {
                 teamTable += '<table class="matchValuesTable" style="' + style + '"><thead><tr>'
                 teamTable += '<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                 teamTable += '<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
+                teamTable += '<th>Tranfers Cost</th>'
+                teamTable += '<th>LM Tranfers Cost</th>'
                 teamTable += '<th >' + top + '</th><th>ELO</th>'
                 teamTable += '<th>ELO Pos</th>'
                 teamTable += '<th>Age</th>'
@@ -4539,14 +4544,25 @@ self.onmessage = function (e) {
                 let valor = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor']))
                 let valorLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valorUPSenior']))
                 let valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11']))
+                let cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value']))
+                let costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSenior']))
                 let elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo']))
                 let edad = Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
                 let salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
                 let numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">Senior</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                let bgcolor="white"
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">Senior</th>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
 
                 teamTable += '</td></tr>'
@@ -4556,12 +4572,29 @@ self.onmessage = function (e) {
                 valor11 = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['valor11_23']))
                 elo = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['elo23']))
                 edad = Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
+                cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value23']))
                 salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
-                teamTable += '<tr><th>U23</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
+                costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSUB23']))
+                /*teamTable += '<tr><th>U23</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
                 teamTable += '<td>' + jsonResponse[aux]['elo23_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
                 teamTable += '<td>' + numJugs + '</td>'
                 teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable += '</td></tr>'*/
+
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">U23</th>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'
 
@@ -4574,10 +4607,27 @@ self.onmessage = function (e) {
                 edad = Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
                 salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
-                teamTable += '<tr><th>U21</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
+                costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSUB21']))
+                cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value21']))
+                /*teamTable += '<tr><th>U21</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
                 teamTable += '<td>' + jsonResponse[aux]['elo21_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
                 teamTable += '<td>' + numJugs + '</td>'
                 teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable += '</td></tr>'*/
+
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">U21</th>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'
 
@@ -4591,15 +4641,19 @@ self.onmessage = function (e) {
                 edad = Number.parseFloat(jsonResponse[aux]['age18']).toFixed(2)
                 salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary18']))
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players18']))
-                teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + edad + '</td><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + salario + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + numJugs + '</td>'
-                teamTable += '<td style="border-radius: 0 0 10px 0; border-bottom:1px solid ' + GM_getValue("bg_native") + '; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
-                teamTable += '<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+                teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">0</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">0</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-radius: 0 0 10px 0; border-bottom:1px solid ' + GM_getValue("bg_native") + '; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<img alt="" style="background-color:'+bgcolor+'; cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'
                 teamTable += '<tr><td colspan=10>'
                 teamTable += '<button class="btn-save" style="width:8.5em; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
@@ -4623,15 +4677,6 @@ self.onmessage = function (e) {
                 teamTable += '</tbody></table></div>'
 
 
-
-
-                let divToInserT = document.getElementById("streakAndCupInfo")
-                divToInserT.innerHTML = teamTable + divToInserT.innerHTML
-
-
-
-                if(document.getElementById("hp_loader")){document.getElementById("hp_loader").remove()}
-
                 let color = GM_getValue("bg_native")
                 let darkerColor = darkenColor(color, 25);
 
@@ -4639,6 +4684,18 @@ self.onmessage = function (e) {
                     '.btn-save:hover { background-color: ' + darkerColor + ' !important; }',
                     document.styleSheets[0].cssRules.length
                 );
+
+
+
+
+                let divToInserT = document.getElementById("streakAndCupInfo")
+                //divToInserT.innerHTML = teamTable + divToInserT.innerHTML
+                divToInserT.insertAdjacentHTML('afterbegin', teamTable)
+
+
+                if(document.getElementById("hp_loader")){document.getElementById("hp_loader").remove()}
+
+
 
                 if (h2h12) {
                     document.getElementById("h2hButton").addEventListener('click', function () {
@@ -12803,7 +12860,7 @@ self.onmessage = function (e) {
                 bidderId
             };
         } catch (error) {
-            console.warn("Error loading: " + link, error);
+            //console.warn("Error loading: " + link, error);
             return null;
         }
     }
