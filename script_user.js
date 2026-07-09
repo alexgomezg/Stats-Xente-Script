@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.279
+// @version      0.280
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -78,11 +78,6 @@
     ]))));
     const badges = ["crew", "cm_epic", "cm_elite", "cm_legendary", "cm_champion", "cm_senior", "cm_gold", "cm_blue"];
     let isCM = false;
-    if (document.getElementById("header-username")) {
-        GM_setValue("stx_u",document.getElementById("header-username").textContent)
-        let style = document.getElementById("header-username").getAttribute("style") || "";
-        isCM = badges.some(badge => style.includes(badge));
-    }
     let storedMonitors = []
     let telegramChatId = GM_getValue('telegramChatId', "")
     let maxed_imgs = new Map();
@@ -134,7 +129,7 @@
             color: '#5988ff',
         },
     };
-
+    setUsernameData()
     /// FUNCTIONS MENU
     setTimeout(function () {
         const urlParams = new URLSearchParams(window.location.search);
@@ -299,6 +294,7 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'team') && (GM_getValue("teamPageFlag"))) {
+            getDeviceFormat()
             teamPage()
         }
 
@@ -346,10 +342,8 @@
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (GM_getValue("nationalTeamFlag"))) {
             waitToDOMById(nationalTeamPage, "button_national_team", 5000)
-            waitToDOMById(insertNTPageEventListeners, "button_national_team",5000)
-
             waitToDOMById(nationalTeamPage, "button_national_team_u21", 5000)
-            waitToDOMById(insertNTPageEventListeners, "button_national_team_u21",5000)
+            waitToDOMById(insertNTPageEventListeners, "cid",5000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'national_teams') && (urlParams.get('sub') === 'tactics')) {
@@ -430,28 +424,45 @@
             waitToDOMById(transfersShortList, "shortlist_window", 5000)
         }
 
+        waitToDOMById(setUsernameData, "header-username", 5000)
     }, 1000);
 
-    if(GM_getValue("gameNotifications")){
-        notifyBids();
+    if (GM_getValue("gameNotifications")) {
+        let TWO_MINS = 2 * 60 * 1000;
+        let lastExec = GM_getValue("lastBidCheck"+window.sport, 0);
+        let now = Date.now();
+        if (now - lastExec > TWO_MINS) {
+            notifyBids();
+            GM_setValue("lastBidCheck"+window.sport, Date.now());
+        }
         setInterval(() => {
             console.log("Getting Bids....");
             notifyBids();
-        }, 2 * 60 * 1000);
+            GM_setValue("lastBidCheck"+window.sport, Date.now());
+        }, TWO_MINS);
     }
-    if(GM_getValue("monitorTeams")){
-        getDeviceFormat()
-        onSalePlayersMonitors(false);
+    if (GM_getValue("monitorTeams")) {
+        let monitoredTeams = GM_getValue("monitoredTeams_" + window.sport, []);
+        if(monitoredTeams.length>GM_getValue("monitorsCount"+window.sport, 0)){
+            GM_setValue("lastMonitorCheck"+window.sport, 0);
+        }
+        GM_setValue("monitorsCount"+window.sport,monitoredTeams.length);
+        let FIFTEEN_MINS = 15 * 60 * 1000;
+        let lastExec = GM_getValue("lastMonitorCheck"+window.sport, 0);
+        let now = Date.now();
+        if (now - lastExec > FIFTEEN_MINS) {
+            getDeviceFormat()
+            onSalePlayersMonitors(false);
+            GM_setValue("lastMonitorCheck"+window.sport, Date.now());
+        }
         setInterval(() => {
             console.log("Getting Teams Monitors....");
             getDeviceFormat()
-            onSalePlayersMonitors(false)();
-        }, 15 * 60 * 1000);
+            onSalePlayersMonitors(false);
+            GM_setValue("lastMonitorCheck"+window.sport, Date.now());
+        }, FIFTEEN_MINS);
     }
 
-    /*openOutbidPopup(230814719, 'Cristiano Ronaldo',-1,"outbid");
-    openOutbidPopup(230814819, 'Lionel Messi',-1,"deadline");
-    openOutbidPopup(230814919, 'Neymar Junior',-1,"own");*/
     // openOutbidPopup(230814719, 'Jurre de Rooy',-1,"deadline");
 
     //BUTTONS EVENT LISTENERS
@@ -1213,6 +1224,8 @@ self.onmessage = function (e) {
                 teamTable += '<table class="matchValuesTable" style="' + style + '"><thead><tr>'
                 teamTable += '<th id=thTransparent0 style="background-color:transparent; border:0;"></th>'
                 teamTable += '<th style="border-top-left-radius: 5px;">Value</th><th>LM Value</th>'
+                teamTable += '<th>Tranfers Cost</th>'
+                teamTable += '<th>LM Tranfers Cost</th>'
                 teamTable += '<th >' + top + '</th><th>ELO</th>'
                 teamTable += '<th>ELO Pos</th>'
                 teamTable += '<th>Age</th>'
@@ -1227,11 +1240,23 @@ self.onmessage = function (e) {
                 let edad = Number.parseFloat(jsonResponse[aux]['edad']).toFixed(2)
                 let salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salario']))
                 let numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['numJugadores']))
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">Senior</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                let cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value']))
+                let costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSenior']))
+                let bgcolor="white"
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">Senior</th>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="seniorButton" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
+
 
                 teamTable += '</td></tr>'
 
@@ -1242,10 +1267,20 @@ self.onmessage = function (e) {
                 edad = Number.parseFloat(jsonResponse[aux]['age23']).toFixed(2)
                 salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary23']))
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
-                teamTable += '<tr><th>U23</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo23_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value23']))
+                costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSUB23']))
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">U23</th>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo23_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'
 
@@ -1258,10 +1293,20 @@ self.onmessage = function (e) {
                 edad = Number.parseFloat(jsonResponse[aux]['age21']).toFixed(2)
                 salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary21']))
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
-                teamTable += '<tr><th>U21</th><td>' + valor + '</td><td>' + valorLM + '</td><td>' + valor11 + '</td><td>' + elo + '</td>'
-                teamTable += '<td>' + jsonResponse[aux]['elo21_pos'] + '</td><td>' + edad + '</td><td>' + salario + '</td>'
-                teamTable += '<td>' + numJugs + '</td>'
-                teamTable += '<td style="border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value21']))
+                costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSUB21']))
+                teamTable += '<tr><th style="border-top-left-radius: 5px;">U21</th>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo21_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'
 
@@ -1275,14 +1320,18 @@ self.onmessage = function (e) {
                 edad = Number.parseFloat(jsonResponse[aux]['age18']).toFixed(2)
                 salario = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['salary18']))
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players18']))
-                teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + edad + '</td><td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + salario + '</td>'
-                teamTable += '<td style="border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + numJugs + '</td>'
-                teamTable += '<td style="border-radius: 0 0 10px 0; border-bottom:1px solid ' + GM_getValue("bg_native") + '; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
+                teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">0</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">0</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + edad + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + salario + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + numJugs + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-radius: 0 0 10px 0; border-bottom:1px solid ' + GM_getValue("bg_native") + '; border-right:1px solid ' + GM_getValue("bg_native") + ';">'
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub18Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'
                 teamTable += '<tr><td colspan=10>'
@@ -1657,6 +1706,11 @@ self.onmessage = function (e) {
                                 txt += tableData + "</div>"
                                 skillsTable.insertAdjacentHTML('afterend', txt);
                                 document.getElementById("hp_loader_comparing" + currentId).remove()
+                                document.getElementById("loader").remove()
+
+
+                                //if (document.getElementById("stxc_colorize_skills_mobile_transfers")) { document.getElementById("stxc_colorize_skills_mobile_transfers").click() }
+
                             });
                         })(player_id, el);
 
@@ -1959,7 +2013,7 @@ self.onmessage = function (e) {
         national_team = national_team.replace("U21", "").trim();
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams_nt.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&national_team=" + encodeURIComponent(national_team),
+            url: "https://statsxente.com/MZ1/Functions/tamper_detailed_teams_nt.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&national_team=" + encodeURIComponent(national_team),
             headers: {
                 "Content-Type": "application/json"
             },
@@ -2137,7 +2191,7 @@ self.onmessage = function (e) {
 
         const mids = Array.from(mapa.keys()); // todos los mid
         const query = mids.join(","); // "123,456,789"
-        let url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?type=${document.getElementById("type").value}&national_team=${encodeURIComponent(national_team)}&sport=${window.sport}&mids=${encodeURIComponent(query)}`;
+        let url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?stx_u=${GM_getValue("stx_u","")}&type=${document.getElementById("type").value}&national_team=${encodeURIComponent(national_team)}&sport=${window.sport}&mids=${encodeURIComponent(query)}`;
         if (mids.length > 0) {
             GM_xmlhttpRequest({
                 method: "GET",
@@ -2179,7 +2233,7 @@ self.onmessage = function (e) {
 
         }
 
-        url = `https://statsxente.com/MZ1/Functions/tamper_elo_values_nt.php?type=${document.getElementById("type").value}&sport=${window.sport}`;
+        url = `https://statsxente.com/MZ1/Functions/tamper_elo_values_nt.php?stx_u=${GM_getValue("stx_u","")}&type=${document.getElementById("type").value}&sport=${window.sport}`;
         GM_xmlhttpRequest({
             method: "GET",
             url: url,
@@ -3068,7 +3122,7 @@ self.onmessage = function (e) {
             document.getElementById("statsTabs-1").insertAdjacentHTML("beforebegin", divLoader);
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_elo_review.php?sport=" + window.sport + "&team_id=" + team_id,
+                url: "https://statsxente.com/MZ1/Functions/tamper_elo_review.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + "&team_id=" + team_id,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -3460,7 +3514,7 @@ self.onmessage = function (e) {
 
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_clash_matches_elo.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+                url: "https://statsxente.com/MZ1/Functions/tamper_clash_matches_elo.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -3692,7 +3746,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -3884,7 +3938,7 @@ self.onmessage = function (e) {
         }
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_elo_values.php?sport=" + window.sport + linkIds + cIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_elo_values.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + linkIds + cIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -4233,7 +4287,7 @@ self.onmessage = function (e) {
 
 
             const divs = elementos1[i].querySelectorAll("div.floatLeft");
-            const lastDiv = divs[divs.length - 1];
+            let lastDiv = divs[divs.length - 1];
             let txt=`<div class="tactics-block tactics-block-responsive"><strong>On tactics:</strong><br>`
             let tactics = playersTacticsNT.get(id);
             let flag=false
@@ -4590,7 +4644,7 @@ self.onmessage = function (e) {
                 teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
-                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo23_pos'] + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
@@ -4623,7 +4677,7 @@ self.onmessage = function (e) {
                 teamTable += '<td style="background-color:'+bgcolor+';">' + costLM + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valor11 + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + elo + '</td>'
-                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo_pos'] + '</td>'
+                teamTable += '<td style="background-color:'+bgcolor+';">' + jsonResponse[aux]['elo21_pos'] + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + edad + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + salario + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + numJugs + '</td>'
@@ -4748,10 +4802,19 @@ self.onmessage = function (e) {
                     th.style.color = GM_getValue("color_native");
                 });
                 document.getElementById("thTransparent0").style.backgroundColor = "transparent";
+
+                if (window.stx_device === "computer") {
+                    const img = document.getElementById("team-stadium-wrapper").querySelector('img[src*="sponsors"]');
+                    if(img){
+                        const winBackLight = img.closest('.win_back_light');
+                        const rootDiv = winBackLight.parentElement;
+                        const table = document.querySelector('.matchValuesTable');
+                        checkOverlap(rootDiv,table);
+                    }
+                }
+
             }
         });
-
-
 
 
 
@@ -4911,7 +4974,7 @@ self.onmessage = function (e) {
         let tabla = elems[0]
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_federations_clash_data.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&home=" + local_id[1] + "&away=" + away_id[1],
+            url: "https://statsxente.com/MZ1/Functions/tamper_federations_clash_data.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + "&home=" + local_id[1] + "&away=" + away_id[1],
             headers: {
                 "Content-Type": "application/json"
             },
@@ -5081,7 +5144,7 @@ self.onmessage = function (e) {
 
                 GM_xmlhttpRequest({
                     method: "GET",
-                    url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+                    url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
                     headers: {
                         "Content-Type": "application/json"
                     },
@@ -5447,7 +5510,7 @@ self.onmessage = function (e) {
                 document.getElementById("ui-tabs-4").insertAdjacentHTML("afterend", txt)
                 GM_xmlhttpRequest({
                     method: "GET",
-                    url: "https://statsxente.com/MZ1/Functions/tamper_league_history.php?league_id=" + league_id_search + "&type=" + type + "&sport=" + window.sport,
+                    url: "https://statsxente.com/MZ1/Functions/tamper_league_history.php?stx_u="+GM_getValue("stx_u","")+"&league_id=" + league_id_search + "&type=" + type + "&sport=" + window.sport,
                     headers: {
                         "Content-Type": "application/json"
                     },
@@ -5641,7 +5704,7 @@ self.onmessage = function (e) {
 
         const mids = Array.from(mapa.keys()); // todos los mid
         const query = mids.join(","); // "123,456,789"
-        const url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?sport=${window.sport}&mids=${encodeURIComponent(query)}`;
+        const url = `https://statsxente.com/MZ1/Functions/tamper_elo_change_matches.php?stx_u=${GM_getValue("stx_u","")}&sport=${window.sport}&mids=${encodeURIComponent(query)}`;
         if (mids.length > 0) {
             getDeviceFormat()
             let fontSize = "inherit"
@@ -5755,7 +5818,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table=" + statsKeys[typeKey + "_" + window.sport] + "&idLiga=" + idLiga + "&categoria=" + cats_stats[typeKey],
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?stx_u="+GM_getValue("stx_u","")+"&table=" + statsKeys[typeKey + "_" + window.sport] + "&idLiga=" + idLiga + "&categoria=" + cats_stats[typeKey],
             headers: {
                 "Content-Type": "application/json"
             },
@@ -6388,7 +6451,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -6646,7 +6709,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_federations.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_federations.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -6723,7 +6786,7 @@ self.onmessage = function (e) {
 
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?table=" + statsKeys[typeKey + "_" + window.sport] + "&idLiga=" + idComp + "&categoria=" + cats_stats[typeKey],
+                url: "https://statsxente.com/MZ1/Functions/tamper_teams_stats_records.php?stx_u="+GM_getValue("stx_u","")+"&table=" + statsKeys[typeKey + "_" + window.sport] + "&idLiga=" + idComp + "&categoria=" + cats_stats[typeKey],
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -7344,7 +7407,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -7988,7 +8051,7 @@ self.onmessage = function (e) {
 
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_elo_change_match.php?sport=" + window.sport + "&match_id=" + match_id,
+                url: "https://statsxente.com/MZ1/Functions/tamper_elo_change_match.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + "&match_id=" + match_id,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -8156,7 +8219,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
+            url: "https://statsxente.com/MZ1/Functions/tamper_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport + linkIds,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -9158,7 +9221,7 @@ self.onmessage = function (e) {
 
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_national_teams.php?currency=" + GM_getValue("currency") + "&sport=" + window.sport,
+            url: "https://statsxente.com/MZ1/Functions/tamper_national_teams.php?stx_u="+GM_getValue("stx_u","")+"&currency=" + GM_getValue("currency") + "&sport=" + window.sport,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -9318,7 +9381,7 @@ self.onmessage = function (e) {
         let team_id = document.getElementById("tid1").value;
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://statsxente.com/MZ1/Functions/tamper_user_next_matches.php?team_id=" + team_id,
+            url: "https://statsxente.com/MZ1/Functions/tamper_user_next_matches.php?stx_u="+GM_getValue("stx_u","")+"&team_id=" + team_id+"&sport="+window.sport,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -12011,7 +12074,7 @@ self.onmessage = function (e) {
 
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://statsxente.com/MZ1/Functions/tamper_check_fl.php?fl_id=" + id,
+                url: "https://statsxente.com/MZ1/Functions/tamper_check_fl.php?stx_u="+GM_getValue("stx_u","")+"&fl_id=" + id+"&sport="+window.sport,
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -12233,7 +12296,7 @@ self.onmessage = function (e) {
             throw err;
         }
     }
-    function gmTMPlayerRequest(url) {
+    function gmTMPlayerRequestOld(url) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
@@ -12245,6 +12308,73 @@ self.onmessage = function (e) {
                 },
                 onerror: err => reject(err)
             });
+        });
+    }
+    function gmTMPlayerRequest(teamId) {
+        let sport=window.sport
+        return new Promise((resolve, reject) => {
+            const sportId = sport === "hockey" ? 2 : 1;
+            const url = `https://www.managerzone.com/xml/manager_data.php?sport_id=${sportId}&team_id=${teamId}`;
+
+            fetchXml(url)
+                .then(xml => {
+                    const data = {};
+                    const userDataNodes = Array.from(xml.getElementsByTagName("UserData"));
+                    const pendingLeagueLookups = [];
+
+                    userDataNodes.forEach(userData => {
+                        const teamNodes = Array.from(userData.getElementsByTagName("Team"));
+
+                        teamNodes.forEach(teamNode => {
+                            if (sport !== teamNode.getAttribute("sport")) return;
+
+                            data.user_id = userData.getAttribute("userId");
+                            data.sport = sport;
+                            data.team_id = parseInt(teamNode.getAttribute("teamId"), 10);
+                            data.team_name = teamNode.getAttribute("teamName");
+                            data.username = userData.getAttribute("username");
+                            data.league_id = parseInt(teamNode.getAttribute("seriesId"), 10);
+                            data.league_name = teamNode.getAttribute("seriesName");
+                            data.countryCode = (userData.getAttribute("countryShortname") || "").toLowerCase();
+                            //data.country = paisesAbrev[data.countryCode];
+
+                            pendingLeagueLookups.push(
+                                getLeagueData(data.team_id, sportId, data.league_id).then(leagueData => {
+                                    data.pos = leagueData ? leagueData.pos : null;
+                                    data.points = leagueData ? leagueData.points : null;
+                                })
+                            );
+                        });
+                    });
+
+                    Promise.all(pendingLeagueLookups)
+                        .then(() => resolve(data))
+                        .catch(reject);
+                })
+                .catch(reject);
+        });
+    }
+    function getLeagueData(teamId, sportId, leagueId) {
+        return new Promise((resolve, reject) => {
+            const url = `https://www.managerzone.com/xml/team_league.php?sport_id=${sportId}&league_id=${leagueId}`;
+
+            fetchXml(url)
+                .then(xml => {
+                    const teamNodes = Array.from(xml.getElementsByTagName("Team"));
+
+                    for (const team of teamNodes) {
+                        if (teamId === parseInt(team.getAttribute("teamId"), 10)) {
+                            resolve({
+                                pos: parseInt(team.getAttribute("pos"), 10),
+                                points: parseInt(team.getAttribute("points"), 10),
+                            });
+                            return;
+                        }
+                    }
+
+                    resolve(null); // mismo comportamiento que el PHP original si no encuentra el equipo
+                })
+                .catch(reject);
         });
     }
     async function getTeamFinancialRating(tid) {
@@ -12296,10 +12426,11 @@ self.onmessage = function (e) {
         if (teamCache.has(tid)) {
             return teamCache.get(tid);
         }
-        const response = await gmTMPlayerRequest(
+        /*const response = await gmTMPlayerRequest(
             "https://statsxente.com/MZ1/Functions/tamper_tmuser.php?sport=" + window.sport + "&team_id=" + tid
         );
-        const jsonResponse = JSON.parse(response.responseText);
+         const jsonResponse = JSON.parse(response.responseText);*/
+        const jsonResponse = await gmTMPlayerRequest(tid);
         teamCache.set(tid, jsonResponse);
         return jsonResponse;
     }
@@ -13128,9 +13259,9 @@ self.onmessage = function (e) {
             ntid:ntid,
             ageMin:    parseInt(document.getElementById('stxAgeMin').value),
             ageMax:    parseInt(document.getElementById('stxAgeMax').value),
-            minValue:  parseFloat(document.getElementById('stxMinValue').value)  || 0,
+            minValue:  parseFloat(document.getElementById('stxMinValue').value) || 0,
             minSalary: parseFloat(document.getElementById('stxMinSalary').value) || 0,
-            minCost:   parseFloat(document.getElementById('stxMinCost').value)   || 0,
+            minCost:   parseFloat(document.getElementById('stxMinCost').value) || 0,
             orderBy:   document.getElementById('stxOrderBy').value,
             ntPlayers:    document.getElementById('ntPlayers').checked ? 1 : 0,
             u21ntPlayers:    document.getElementById('u21ntPlayers').checked ? 1 : 0,
@@ -15025,6 +15156,13 @@ self.onmessage = function (e) {
             '| <span class="bold" style="color:red;">' + finalValue + '</span>&nbsp;'
         );
     }
+    function setUsernameData(){
+        if (document.getElementById("header-username")) {
+            GM_setValue("stx_u",document.getElementById("header-username").textContent)
+            let style = document.getElementById("header-username").getAttribute("style") || "";
+            isCM = badges.some(badge => style.includes(badge));
+        }
+    }
     function getEmptySkillsDistrib(all_time_sum) {
         let base_obj = { "sk1": 0, "sk2": 0, "sk3": 0, "sk4": 0, "sk5": 0, "sk6": 0, "sk7": 0, "sk8": 0, "sk9": 0, "sk10": 0, "tp": 0, "td": 0, "all_time_sum": all_time_sum, "last_time": 0 }
         return {
@@ -15405,8 +15543,46 @@ ${
         el.textContent = msg;
         el.style.display = 'block';
     }
+    function fetchXml(url) {
+        return fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Fetch fallido (${response.status}): ${url}`);
+                }
+                return response.text();
+            })
+            .then(xmlText => new DOMParser().parseFromString(xmlText, "application/xml"));
+    }
     function hideError() {
         document.getElementById('et-error').style.display = 'none';
+    }
+    function hayOverlap(el1, el2) {
+        const r1 = el1.getBoundingClientRect();
+        const r2 = el2.getBoundingClientRect();
+
+        return !(
+            r1.right < r2.left ||
+            r1.left > r2.right ||
+            r1.bottom < r2.top ||
+            r1.top > r2.bottom
+        );
+    }
+    function checkOverlap(el1,el2) {
+        if (hayOverlap(el1, el2)) {
+            // Hay solapamiento -> aplicamos la lógica de ocultar por defecto
+            el1.style.display = 'none';
+
+            const hoverTarget = el1.parentElement;
+
+            hoverTarget.addEventListener('mouseenter', () => {
+                el1.style.display = 'block';
+            });
+
+            hoverTarget.addEventListener('mouseleave', () => {
+                el1.style.display = 'none';
+            });
+        }
+        // Si no hay solapamiento, no tocamos nada: se queda visible como siempre
     }
     function showLoading(state) {
         document.getElementById('et-loading').style.display = state ? 'block' : 'none';
