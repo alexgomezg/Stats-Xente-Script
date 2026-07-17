@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.281
+// @version      0.282
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -9721,12 +9721,18 @@ self.onmessage = function (e) {
         txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='3'/>";
         txt += "<img alt='' src='https://statsxente.com/MZ1/View/Images/star_rayo_l.png' width='20px' height='20px' data-index='4'/>";
         txt += "</td></tr></table></div>"
-
+        let display="flex"
+        let data="";
+        if (window.stx_device !== "computer") {
+            display="flex-wrap"
+            data='<div style="margin-top:1em; flex-basis:100%; height:0;"></div>'
+        }
         txt += '<div class="transfer_header_text" style="cursor: pointer;" onclick="$(\'#retired_filter\').slideToggle();">Stats Xente Filters</div>';
-        txt += '<div id="retired_filter" style="display:flex; gap:15px; align-items:center;">';
+        txt += '<div id="retired_filter" style="display:'+display+'; gap:15px; align-items:center;">';
         txt += '<label><input type="checkbox" class="checkbox" id="retiring_players" name="retiring_players"> Retiring</label>';
         txt += '<label><input type="checkbox" class="checkbox" id="non_retiring_players" name="non_retiring_players">Non Retiring</label>';
         txt += '<label><input type="checkbox" class="checkbox" id="no_scout_report" name="no_scout_report">No Scout Report</label>';
+        txt+=data
         txt+='<button class="stx-btn-nt" id="showExcludedPlayers">Excluded</button>  <button class="stx-btn-nt" id="showPlayersNotes">Notes</button>'
         txt += `Auto-Delete: <select class="statsxente" id="auto-delete-excluded" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
         let opciones = [
@@ -15762,12 +15768,12 @@ ${
         overlay.className = 'mz-modal-overlay';
         overlay.style.display = 'none';
         overlay.innerHTML = `
-        <div class="mz-modal-box" style="min-width:700px">
+        <div class="mz-modal-box" style="min-width:70em">
             <div class="mz-modal-header">
                 <span id="pn-modal-title">Player Note</span>
                 <button class="mz-modal-close" id="pn-modal-close" type="button">&times;</button>
             </div>
-            <div class="mz-modal-body" style="magin: 0 auto;">
+            <div class="mz-modal-body" style="margin: 0 auto;">
                 <textarea id="pn-textarea" rows="6" style="width:40em; resize:vertical;" placeholder="Write a note about this player...">${note}</textarea>
             </div>
             <div class="mz-modal-footer" style="margin: 0 auto;padding-bottom: 0.5em;">
@@ -15807,7 +15813,7 @@ ${
         overlay.className = 'mz-modal-overlay';
         overlay.style.display = 'none';
         overlay.innerHTML = `
-        <div class="mz-modal-box" style="min-width:500px">
+        <div class="mz-modal-box" style="min-width:50%;">
             <div class="mz-modal-header">
                 <span>Excluded Players</span>
                 <button class="mz-modal-close" id="et-modal-close" type="button">&times;</button>
