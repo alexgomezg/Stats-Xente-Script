@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.280
+// @version      0.281
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -85,9 +85,6 @@
     maxed_imgs.set('unmaxed_soccer', "<img alt='' width='"+GM_getValue('soccer_ball_width')+"' height='"+GM_getValue('soccer_ball_height')+"' src='data:image/gif;base64,R0lGODlhDAAKAJEDAP///8zM/wAA/////yH5BAEAAAMALAAAAAAMAAoAAAIk3CIpYZ0BABJtxvjMgojTIVwKpl0dCQbQJX3T+jpLNDXGlDUFADs='/>");
     maxed_imgs.set('maxed_hockey', "<img alt='' width='"+GM_getValue('hockey_puck_width')+"' height='"+GM_getValue('hockey_puck_height')+"' src='data:image/gif;base64,R0lGODlhDAAKANUkAOXq//8pKunt//ZTVPz19dXZ+tzk/+NAV+bl+Ojs//4wMeWkreXp/f4tLvRMT+Dm/+Xr/7lra/4vMepKSv7///ZRUvz8/tmHhs/Z/+xKSfVeYNCJkfhFRPUxOuBUZvRsb9ri//39//hDQv8oKf///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAACQALAAAAAAMAAoAAAZCQBLpMhqJMgiLkEQoOkeDwnLzdIowwuoTlNUWDRSSF/oIkUQBZ6BRAWiEkIlopPgsEhzPMgIQCBgOEiNLQh1PB4RBADs='/>");
     maxed_imgs.set('unmaxed_hockey', "<img alt='' width='"+GM_getValue('hockey_puck_width')+"' height='"+GM_getValue('hockey_puck_height')+"' src='data:image/gif;base64,R0lGODlhDAAKALMNAOnt/+Xr/9ri/6/A/6G1/73L/52x/8/Z/4Wf/32Z/1x9/0Rr/x9N/////wAAAAAAACH5BAEAAA0ALAAAAAAMAAoAAAQwsDXD2FJB6sot0UnHLYckdoJ5VmmzWoi0nAuxSIEyW0qxJBrFAAAYKCoaSYgD1EQAADs='/>");
-
-
-
     setCSSStyles()
     insertTaxCss()
     setLangSportCats()
@@ -96,11 +93,16 @@
     getUsernameData()
     checkScriptVersion().then()
     getSelects().then()
-    //GM_setValue("tmPlayerLeagues" + window.sport, "[]")
-    //GM_setValue("monitoredTeams_" + window.sport,[])
+    /*GM_setValue("tmPlayerLeagues" + window.sport, "[]")
+    GM_setValue("monitoredTeams_" + window.sport,[])
+    GM_setValue("bids"+window.sport, "[]")*/
+
     let tmPlayerLeagues = new Map(JSON.parse(GM_getValue("tmPlayerLeagues" + window.sport, "[]")));
     let playersTacticsNT = new Map(JSON.parse(GM_getValue("playersTacticsNT"+window.sport, "[]")));
     let bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
+    let notes = new Map(JSON.parse(GM_getValue("notesPlayers_"+window.sport, "[]")));
+    let excludedPlayers = new Map(JSON.parse(GM_getValue("excludedPlayers_"+window.sport, "[]")));
+    let autoDeleteDaysLimit=parseInt(GM_getValue("autoDeleteDaysLimit","-1"))
     let filtered
     if(window.sport==="soccer"){
         filtered = new Map([...playerPositions].filter(([key, value]) => typeof value === "string" && !value.includes("_hockey") && value !== "Center"));
@@ -352,12 +354,14 @@
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (GM_getValue("transfersFilterFlag"))) {
+            deletePasedExcludedPLayers()
             getCurrencies()
             getDeviceFormat();
             waitToDOMById(insertScoutFilter, "players_container", 5000)
         }
 
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.get('sub') !== 'yourplayers')) {
+            deletePasedExcludedPLayers()
             getCurrencies()
             teamCache = new Map(JSON.parse(GM_getValue("TMteamsData_" + window.sport, "[]")));
             playersCache = new Map(JSON.parse(GM_getValue("TMplayersData_" + window.sport, "[]")));
@@ -406,7 +410,7 @@
 
         }
 
-        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.has('u')) && (GM_getValue("teamsFinancialMarket"))  && (urlParams.get('sub') !== 'yourplayers')) {
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (urlParams.has('u')) && (GM_getValue("teamsFinancialMarket")) && (urlParams.get('sub') !== 'yourplayers')) {
             getCurrencies()
             if (GM_getValue("onlySinglePages")) {
                 teamFinancesCache = new Map(JSON.parse(GM_getValue("TMplayersFinancesData_" + window.sport, "[]")))
@@ -1269,7 +1273,7 @@ self.onmessage = function (e) {
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players23']))
                 cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value23']))
                 costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSUB23']))
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">U23</th>'
+                teamTable += '<tr><th>U23</th>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
@@ -1295,7 +1299,7 @@ self.onmessage = function (e) {
                 numJugs = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['players21']))
                 cost = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['transfer_value21']))
                 costLM = new Intl.NumberFormat(window.userLocal).format(Math.round(jsonResponse[aux]['tmvalueSUB21']))
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">U21</th>'
+                teamTable += '<tr><th>U21</th>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
@@ -1441,6 +1445,10 @@ self.onmessage = function (e) {
 
             let id_ = el.querySelector('span.player_id_span');
             let player_id = id_.textContent
+            if(excludedPlayers.has(player_id)){
+                el.style.display="none"
+                return;
+            };
             let divs = el.querySelectorAll('.floatRight.transfer-control-area');
             let divs_dark = divs[0].querySelectorAll('.box_dark');
             let tables = divs_dark[0].querySelectorAll('table');
@@ -1505,10 +1513,84 @@ self.onmessage = function (e) {
             const [player_data, jsonResponse] = await Promise.all(tasks);
 
 
+
+            if((!document.getElementById("but_stx_notes_"+player_id))&&(!document.getElementById("but_stx_notes_"+player_id))){
+                let tabla = divs_dark[0].querySelector('table');
+                let primerTr = tabla.querySelector('tr');
+                let segundoTd = primerTr.querySelectorAll('td')[3];
+                let tdClonado = segundoTd.cloneNode(true);
+                let tdClonado1 = segundoTd.cloneNode(true);
+
+                let color = "#AD4039"
+                if (notes.has(player_id)) {
+                    color = "#4c9f34"
+                }
+
+                tdClonado.innerHTML = `<span id="but_stx_notes_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;"'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i id="icon_stx_notes_${player_id}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>
+`
+                tdClonado1.innerHTML = `<span id="but_stx_exclude_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-eye compare-icon"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>
+`
+                tdClonado.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                tdClonado1.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                tdClonado.style.paddingLeft="0.25em"
+                segundoTd.after(tdClonado);
+                segundoTd.after(tdClonado1);
+
+
+                document.getElementById("but_stx_exclude_"+player_id).parentNode.addEventListener('click', function () {
+                    let enlace = el.querySelector('a[href^="/?p=team&tid="]');
+                    let teamName = enlace ? enlace.textContent.trim() : null;
+
+                    let enlace1 = el.querySelector('img[src^="nocache-957/img/flags/15"]');
+                    let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
+
+                    if (!excludedPlayers.has(player_id)) {
+                        excludedPlayers.set(player_id, {
+                            playerName: el.querySelector('.player_name').textContent,
+                            teamName: teamName,
+                            country: country,
+                            date: Date.now()
+                        });
+                    }
+                    GM_setValue("excludedPlayers_" + window.sport,JSON.stringify([...excludedPlayers]));
+                    el.classList.add('fade-out-player-excluded');
+                    el.addEventListener('transitionend', () => {
+                        el.style.display = 'none';
+                    }, { once: true });
+                });
+
+
+                document.getElementById("but_stx_notes_"+player_id).parentNode.addEventListener('click', function () {
+
+                    let enlace = el.querySelector('a[href^="/?p=team&tid="]');
+                    let teamName = enlace ? enlace.textContent.trim() : null;
+
+                    let enlace1 = el.querySelector('img[src^="nocache-957/img/flags/15"]');
+                    let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
+
+
+                    injectPlayerNoteModal(player_id,el.querySelector('.player_name').textContent,teamName,country)
+
+
+                });
+
+            }
             //DIVISION DATA
             //if (generation !== currentGeneration) return;
             if (GM_getValue("transfersSellerFlag")) {
                 if (!document.getElementById("team_data_" + player_id)) {
+
+
 
 
                     //let jsonResponse = await getTeamInfo(tid)
@@ -1534,7 +1616,7 @@ self.onmessage = function (e) {
                         document.getElementById("hp_loader_" + player_id).remove()
                     }
                     if (window.stx_device === "computer") {
-                        divs_dark[0].style.height = "8em";
+                        divs_dark[0].style.height = "9em";
                     } else {
                         divs_dark[0].style.height = "9em";
                     }
@@ -4637,7 +4719,7 @@ self.onmessage = function (e) {
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub23Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'*/
 
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">U23</th>'
+                teamTable += '<tr><th>U23</th>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
@@ -4670,7 +4752,7 @@ self.onmessage = function (e) {
                 teamTable += '<img alt="" style="cursor:pointer;" id="sub21Button" src="https://statsxente.com/MZ1/View/Images/detail.png" width="20px" height="20px"/>'
                 teamTable += '</td></tr>'*/
 
-                teamTable += '<tr><th style="border-top-left-radius: 5px;">U21</th>'
+                teamTable += '<tr><th>U21</th>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valor + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + valorLM + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+';">' + cost + '</td>'
@@ -9645,6 +9727,19 @@ self.onmessage = function (e) {
         txt += '<label><input type="checkbox" class="checkbox" id="retiring_players" name="retiring_players"> Retiring</label>';
         txt += '<label><input type="checkbox" class="checkbox" id="non_retiring_players" name="non_retiring_players">Non Retiring</label>';
         txt += '<label><input type="checkbox" class="checkbox" id="no_scout_report" name="no_scout_report">No Scout Report</label>';
+        txt+='<button class="stx-btn-nt" id="showExcludedPlayers">Excluded</button>  <button class="stx-btn-nt" id="showPlayersNotes">Notes</button>'
+        txt += `Auto-Delete: <select class="statsxente" id="auto-delete-excluded" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
+        let opciones = [
+            { value: '-1', label: 'Never' },
+            { value: '1', label: '1 Day' },
+            { value: '2', label: '2 Days' },
+            { value: '3', label: '3 Days' },
+            { value: '15', label: '15 Days' },
+            { value: '30', label: '30 Days' }
+        ];
+
+        txt += opciones.map(o =>`<option value='${o.value}'${String(o.value) === String(autoDeleteDaysLimit) ? ' selected' : ''}>${o.label}</option>`).join('');
+        txt += '</select>';
         txt += '</div>'
         txt += '</div>'
 
@@ -9658,6 +9753,9 @@ self.onmessage = function (e) {
             txt += '</select>';
             txt += '</div>'
         }
+
+
+
         //txt+='</div>'
 
         let txt1 = '<button class="btn-save" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
@@ -9677,10 +9775,13 @@ self.onmessage = function (e) {
         });
 
 
-
-
-
         document.getElementById("filters_search").insertAdjacentHTML("afterend", txt)
+
+        document.getElementById("auto-delete-excluded").addEventListener('change', function () {
+            GM_setValue("autoDeleteDaysLimit",document.getElementById("auto-delete-excluded").value)
+        });
+
+
 
 
         if (GM_getValue("transfersPlayerCompare")) {
@@ -9877,6 +9978,22 @@ self.onmessage = function (e) {
             img.addEventListener("mouseout", () => resetStarsTM(img));
             img.addEventListener("click", () => selectStarsTM(img));
         });
+
+        document.getElementById('showExcludedPlayers').addEventListener('click', (e) =>{
+                e.preventDefault();
+                e.stopPropagation();
+                injectExcludedPlayers();
+                openExcludedPlayersModal();
+            }
+        );
+
+        document.getElementById('showPlayersNotes').addEventListener('click', (e) =>{
+                e.preventDefault();
+                e.stopPropagation();
+                injectNoteslayers();
+                openNotesPlayersModal();
+            }
+        );
 
     }
     async function insertPlayersFiltered() {
@@ -13398,7 +13515,7 @@ self.onmessage = function (e) {
 
 
 
-                // injectPopup()
+
 
 
 
@@ -15597,6 +15714,22 @@ ${
     }
     function closeExcludedTeamsModal() {
         document.getElementById('et-modal-overlay').style.display = 'none';
+        document.getElementById('et-modal-overlay').remove()
+    }
+    function deletePasedExcludedPLayers(){
+
+        if(autoDeleteDaysLimit>0){
+            let ahora = Date.now();
+            let limiteMs = autoDeleteDaysLimit * 24 * 60 * 60 * 1000;
+            for (let [key, datos] of excludedPlayers) {
+                if (ahora - datos.date > limiteMs) {
+                    excludedPlayers.delete(key);
+                }
+            }
+            GM_setValue("excludedPlayers_" + window.sport,JSON.stringify([...excludedPlayers]));
+        }
+
+
     }
     async function resolveTeamInput(value, isTeamId) {
         const url = isTeamId
@@ -15617,6 +15750,221 @@ ${
             country: userDataEl.getAttribute('countryShortname') || 'dc',
             league: teamEl.getAttribute('seriesName') || ''
         };
+    }
+    function injectPlayerNoteModal(player_id,playerName,teamName,country) {
+        if (document.getElementById('et-modal-overlay')) return;
+        let note="";
+        if (notes.has(player_id)) {
+            note=notes.get(player_id).note
+        }
+        const overlay = document.createElement('div');
+        overlay.id = 'et-modal-overlay';
+        overlay.className = 'mz-modal-overlay';
+        overlay.style.display = 'none';
+        overlay.innerHTML = `
+        <div class="mz-modal-box" style="min-width:700px">
+            <div class="mz-modal-header">
+                <span id="pn-modal-title">Player Note</span>
+                <button class="mz-modal-close" id="pn-modal-close" type="button">&times;</button>
+            </div>
+            <div class="mz-modal-body" style="magin: 0 auto;">
+                <textarea id="pn-textarea" rows="6" style="width:40em; resize:vertical;" placeholder="Write a note about this player...">${note}</textarea>
+            </div>
+            <div class="mz-modal-footer" style="margin: 0 auto;padding-bottom: 0.5em;">
+                <button class="stx-btn-nt"  id="pn-save-btn" type="button">Save</button>
+            </div>
+        </div>
+    `;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeExcludedTeamsModal();
+        });
+        document.getElementById('pn-modal-close').addEventListener('click', closeExcludedTeamsModal);
+        //document.getElementById('pn-save-btn').addEventListener('click', handleSaveNote);
+
+        document.getElementById("pn-save-btn").addEventListener('click', function (e) {
+
+            if (!notes.has(player_id)) {
+                notes.set(player_id, {
+                    playerName: playerName,
+                    teamName: teamName,
+                    country: country,
+                    note:document.getElementById("pn-textarea").value,
+                    date: Date.now()
+                });
+            }
+            GM_setValue("notesPlayers_" + window.sport,JSON.stringify([...notes]));
+            document.getElementById("icon_stx_notes_"+player_id).style.color="#4c9f34"
+            closeExcludedTeamsModal()
+        });
+        overlay.style.display = 'flex';
+    }
+    function injectExcludedPlayers() {
+        if (document.getElementById('et-modal-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'et-modal-overlay';
+        overlay.className = 'mz-modal-overlay';
+        overlay.style.display = 'none';
+        overlay.innerHTML = `
+        <div class="mz-modal-box" style="min-width:500px">
+            <div class="mz-modal-header">
+                <span>Excluded Players</span>
+                <button class="mz-modal-close" id="et-modal-close" type="button">&times;</button>
+            </div>
+            <div class="mz-modal-body">
+                <table class="ntSearch">
+                    <thead>
+                        <tr>
+                            <th class="et-col-num">#</th>
+                            <th>Player Id</th>
+                            <th>Player Name</th>
+                            <th>Team</th>
+                            <th class="et-col-del"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="et-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeExcludedTeamsModal();
+        });
+        document.getElementById('et-modal-close').addEventListener('click', closeExcludedTeamsModal);
+
+        /*document.getElementById('et-add-btn').addEventListener('click', handleAddTeam);
+        document.getElementById('et-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleAddTeam();
+        });*/
+    }
+    function renderExcludedPlayersTable(highlightLast = false) {
+        const tbody = document.getElementById('et-tbody');
+        excludedPlayers = new Map(JSON.parse(GM_getValue("excludedPlayers_"+window.sport, "[]")));
+        const list = Array.from(excludedPlayers, ([playerId, datos]) => ({
+            playerId: playerId,
+            ...datos
+        }));
+
+
+        if (list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" id="et-empty">No excluded players</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = list.map((t, i) => `
+        <tr${highlightLast && i === list.length - 1 ? ' class="row-fade-in"' : ''}>
+            <td class="et-col-num">${i + 1}</td>
+            <td>${escapeHtml(t.playerId || '-')}</td>
+            <td><img alt='' src="nocache-952/img/flags/15/${escapeHtml(t.country.toLowerCase() || 'dc')}.png" width="15" height="15"> ${escapeHtml(t.playerName || '-')}</td>
+            <td>${escapeHtml(t.teamName || '-')}</td>
+            <td class="et-col-del">
+                <button class="mz-excl-del" data-index="${t.playerId}" type="button" title="Quitar">🗑</button>
+            </td>
+        </tr>
+    `).join('');
+
+        tbody.querySelectorAll('.mz-excl-del').forEach(btn => {
+            btn.addEventListener('click', () => {
+                removeExcludedPlayer(btn.dataset.index);
+                renderExcludedPlayersTable();
+            });
+        });
+    }
+    function removeExcludedPlayer(key) {
+        excludedPlayers.delete(key);
+        GM_setValue("excludedPlayers_" + window.sport,JSON.stringify([...excludedPlayers]));
+    }
+    function openExcludedPlayersModal() {
+        const overlay = document.getElementById('et-modal-overlay');
+        overlay.style.display = 'flex';
+        renderExcludedPlayersTable();
+
+    }
+    function injectNoteslayers() {
+        if (document.getElementById('et-modal-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'et-modal-overlay';
+        overlay.className = 'mz-modal-overlay';
+        overlay.style.display = 'none';
+        overlay.innerHTML = `
+        <div class="mz-modal-box" style="min-width:80%">
+            <div class="mz-modal-header">
+                <span>Players Notes</span>
+                <button class="mz-modal-close" id="et-modal-close" type="button">&times;</button>
+            </div>
+            <div class="mz-modal-body">
+                <table class="ntSearch">
+                    <thead>
+                        <tr>
+                            <th class="et-col-num">#</th>
+                            <th>Player Id</th>
+                            <th>Player Name</th>
+                            <th>Note</th>
+                            <th class="et-col-del"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="et-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeExcludedTeamsModal();
+        });
+        document.getElementById('et-modal-close').addEventListener('click', closeExcludedTeamsModal);
+
+        /*document.getElementById('et-add-btn').addEventListener('click', handleAddTeam);
+        document.getElementById('et-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleAddTeam();
+        });*/
+    }
+    function renderNotesPlayersTable(highlightLast = false) {
+        const tbody = document.getElementById('et-tbody');
+        let excluded = new Map(JSON.parse(GM_getValue("notesPlayers_"+window.sport, "[]")));
+        const list = Array.from(excluded, ([playerId, datos]) => ({
+            playerId: playerId,
+            ...datos
+        }));
+
+        if (list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" id="et-empty">No players notes</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = list.map((t, i) => `
+        <tr${highlightLast && i === list.length - 1 ? ' class="row-fade-in"' : ''}>
+            <td class="et-col-num">${i + 1}</td>
+            <td style="width:2em; max-width:2em;">${escapeHtml(t.playerId || '-')}</td>
+            <td style="width:11.5em; max-width:11.5em;"><img alt='' src="nocache-952/img/flags/15/${escapeHtml(t.country.toLowerCase() || 'dc')}.png" width="15" height="15"> ${escapeHtml(t.playerName || '-')}</td>
+            <td>${escapeHtml(t.note || '-')}</td>
+            <td class="et-col-del">
+                <button class="mz-excl-del" data-index="${t.playerId}" type="button" title="Quitar">🗑</button>
+            </td>
+        </tr>
+    `).join('');
+
+        tbody.querySelectorAll('.mz-excl-del').forEach(btn => {
+            btn.addEventListener('click', () => {
+                removeNotesPlayer(btn.dataset.index);
+                renderNotesPlayersTable();
+            });
+        });
+    }
+    function removeNotesPlayer(key) {
+        let excluded = new Map(JSON.parse(GM_getValue("notesPlayers_"+window.sport, "[]")));
+        excluded.delete(key);
+        GM_setValue("notesPlayers_" + window.sport,JSON.stringify([...excluded]));
+    }
+    function openNotesPlayersModal() {
+        const overlay = document.getElementById('et-modal-overlay');
+        overlay.style.display = 'flex';
+        renderNotesPlayersTable();
     }
     function setCSSStyles() {
         let link = document.createElement('link');
@@ -17078,6 +17426,23 @@ cursor:pointer;
             color: #888 !important;
             font-size: 13px !important;
         }
+
+        .fade-out-player-excluded {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+    textarea {
+    width: 80%;
+    background-color: #f0f8ff;
+    color: #333;
+    font-size: 16px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    resize: none;
+}
 
 
 
