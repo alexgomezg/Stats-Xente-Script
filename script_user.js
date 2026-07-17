@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.286
+// @version      0.287
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -15099,6 +15099,19 @@ self.onmessage = function (e) {
             txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
             txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
+
+            let color = "#AD4039"
+            if (notes.has(ids[0].textContent)) {
+                color = "#4c9f34"
+            }
+
+            txt+= `<span id="but_stx_notes_${ids[0].textContent}" class="player_icon_placeholder bid_button" style='padding-left:0.25em; cursor:pointer;"'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i id="icon_stx_notes_${ids[0].textContent}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+
             let index = 0
             if (window.stx_device !== "computer") { index = 1 }
             elementos_[index].innerHTML += txt;
@@ -15112,6 +15125,13 @@ self.onmessage = function (e) {
                     openWindow(link, 0.95, 1.25);
                 });
             })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
+
+
+            document.getElementById("but_stx_notes_"+ids[0].textContent).parentNode.addEventListener('click', async function () {
+                let enlace1 = elementos1[i].querySelector('img[src^="nocache-957/img/flags/"]');
+                let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
+                injectPlayerNoteModal(ids[0].textContent,elementos1[i].querySelector('.player_name').textContent,country)
+            });
 
         }
 
