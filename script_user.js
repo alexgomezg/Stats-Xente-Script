@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.283
+// @version      0.284
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -15768,7 +15768,7 @@ ${
         overlay.className = 'mz-modal-overlay';
         overlay.style.display = 'none';
         overlay.innerHTML = `
-        <div class="mz-modal-box" style="width:70em; max-width:90vw;">
+        <div class="mz-modal-box" style="min-width:80%;">
             <div class="mz-modal-header">
                 <span id="pn-modal-title">Player Note</span>
                 <button class="mz-modal-close" id="pn-modal-close" type="button">&times;</button>
