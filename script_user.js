@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.284
+// @version      0.285
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -15763,18 +15763,26 @@ ${
         if (notes.has(player_id)) {
             note=notes.get(player_id).note
         }
+        let size="80%"
+        if (window.stx_device === "computer") {
+            size="50%"
+        }
         const overlay = document.createElement('div');
         overlay.id = 'et-modal-overlay';
         overlay.className = 'mz-modal-overlay';
         overlay.style.display = 'none';
         overlay.innerHTML = `
-        <div class="mz-modal-box" style="min-width:80%;">
+        <div class="mz-modal-box" style="min-width:${size};">
             <div class="mz-modal-header">
                 <span id="pn-modal-title">Player Note</span>
                 <button class="mz-modal-close" id="pn-modal-close" type="button">&times;</button>
             </div>
             <div class="mz-modal-body" style="">
- <textarea id="pn-textarea" rows="6" style="width:100%;box-sizing:border-box; resize:vertical; font-size:1rem; padding:8px;" placeholder="Write a note about this player..."></textarea>
+ <textarea id="pn-textarea" rows="6" style="width:100%;box-sizing:border-box; resize:vertical; font-size:1rem; padding:8px; background-color: #f0f8ff; color: #333;
+    font-size: 16px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;" placeholder="Write a note about this player..."></textarea>
             </div>
             <div class="mz-modal-footer" style="margin: 0 auto;padding-bottom: 0.5em;">
                 <button class="stx-btn-nt"  id="pn-save-btn" type="button">Save</button>
@@ -17439,16 +17447,6 @@ cursor:pointer;
     transform: translateX(20px);
 }
 
-    textarea {
-    width: 80%;
-    background-color: #f0f8ff;
-    color: #333;
-    font-size: 16px;
-    border: 2px solid #ccc;
-    border-radius: 5px;
-    padding: 10px;
-    resize: none;
-}
 
 
 
