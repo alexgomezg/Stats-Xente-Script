@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.285
+// @version      0.286
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1579,7 +1579,7 @@ self.onmessage = function (e) {
                     let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
 
 
-                    injectPlayerNoteModal(player_id,el.querySelector('.player_name').textContent,teamName,country)
+                    injectPlayerNoteModal(player_id,el.querySelector('.player_name').textContent,country)
 
 
                 });
@@ -1641,6 +1641,7 @@ self.onmessage = function (e) {
             width: 21px; height: 18px; background-size: auto;z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>`
                 newSpan.className = "player_icon_placeholder training_graphs1 " + window.sport;
                 span11.after(newSpan);
+
 
                 if (GM_getValue("transfersPlayerCompare")) {
                     let newSpan1 = document.createElement('span');
@@ -8664,6 +8665,18 @@ self.onmessage = function (e) {
                 txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
                 txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
+                let color = "#AD4039"
+                if (notes.has(ids[0].textContent)) {
+                    color = "#4c9f34"
+                }
+                txt += `<span id="but_stx_notes_${ids[0].textContent}" class="player_icon_placeholder bid_button" style='padding-left:0.25em; cursor:pointer;"'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+                <span class="fa-stack">
+                     <i id="icon_stx_notes_${ids[0].textContent}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
+                    </span>
+                    <span class="player_icon_text"></span></span></a></span>`
+
+
                 const spanShare = elementos1[i].querySelector('span.player_icon_placeholder.player_share_skills');
                 let player_span = elementos1[i].querySelector('.player_name')
                 if ((GM_getValue("positionsColors")) && (spanShare !== null)) {
@@ -8795,6 +8808,12 @@ self.onmessage = function (e) {
                         openWindow(link, 0.95, 1.25);
                     });
                 })(ids[0].textContent, team_id, window.sport, window.lang, "[undefined]", playerName);
+
+                document.getElementById("but_stx_notes_"+ids[0].textContent).parentNode.addEventListener('click', async function () {
+                    let enlace1 = elementos1[i].querySelector('img[src^="nocache-957/img/flags/"]');
+                    let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
+                    injectPlayerNoteModal(ids[0].textContent, elementos1[i].querySelector('.player_name').textContent,country)
+                });
 
 
 
@@ -9137,6 +9156,20 @@ self.onmessage = function (e) {
         txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
         txt += 'z-index: 0;"></span><span class="player_icon_text"></span></span></a></span>'
 
+        let color = "#AD4039"
+        if (notes.has(ids[0].textContent)) {
+            color = "#4c9f34"
+        }
+
+
+        txt+= `<span id="but_stx_notes_${ids[0].textContent}" class="player_icon_placeholder bid_button" style='padding-left:0.25em; cursor:pointer;"'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i id="icon_stx_notes_${ids[0].textContent}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+
+
         const spanShare = element.querySelector('span.player_icon_placeholder.player_share_skills');
         let player_span = enlace.querySelector('.player_name')
         if ((GM_getValue("positionsColors")) && (spanShare !== null)) {
@@ -9272,6 +9305,15 @@ self.onmessage = function (e) {
                 openWindow(link, 0.95, 1.25);
             });
         })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
+
+
+
+        document.getElementById("but_stx_notes_"+ids[0].textContent).parentNode.addEventListener('click', async function () {
+            let enlace1 = element.querySelector('img[src^="nocache-957/img/flags/"]');
+            let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
+            injectPlayerNoteModal(ids[0].textContent,element.querySelector('.player_name').textContent,country)
+        });
+
     }
     //Country ranking page
     function countryRank() {
@@ -15757,7 +15799,7 @@ ${
             league: teamEl.getAttribute('seriesName') || ''
         };
     }
-    function injectPlayerNoteModal(player_id,playerName,teamName,country) {
+    function injectPlayerNoteModal(player_id,playerName,country) {
         if (document.getElementById('et-modal-overlay')) return;
         let note="";
         if (notes.has(player_id)) {
@@ -15782,10 +15824,11 @@ ${
     font-size: 16px;
     border: 2px solid #ccc;
     border-radius: 5px;
-    padding: 10px;" placeholder="Write a note about this player..."></textarea>
+    padding: 10px;" placeholder="Write a note about this player...">${note}</textarea>
             </div>
-            <div class="mz-modal-footer" style="margin: 0 auto;padding-bottom: 0.5em;">
+            <div class="mz-modal-footer" style="margin: 0 auto; padding-bottom: 0.5em;">
                 <button class="stx-btn-nt"  id="pn-save-btn" type="button">Save</button>
+                <button class="stx-btn-nt"  id="pn-delete-btn" type="button">Delete</button>
             </div>
         </div>
     `;
@@ -15798,19 +15841,28 @@ ${
 
         document.getElementById("pn-save-btn").addEventListener('click', function (e) {
 
-            if (!notes.has(player_id)) {
-                notes.set(player_id, {
-                    playerName: playerName,
-                    teamName: teamName,
-                    country: country,
-                    note:document.getElementById("pn-textarea").value,
-                    date: Date.now()
-                });
-            }
+            notes.set(player_id, {
+                playerName: playerName,
+                country: country,
+                note:document.getElementById("pn-textarea").value,
+                date: Date.now()
+            });
+
             GM_setValue("notesPlayers_" + window.sport,JSON.stringify([...notes]));
             document.getElementById("icon_stx_notes_"+player_id).style.color="#4c9f34"
             closeExcludedTeamsModal()
         });
+
+        document.getElementById("pn-delete-btn").addEventListener('click', function (e) {
+            if(notes.has(player_id)){
+                notes.delete(player_id)
+                GM_setValue("notesPlayers_" + window.sport,JSON.stringify([...notes]));
+                document.getElementById("icon_stx_notes_"+player_id).style.color="#AD4039"
+                closeExcludedTeamsModal()
+
+            }
+        });
+
         overlay.style.display = 'flex';
     }
     function injectExcludedPlayers() {
