@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.287
+// @version      0.288
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -8809,7 +8809,7 @@ self.onmessage = function (e) {
                     });
                 })(ids[0].textContent, team_id, window.sport, window.lang, "[undefined]", playerName);
 
-                document.getElementById("but_stx_notes_"+ids[0].textContent).parentNode.addEventListener('click', async function () {
+                document.getElementById("but_stx_notes_"+ids[0].textContent).addEventListener('click', async function () {
                     let enlace1 = elementos1[i].querySelector('img[src^="nocache-957/img/flags/"]');
                     let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
                     injectPlayerNoteModal(ids[0].textContent, elementos1[i].querySelector('.player_name').textContent,country)
@@ -9306,9 +9306,7 @@ self.onmessage = function (e) {
             });
         })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
 
-
-
-        document.getElementById("but_stx_notes_"+ids[0].textContent).parentNode.addEventListener('click', async function () {
+        document.getElementById("but_stx_notes_"+ids[0].textContent).addEventListener('click', async function () {
             let enlace1 = element.querySelector('img[src^="nocache-957/img/flags/"]');
             let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
             injectPlayerNoteModal(ids[0].textContent,element.querySelector('.player_name').textContent,country)
@@ -15127,7 +15125,7 @@ self.onmessage = function (e) {
             })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
 
 
-            document.getElementById("but_stx_notes_"+ids[0].textContent).parentNode.addEventListener('click', async function () {
+            document.getElementById("but_stx_notes_"+ids[0].textContent).addEventListener('click', async function () {
                 let enlace1 = elementos1[i].querySelector('img[src^="nocache-957/img/flags/"]');
                 let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
                 injectPlayerNoteModal(ids[0].textContent,elementos1[i].querySelector('.player_name').textContent,country)
