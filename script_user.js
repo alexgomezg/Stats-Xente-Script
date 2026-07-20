@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.288
+// @version      0.289
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1542,9 +1542,28 @@ self.onmessage = function (e) {
 `
                 tdClonado.className = "player_icon_placeholder training_graphs1 " + window.sport;
                 tdClonado1.className = "player_icon_placeholder training_graphs1 " + window.sport;
+
+
+                let colorCampus="#787474"
+                let title="Player has not attended a Training Camp this Season"
+                if(player_data.campus){colorCampus="#FF9800"; title="Player has attended a Training Camp this Season"}
+
+                let tdClonado2 = segundoTd.cloneNode(true);
+                tdClonado2.innerHTML = `<span class="player_icon_placeholder bid_button" style='cursor:pointer;' title="${title}">
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-traffic-cone compare-icon" style="color: ${colorCampus};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+                tdClonado2.className = "player_icon_placeholder training_graphs1 " + window.sport;
+
                 tdClonado.style.paddingLeft="0.25em"
+                tdClonado2.style.paddingLeft="0.45em"
+
+                segundoTd.after(tdClonado2);
                 segundoTd.after(tdClonado);
                 segundoTd.after(tdClonado1);
+
 
 
                 document.getElementById("but_stx_exclude_"+player_id).parentNode.addEventListener('click', function () {
@@ -12445,13 +12464,16 @@ self.onmessage = function (e) {
             salary = salary.replace(GM_getValue("currency"), "")
             salary = salary.replace(/\s+/g, '');
             salary = parseInt(salary)
+            let campus=true
+            let campusSelector = doc.querySelectorAll(".fa-solid.fa-traffic-cone.tc-status-icon.tc-status-icon--disabled")
+            if(campusSelector.length>0){campus=false}
             let fechaStr = tds[0].textContent.trim();
             let [dia, mes, anho] = fechaStr.split('-');
             let fecha = new Date(anho, mes - 1, dia);
             let hoy = new Date();
             let diff = hoy - fecha;
             let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            let data = { "age": age, "days": days, "purchase_price": price, "value": value, "salary": salary }
+            let data = { "age": age, "days": days, "purchase_price": price, "value": value, "salary": salary,"campus":campus}
             playersCache.set(id, data)
             return data;
         } catch (err) {
