@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.289
+// @version      0.290
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -428,8 +428,15 @@
             waitToDOMById(transfersShortList, "shortlist_window", 5000)
         }
 
+        if ((urlParams.has('p')) && (urlParams.get('p') === 'training_home')) {
+            waitToDOMById(showChips, "tc_chips", 5000)
+        }
+
         waitToDOMById(setUsernameData, "header-username", 5000)
     }, 1000);
+
+
+
 
     if (GM_getValue("gameNotifications")) {
         let TWO_MINS = 2 * 60 * 1000;
@@ -934,6 +941,24 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
+
+    //Show training chips
+    function showChips(){
+        fetch('https://www.managerzone.com/ajax.php?p=event&sub=chips-content&sport='+window.sport,{
+            method: "GET",
+            credentials: "include"
+        })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                const elemento = doc.getElementById('tc-chips-wrapper');
+                document.getElementById("info_box").insertAdjacentHTML('afterend', '<div class="mz_powerboxContent" style="margin-top: -10px;flex: 1 1 320px;box-sizing: border-box;">'+elemento.outerHTML+"</div>");
+
+            });
+    }
+
     //Training percentages
     async function trainingReportPercentages() {
         skillIndex = await trainingSkillsIndex()
@@ -1536,7 +1561,7 @@ self.onmessage = function (e) {
                 tdClonado1.innerHTML = `<span id="but_stx_exclude_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
                     <a class="player_icon"><span class="player_icon_wrapper">
               <span class="fa-stack">
- <i class="fa-duotone fa-eye compare-icon"></i>
+ <i class="fa-duotone fa-trash compare-icon"></i>
 </span>
 <span class="player_icon_text"></span></span></a></span>
 `
@@ -1556,10 +1581,25 @@ self.onmessage = function (e) {
 </span>
 <span class="player_icon_text"></span></span></a></span>`
                 tdClonado2.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                let tdClonado3=""
+                if (GM_getValue("playerPrice")) {
+                    tdClonado3 = segundoTd.cloneNode(true);
+                    tdClonado3.innerHTML = `<span id="but_stx_prices_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;' title="${title}">
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-circle-dollar compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+                    tdClonado3.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                    tdClonado3.style.paddingLeft="0.55em"
+                }
 
                 tdClonado.style.paddingLeft="0.25em"
                 tdClonado2.style.paddingLeft="0.45em"
+                if (GM_getValue("playerPrice")) {
 
+                    segundoTd.after(tdClonado3);
+                }
                 segundoTd.after(tdClonado2);
                 segundoTd.after(tdClonado);
                 segundoTd.after(tdClonado1);
@@ -1602,6 +1642,31 @@ self.onmessage = function (e) {
 
 
                 });
+
+                if (GM_getValue("playerPrice")) {
+                    document.getElementById("but_stx_prices_"+player_id).parentNode.addEventListener('click', function () {
+
+                        const spans = [...el.getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
+                        let textos = [];
+                        if(window.sport=="soccer"){
+                            for (let i = 0; i < spans.length-1; i++) {
+                                let span=spans[i].querySelector("span")
+                                textos.push(span.textContent.trim());
+                            }
+                        }else{
+                            for (let i = 1; i < spans.length; i++) {
+                                let span=spans[i].querySelector("span")
+                                textos.push(span.textContent.trim());
+                            }
+
+                        }
+                        let resultado = textos.join(',');
+
+                        let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?currency=" + GM_getValue("currency","EUR")+"&l="+window.lang+"&sport="+window.sport+"&distance="+document.getElementById("marketDistance").value+"&skills="+resultado
+                        openWindow(url, 0.95, 1.25);
+                    });
+
+                }
 
             }
             //DIVISION DATA
@@ -6101,6 +6166,7 @@ self.onmessage = function (e) {
         contenidoNuevo += '<th style="text-align:center; margin: 0 auto; padding:4px;">Stats</th>'
         contenidoNuevo += '<th  style="text-align:center; margin: 0 auto; padding:4px;">Graph</th>';
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>History</th>";
+        contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>Positions</th>";
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>Top Players</th></tr></thead>";
 
         contenidoNuevo += "<tr>";
@@ -6111,6 +6177,7 @@ self.onmessage = function (e) {
         } else {
             contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='" + idProgress + "' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></td>";
         }
+        contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='positionsDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/shuffle.png width=25 height=25/></td>";
         contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='topPlayersDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/top-10.png width=25 height=25/></td>";
         contenidoNuevo += "</tr>";
 
@@ -6125,7 +6192,7 @@ self.onmessage = function (e) {
         }
 
 
-        contenidoNuevo += "<tr><td></td><td colspan='2'>";
+        contenidoNuevo += "<tr><td></td><td></td><td colspan='2'>";
         contenidoNuevo += '<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
         contenidoNuevo += "</td><td></td></tr>";
         contenidoNuevo += "<tr><td colspan='5' id='separatorTd'" + styleSep + "></td></tr>";
@@ -6535,6 +6602,19 @@ self.onmessage = function (e) {
                     openWindow(link, 0.95, 1.25);
                 });
             })(league_id, window.sport, window.lang, cat);
+
+            (function (currentId, sport, lang) {
+                document.getElementById("positionsDivision").addEventListener('click', function () {
+                    let url_ = "https://statsxente.com/MZ1/Graficos/positionsGraph.php"
+                    let link = url_ + "?league_id=" + currentId + "&sport=" + sport + "&type=" + cat + "&l=" + lang;
+                    openWindow(link, 0.95, 0.85);
+                });
+            })(league_id, window.sport, window.lang, cat);
+
+
+
+
+
 
             (function (currentId, currentLSport, lang, currentCat) {
                 document.getElementById("graphDivision").addEventListener('click', function () {
@@ -8694,6 +8774,14 @@ self.onmessage = function (e) {
                      <i id="icon_stx_notes_${ids[0].textContent}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
                     </span>
                     <span class="player_icon_text"></span></span></a></span>`
+                if (GM_getValue("playerPrice")) {
+                    txt +=`<span id="but_stx_prices_${ids[0].textContent}" class="player_icon_placeholder bid_button" style='padding-left:0.25em; cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-circle-dollar compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+                }
 
 
                 const spanShare = elementos1[i].querySelector('span.player_icon_placeholder.player_share_skills');
@@ -8833,6 +8921,31 @@ self.onmessage = function (e) {
                     let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
                     injectPlayerNoteModal(ids[0].textContent, elementos1[i].querySelector('.player_name').textContent,country)
                 });
+
+                if (GM_getValue("playerPrice")) {
+                    document.getElementById("but_stx_prices_"+ids[0].textContent).parentNode.addEventListener('click', function () {
+                        const spans = [...elementos1[i].getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
+                        let textos = [];
+                        if(window.sport=="soccer"){
+                            for (let i = 0; i < 12; i++) {
+                                let span=spans[i].querySelector("span")
+                                textos.push(span.textContent.trim());
+                            }
+                        }else{
+                            for (let i = 1; i < 11; i++) {
+                                let span=spans[i].querySelector("span")
+                                textos.push(span.textContent.trim());
+                            }
+
+                        }
+                        let resultado = textos.join(',');
+
+                        let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?l="+window.lang+"&sport="
+                            +window.sport+"&distance="+GM_getValue("marketDistance","3")+"&skills="+resultado
+                        openWindow(url, 0.95, 1.25);
+                    });
+
+                }
 
 
 
@@ -9187,6 +9300,16 @@ self.onmessage = function (e) {
  <i id="icon_stx_notes_${ids[0].textContent}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
 </span>
 <span class="player_icon_text"></span></span></a></span>`
+        let spansCount = [...element.getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
+        if ((GM_getValue("playerPrice")) &&(spansCount.length>0)) {
+            txt +=`<span id="but_stx_prices_${ids[0].textContent}" class="player_icon_placeholder bid_button" style='padding-left:0.25em; cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-circle-dollar compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+        }
+
 
 
         const spanShare = element.querySelector('span.player_icon_placeholder.player_share_skills');
@@ -9330,6 +9453,32 @@ self.onmessage = function (e) {
             let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
             injectPlayerNoteModal(ids[0].textContent,element.querySelector('.player_name').textContent,country)
         });
+
+
+        if ((GM_getValue("playerPrice")) &&(spansCount.length>0)) {
+            document.getElementById("but_stx_prices_"+ids[0].textContent).parentNode.addEventListener('click', function () {
+                const spans = [...element.getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
+                let textos = [];
+                if(window.sport=="soccer"){
+                    for (let i = 0; i < 12; i++) {
+                        let span=spans[i].querySelector("span")
+                        textos.push(span.textContent.trim());
+                    }
+                }else{
+                    for (let i = 1; i < 11; i++) {
+                        let span=spans[i].querySelector("span")
+                        textos.push(span.textContent.trim());
+                    }
+
+                }
+                let resultado = textos.join(',');
+
+                let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?l="+window.lang+"&sport="
+                    +window.sport+"&distance="+GM_getValue("marketDistance","3")+"&skills="+resultado
+                openWindow(url, 0.95, 1.25);
+            });
+
+        }
 
     }
     //Country ranking page
@@ -9816,6 +9965,9 @@ self.onmessage = function (e) {
         <select class="statsxente" id="comparing_players" style="font-weight: bold; padding: 6px 3px; border-radius: 3px; color:${GM_getValue("color_native")}; background-color:${GM_getValue("bg_native")};">`
             txt += playersToCompare
             txt += '</select>';
+            if (GM_getValue("playerPrice")) {
+                txt+=" Distance: <input style='font-weight: bold; width: 2em; color:" + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")+"; border-radius: 5px;' id='marketDistance' type='text' value='"+GM_getValue("marketDistance","3")+"'/>"
+            }
             txt += '</div>'
         }
 
@@ -9823,7 +9975,7 @@ self.onmessage = function (e) {
 
         //txt+='</div>'
 
-        let txt1 = '<button class="btn-save" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
+        let txt1 = '<button class="btn-save" style="font-weight: bold; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native")
         txt1 += '; font-family: \'Roboto\'; font-weight:bold; font-size:small; padding: 3px 0px;" id="searchScoutReport">'
         txt1 += '<img alt="" src="https://statsxente.com/MZ1/View/Images/main_icon.png" width="15px" height="15px"/> Search</button>'
 
@@ -9832,6 +9984,10 @@ self.onmessage = function (e) {
         copia.id = "td_scout_report_button"
         copia.innerHTML = txt1;
         tdr.before(copia);
+
+
+
+
 
         document.getElementById("searchScoutReport").addEventListener("click", function () {
             event.preventDefault();
@@ -9845,7 +10001,12 @@ self.onmessage = function (e) {
         document.getElementById("auto-delete-excluded").addEventListener('change', function () {
             GM_setValue("autoDeleteDaysLimit",document.getElementById("auto-delete-excluded").value)
         });
+        if (GM_getValue("playerPrice")) {
+            document.getElementById("marketDistance").addEventListener("change", function () {
+                GM_setValue("marketDistance",document.getElementById("marketDistance").value)
 
+            });
+        }
 
 
 
@@ -10004,7 +10165,7 @@ self.onmessage = function (e) {
 
 
             window.addEventListener('scroll', () => {
-                let left="85%"
+                let left="87%"
                 let top="25%"
                 if (window.stx_device === "mobile") {
                     left="65%"
@@ -10016,7 +10177,16 @@ self.onmessage = function (e) {
                     retiredFilter.style.top = top;
                     retiredFilter.style.transform = 'translateY(-50%)';
                     retiredFilter.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)"
+                    document.getElementById("comparing_players").style.display="block"
+
+                    if (GM_getValue("playerPrice")) {
+                        document.getElementById("marketDistance").style.removeProperty('width');
+                    }
                 } else {
+                    document.getElementById("comparing_players").style.display="inline-flex"
+                    if (GM_getValue("playerPrice")) {
+                        document.getElementById("marketDistance").style.width="2em"
+                    }
                     retiredFilter.style.position = 'static';
                     retiredFilter.style.transform = 'none';
                     retiredFilter.style.boxShadow = "none"
@@ -13974,7 +14144,10 @@ self.onmessage = function (e) {
 
     }
     function createModalMenu() {
-        if (GM_getValue("bg_native") === undefined) {
+        if (
+            GM_getValue("bg_native") === null ||
+            GM_getValue("bg_native") === undefined
+        ) {
             GM_setValue("bg_native", "rgb(228, 200, 0)")
             GM_setValue("color_native", "rgb(255, 255, 255)")
         }
@@ -13995,7 +14168,7 @@ self.onmessage = function (e) {
         #stx-overlay.open { display: flex; }
         .stx-modal {
             background: #fff; border-radius: 12px; overflow: hidden;
-            width: 90%; max-width: 120vh; max-height: 100vh;
+            width: 90%; max-width: 150vh; max-height: 100vh;
             overflow-y: auto; font-family: system-ui, sans-serif;
         }
         .stx-header {
@@ -14108,7 +14281,7 @@ self.onmessage = function (e) {
     `;
         document.head.appendChild(style);
         const defaults = {
-            leagueFlag: true, matchFlag: true, matchForfeit: false, matchForm: false, federationFlag: true,
+            playerPrice:true,leagueFlag: true, matchFlag: true, matchForfeit: true, matchForm: true, federationFlag: true,
             playersFlag: true, countryRankFlag: true, eloNextMatchesFlag: true,
             eloPlayedMatchesFlag: true, teamPageFlag: true, trainingReportFlag: true,
             eloHiddenPlayedMatchesFlag: true, flFlag: true, cupFlag: true,
@@ -14119,7 +14292,7 @@ self.onmessage = function (e) {
             tabsConfig: false, show_league_selects: true,
             show_tactic_filter: true, league_image_size: 20, transfer_grid_2: false, transfer_grid_4: true,
             transfersTaxFlag: true, showSkillsResume: false, tacticsSkillsResume: true, teamsFinancialMarket: true,
-            onlySinglePages: true, eloChangeCalendar: true, trainingPercentages: true, partialSkills: true, onlySinglePagesSkills: true,
+            onlySinglePages: false, eloChangeCalendar: true, trainingPercentages: true, partialSkills: true, onlySinglePagesSkills: true,
             positionsColors: true, positionsColorsBG: false, collapseLeagueButtons: false, transfersPlayerCompare: true, floatingDropdown: true,
             telegramNotifications: true,gameNotifications:true,playerSaleLeague:true,monitorTeams:true
         };
@@ -14202,6 +14375,7 @@ self.onmessage = function (e) {
 
             { key: 'playerSaleLeague', id: 'playerSaleLeague', label: 'Players on sale' },
             { key: 'monitorTeams', id: 'monitorTeams', label: 'Monitor Teams' },
+            { key: 'playerPrice', id: 'playerPrice', label: 'Player Price Analyzer' },
 
         ];
 
@@ -15021,8 +15195,13 @@ self.onmessage = function (e) {
         celdas[a].innerHTML = icon + celdas[a].innerHTML;
     }
     function lightenColor(rgb, percent) {
+        if (!rgb || typeof rgb !== 'string') {
+            return "#e4c800";
+        }
         let result = rgb.match(/\d+/g);
-
+        if (!result || result.length < 3) {
+            return "#e4c800";
+        }
         let r = parseInt(result[0]);
         let g = parseInt(result[1]);
         let b = parseInt(result[2]);
@@ -15037,12 +15216,18 @@ self.onmessage = function (e) {
         }).join("");
     }
     function darkenColor(rgb, percent) {
+        if (!rgb || typeof rgb !== 'string') {
+            return "#e4c800";
+        }
         let result = rgb.match(/\d+/g);
-
+        if (!result || result.length < 3) {
+            return "#e4c800";
+        }
         // Convertir los valores RGB a enteros
         let r = parseInt(result[0]);
         let g = parseInt(result[1]);
         let b = parseInt(result[2]);
+
         // Reducir cada componente en un porcentaje
         r = Math.floor(r * (1 - percent / 100));
         g = Math.floor(g * (1 - percent / 100));
@@ -15132,6 +15317,16 @@ self.onmessage = function (e) {
 </span>
 <span class="player_icon_text"></span></span></a></span>`
 
+            let spansCount = [...elementos1[i].getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
+            if ((GM_getValue("playerPrice")) &&(spansCount.length>0)) {
+                txt +=`<span id="but_stx_prices_${ids[0].textContent}" class="player_icon_placeholder bid_button" style='padding-left:0.25em; cursor:pointer;'>
+                    <a class="player_icon"><span class="player_icon_wrapper">
+              <span class="fa-stack">
+ <i class="fa-duotone fa-circle-dollar compare-icon" style="color: ${color};"></i>
+</span>
+<span class="player_icon_text"></span></span></a></span>`
+            }
+
             let index = 0
             if (window.stx_device !== "computer") { index = 1 }
             elementos_[index].innerHTML += txt;
@@ -15152,6 +15347,32 @@ self.onmessage = function (e) {
                 let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
                 injectPlayerNoteModal(ids[0].textContent,elementos1[i].querySelector('.player_name').textContent,country)
             });
+
+
+            if ((GM_getValue("playerPrice")) &&(spansCount.length>0)) {
+                document.getElementById("but_stx_prices_"+ids[0].textContent).parentNode.addEventListener('click', function () {
+                    const spans = [...elementos1[i].getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
+                    let textos = [];
+                    if(window.sport=="soccer"){
+                        for (let i = 0; i < 12; i++) {
+                            let span=spans[i].querySelector("span")
+                            textos.push(span.textContent.trim());
+                        }
+                    }else{
+                        for (let i = 1; i < 11; i++) {
+                            let span=spans[i].querySelector("span")
+                            textos.push(span.textContent.trim());
+                        }
+
+                    }
+                    let resultado = textos.join(',');
+
+                    let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?l="+window.lang+"&sport="
+                        +window.sport+"&distance="+GM_getValue("marketDistance","3")+"&skills="+resultado
+                    openWindow(url, 0.95, 1.25);
+                });
+
+            }
 
         }
 
