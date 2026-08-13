@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.291
+// @version      0.292
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1799,7 +1799,7 @@ self.onmessage = function (e) {
                                 let index = 4;
                                 for (let i = start; i < trs.length && i < start + maxChecks; i++) {
                                     let tr = trs[i];
-                                    if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                                    if (tr && tr.textContent.includes(GM_getValue("currency")) && !tr.querySelector('img')) {
                                         break;
                                     }
                                     index++
@@ -1888,7 +1888,9 @@ self.onmessage = function (e) {
                                 txt += tableData + "</div>"
                                 skillsTable.insertAdjacentHTML('afterend', txt);
                                 document.getElementById("hp_loader_comparing" + currentId).remove()
-                                document.getElementById("loader").remove()
+                                if(document.getElementById("loader")){
+                                    document.getElementById("loader").remove()
+                                }
 
 
                                 //if (document.getElementById("stxc_colorize_skills_mobile_transfers")) { document.getElementById("stxc_colorize_skills_mobile_transfers").click() }
@@ -11611,7 +11613,7 @@ self.onmessage = function (e) {
                         let index = 4;
                         for (let i = start; i < trs.length && i < start + maxChecks; i++) {
                             let tr = trs[i];
-                            if (tr && tr.textContent.includes(GM_getValue("currency"))) {
+                            if (tr && tr.textContent.includes(GM_getValue("currency")) && !tr.querySelector('img')) {
                                 break;
                             }
                             index++
