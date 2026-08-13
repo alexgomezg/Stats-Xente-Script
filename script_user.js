@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.290
+// @version      0.291
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1558,15 +1558,25 @@ self.onmessage = function (e) {
 </span>
 <span class="player_icon_text"></span></span></a></span>
 `
-                tdClonado1.innerHTML = `<span id="but_stx_exclude_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
+                let stx_exclude= `<span id="but_stx_exclude_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;'>
                     <a class="player_icon"><span class="player_icon_wrapper">
               <span class="fa-stack">
  <i class="fa-duotone fa-trash compare-icon"></i>
 </span>
 <span class="player_icon_text"></span></span></a></span>
 `
+
+                if (window.stx_device === "computer") {
+                    tdClonado1.innerHTML =stx_exclude
+                    tdClonado1.className = "player_icon_placeholder training_graphs1 " + window.sport;
+                }else{
+                    el.querySelector('.player_id_span').insertAdjacentHTML('afterend',stx_exclude);
+                }
+
+
+
                 tdClonado.className = "player_icon_placeholder training_graphs1 " + window.sport;
-                tdClonado1.className = "player_icon_placeholder training_graphs1 " + window.sport;
+
 
 
                 let colorCampus="#787474"
@@ -1602,7 +1612,12 @@ self.onmessage = function (e) {
                 }
                 segundoTd.after(tdClonado2);
                 segundoTd.after(tdClonado);
-                segundoTd.after(tdClonado1);
+                if (window.stx_device === "computer") {
+                    segundoTd.after(tdClonado1);
+                }else{
+
+                    document.getElementById("but_stx_exclude_"+player_id).style.marginBottom="0.25em"
+                }
 
 
 
@@ -2134,6 +2149,7 @@ self.onmessage = function (e) {
         }
 
         console.log("START")
+        getDeviceFormat()
         ///CHECK DUPLICATES
         isRunning = false;
         if (isRunning) return;
