@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.294
+// @version      0.295
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1651,7 +1651,7 @@ self.onmessage = function (e) {
                 });
 
 
-                document.getElementById("but_stx_notes_"+player_id).parentNode.addEventListener('click', function () {
+                document.getElementById("but_stx_notes_"+player_id).addEventListener('click', function () {
 
                     let enlace = el.querySelector('a[href^="/?p=team&tid="]');
                     let teamName = enlace ? enlace.textContent.trim() : null;
