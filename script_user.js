@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.293
+// @version      0.294
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1352,8 +1352,8 @@ self.onmessage = function (e) {
                 teamTable += '<tr><th style="border-bottom-left-radius: 5px;">U18</th>'
                 teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valorLM + '</td>'
-                teamTable += '<td style="background-color:'+bgcolor+';">0</td>'
-                teamTable += '<td style="background-color:'+bgcolor+';">0</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">0</td>'
+                teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">0</td>'
                 teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + valor11 + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + elo + '</td>'
                 teamTable += '<td style="background-color:'+bgcolor+'; border-bottom:1px solid ' + GM_getValue("bg_native") + ';">' + jsonResponse[aux]['elo18_pos'] + '</td>'
@@ -1628,7 +1628,7 @@ self.onmessage = function (e) {
 
 
 
-                document.getElementById("but_stx_exclude_"+player_id).parentNode.addEventListener('click', function () {
+                document.getElementById("but_stx_exclude_"+player_id).addEventListener('click', function () {
                     let enlace = el.querySelector('a[href^="/?p=team&tid="]');
                     let teamName = enlace ? enlace.textContent.trim() : null;
 
@@ -1724,7 +1724,7 @@ self.onmessage = function (e) {
                     if (window.stx_device === "computer") {
                         divs_dark[0].style.height = "9em";
                     } else {
-                        divs_dark[0].style.height = "10em";
+                        divs_dark[0].style.height = "9em";
                     }
 
                 }
@@ -1806,7 +1806,6 @@ self.onmessage = function (e) {
                                 let index = 4;
                                 for (let i = start; i < trs.length && i < start + maxChecks; i++) {
                                     let tr = trs[i];
-                                    console.log(tr)
                                     if (tr && tr.textContent.includes(GM_getValue("currency")) && !tr.querySelector('img')) {
                                         break;
                                     }
@@ -10192,10 +10191,10 @@ self.onmessage = function (e) {
 
             window.addEventListener('scroll', () => {
                 let left="87%"
-                let top="25%"
+                let top="20%"
                 if (window.stx_device === "mobile") {
                     left="65%"
-                    top="25%"
+                    top="20%"
                 }
                 if (window.scrollY > originalPosition) {
                     retiredFilter.style.position = 'fixed';
