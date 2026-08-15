@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.292
+// @version      0.293
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1461,6 +1461,7 @@ self.onmessage = function (e) {
     }
     //Seller info transfer market
     async function processTMPlayer(el) {
+        //window.stx_device="mobile"
         try {
             ///CHECK DUPLICATES
             if (el.querySelector('[id*="hp_loader"]')?.innerHTML.trim()) {
@@ -1551,7 +1552,7 @@ self.onmessage = function (e) {
                     color = "#4c9f34"
                 }
 
-                tdClonado.innerHTML = `<span id="but_stx_notes_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;"'>
+                let stx_notes= `<span id="but_stx_notes_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;"'>
                     <a class="player_icon"><span class="player_icon_wrapper">
               <span class="fa-stack">
  <i id="icon_stx_notes_${player_id}" class="fa-duotone fa-note-sticky compare-icon" style="color: ${color};"></i>
@@ -1567,10 +1568,13 @@ self.onmessage = function (e) {
 `
 
                 if (window.stx_device === "computer") {
+                    tdClonado.innerHTML=stx_notes
                     tdClonado1.innerHTML =stx_exclude
+
                     tdClonado1.className = "player_icon_placeholder training_graphs1 " + window.sport;
                 }else{
-                    el.querySelector('.player_id_span').insertAdjacentHTML('afterend',stx_exclude);
+                    el.querySelector('h2').innerHTML+='<div style="position: absolute; right: 0.25em; top: 50%; transform: translateY(-50%);">'+stx_notes+stx_exclude+"</div>";
+                    el.querySelector('h2').style.position="relative"
                 }
 
 
@@ -1611,12 +1615,15 @@ self.onmessage = function (e) {
                     segundoTd.after(tdClonado3);
                 }
                 segundoTd.after(tdClonado2);
-                segundoTd.after(tdClonado);
+
                 if (window.stx_device === "computer") {
+                    segundoTd.after(tdClonado);
                     segundoTd.after(tdClonado1);
+
                 }else{
 
                     document.getElementById("but_stx_exclude_"+player_id).style.marginBottom="0.25em"
+                    document.getElementById("but_stx_notes_"+player_id).style.marginBottom="0.25em"
                 }
 
 
@@ -1659,7 +1666,7 @@ self.onmessage = function (e) {
                 });
 
                 if (GM_getValue("playerPrice")) {
-                    document.getElementById("but_stx_prices_"+player_id).parentNode.addEventListener('click', function () {
+                    document.getElementById("but_stx_prices_"+player_id).addEventListener('click', function () {
 
                         const spans = [...el.getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
                         let textos = [];
@@ -1717,7 +1724,7 @@ self.onmessage = function (e) {
                     if (window.stx_device === "computer") {
                         divs_dark[0].style.height = "9em";
                     } else {
-                        divs_dark[0].style.height = "9em";
+                        divs_dark[0].style.height = "10em";
                     }
 
                 }
@@ -1799,6 +1806,7 @@ self.onmessage = function (e) {
                                 let index = 4;
                                 for (let i = start; i < trs.length && i < start + maxChecks; i++) {
                                     let tr = trs[i];
+                                    console.log(tr)
                                     if (tr && tr.textContent.includes(GM_getValue("currency")) && !tr.querySelector('img')) {
                                         break;
                                     }
@@ -8941,7 +8949,7 @@ self.onmessage = function (e) {
                 });
 
                 if (GM_getValue("playerPrice")) {
-                    document.getElementById("but_stx_prices_"+ids[0].textContent).parentNode.addEventListener('click', function () {
+                    document.getElementById("but_stx_prices_"+ids[0].textContent).addEventListener('click', function () {
                         const spans = [...elementos1[i].getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
                         let textos = [];
                         if(window.sport=="soccer"){
@@ -9474,7 +9482,7 @@ self.onmessage = function (e) {
 
 
         if ((GM_getValue("playerPrice")) &&(spansCount.length>0)) {
-            document.getElementById("but_stx_prices_"+ids[0].textContent).parentNode.addEventListener('click', function () {
+            document.getElementById("but_stx_prices_"+ids[0].textContent).addEventListener('click', function () {
                 const spans = [...element.getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
                 let textos = [];
                 if(window.sport=="soccer"){
@@ -15368,7 +15376,7 @@ self.onmessage = function (e) {
 
 
             if ((GM_getValue("playerPrice")) &&(spansCount.length>0)) {
-                document.getElementById("but_stx_prices_"+ids[0].textContent).parentNode.addEventListener('click', function () {
+                document.getElementById("but_stx_prices_"+ids[0].textContent).addEventListener('click', function () {
                     const spans = [...elementos1[i].getElementsByClassName('skillval')].filter(el => el.classList.length === 1)
                     let textos = [];
                     if(window.sport=="soccer"){
