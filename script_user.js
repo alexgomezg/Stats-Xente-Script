@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.296
+// @version      0.297
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -6217,6 +6217,7 @@ self.onmessage = function (e) {
         contenidoNuevo += '<th  style="text-align:center; margin: 0 auto; padding:4px;">Graph</th>';
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>History</th>";
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>Positions</th>";
+        contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>Campus</th>";
         contenidoNuevo += "<th style='text-align:center; margin: 0 auto; padding:4px;'>Top Players</th></tr></thead>";
 
         contenidoNuevo += "<tr>";
@@ -6228,6 +6229,7 @@ self.onmessage = function (e) {
             contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='" + idProgress + "' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/graph.png width=25 height=25/></td>";
         }
         contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='positionsDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/shuffle.png width=25 height=25/></td>";
+        contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='tcDistrib' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/cone.png width=25 height=25/></td>";
         contenidoNuevo += "<td style='margin: 0 auto; text-align:center; padding:4px; max-width: " + widthTable + ";  width: " + widthTable + ";'><img alt='' id='topPlayersDivision' style='cursor:pointer;' src=https://statsxente.com/MZ1/View/Images/top-10.png width=25 height=25/></td>";
         contenidoNuevo += "</tr>";
 
@@ -6244,7 +6246,7 @@ self.onmessage = function (e) {
 
         contenidoNuevo += "<tr><td></td><td></td><td colspan='2'>";
         contenidoNuevo += '<div id="moreInfo" class="expandable-icon' + styleIcon + '" style="margin: 0 auto; cursor:pointer; background-color:' + GM_getValue("bg_native") + ';"><div id="line1" class="line"></div><div  id="line2" class="line"></div></div></center>';
-        contenidoNuevo += "</td><td></td></tr>";
+        contenidoNuevo += "</td><td></td><td></td></tr>";
         contenidoNuevo += "<tr><td colspan='5' id='separatorTd'" + styleSep + "></td></tr>";
         contenidoNuevo += "</table></center>";
         contenidoNuevo += '<table id=show3' + styleTable + '><tr><td><label>';
@@ -6567,6 +6569,8 @@ self.onmessage = function (e) {
             searchClassName = "responsive-hide"
         }
         let team_ids_ret=[]
+        let tc_distrib_ids=""
+        let tc_distrib_names=""
         let contIds = 0
         let filasDatos = tabla.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
         for (let i = 0; i < filasDatos.length; i++) {
@@ -6577,6 +6581,8 @@ self.onmessage = function (e) {
                 team_ids_ret.push(id)
                 let equipo = team_data[1]
                 linkIds += "&idEquipo" + contIds + "=" + id
+                tc_distrib_names += equipo + ",";
+                tc_distrib_ids += id + ",";
                 contIds++
                 celda.innerHTML += "<input type='hidden' id='team_" + id + "' value='" + equipo + "'/>"
             }
@@ -6657,6 +6663,18 @@ self.onmessage = function (e) {
                 document.getElementById("positionsDivision").addEventListener('click', function () {
                     let url_ = "https://statsxente.com/MZ1/Graficos/positionsGraph.php"
                     let link = url_ + "?league_id=" + currentId + "&sport=" + sport + "&type=" + cat + "&l=" + lang;
+                    openWindow(link, 0.95, 0.85);
+                });
+            })(league_id, window.sport, window.lang, cat);
+
+
+            (function (currentId, sport, lang) {
+                document.getElementById("tcDistrib").addEventListener('click', function () {
+                    tc_distrib_ids = tc_distrib_ids.replace(/,$/, "");
+                    tc_distrib_names = tc_distrib_names.replace(/,$/, "");
+                    let url_ = "https://statsxente.com/MZ1/View/tc_dist_country.php"
+                    let link = url_ + "?sport=" + sport + "&type=" + cat + "&l="
+                        + lang+"&ids="+encodeURIComponent(tc_distrib_ids)+"&names="+encodeURIComponent(tc_distrib_names)+"&ajax=yes"
                     openWindow(link, 0.95, 0.85);
                 });
             })(league_id, window.sport, window.lang, cat);
