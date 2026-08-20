@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.295
+// @version      0.296
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1598,10 +1598,10 @@ self.onmessage = function (e) {
                 let tdClonado3=""
                 if (GM_getValue("playerPrice")) {
                     tdClonado3 = segundoTd.cloneNode(true);
-                    tdClonado3.innerHTML = `<span id="but_stx_prices_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;' title="${title}">
+                    tdClonado3.innerHTML = `<span id="but_stx_prices_${player_id}" class="player_icon_placeholder bid_button" style='cursor:pointer;' >
                     <a class="player_icon"><span class="player_icon_wrapper">
               <span class="fa-stack">
- <i class="fa-duotone fa-circle-dollar compare-icon" style="color: ${color};"></i>
+ <i class="fa-duotone fa-circle-dollar compare-icon" style="color: #AD4039;"></i>
 </span>
 <span class="player_icon_text"></span></span></a></span>`
                     tdClonado3.className = "player_icon_placeholder training_graphs1 " + window.sport;
@@ -5715,6 +5715,13 @@ self.onmessage = function (e) {
 
                         document.getElementById("show_teams_history").style.color = GM_getValue("color_native")
                         document.getElementById("show_teams_history").style.backgroundColor = GM_getValue("bg_native")
+
+                        document.getElementById("show_history_table").style.color = GM_getValue("color_native")
+                        document.getElementById("show_history_table").style.backgroundColor = GM_getValue("bg_native")
+
+                        document.getElementById("show_history_winners").style.color = GM_getValue("color_native")
+                        document.getElementById("show_history_winners").style.backgroundColor = GM_getValue("bg_native")
+
                         document.getElementById("show_users_history").style.color = GM_getValue("color_native")
                         document.getElementById("show_users_history").style.backgroundColor = GM_getValue("bg_native")
 
@@ -5757,6 +5764,24 @@ self.onmessage = function (e) {
                                 el1.style.display = "table-cell";
 
                             });
+                        });
+
+                        document.getElementById("show_history_table").addEventListener("click", function () {
+
+                            let link="https://statsxente.com/MZ1/View/leaguesSeasonsHistory.php?stx_u="+GM_getValue("stx_u","")+"&league_id=" + league_id_search
+                                + "&type=" + type + "&sport=" + window.sport+"&l="+window.lang
+                            openWindow(link, 0.95, 1.25);
+
+
+                        });
+
+                        document.getElementById("show_history_winners").addEventListener("click", function () {
+
+                            let link="https://statsxente.com/MZ1/View/leaguesSeasonsHistoryWinners.php?stx_u="+GM_getValue("stx_u","")+"&league_id=" + league_id_search
+                                + "&type=" + type + "&sport=" + window.sport+"&l="+window.lang
+                            openWindow(link, 0.95, 1.25);
+
+
                         });
 
 
@@ -7241,8 +7266,8 @@ self.onmessage = function (e) {
         contenidoNuevo += '<td colspan="2"><label><input class="statsxente" type="checkbox" value="TeamStats" id="TeamStats" ' + disabled + '>Team Stats</label></td>';
         contenidoNuevo += "</tr>"
         contenidoNuevo += '<tr style="margin: 0 auto; text-align: center; display:none;" id="trELOCompare"><td colspan="5">Category: '
-        contenidoNuevo += '<select id="catSelect" style="background-color: ' + GM_getValue("bg_native") + '; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: ' + GM_getValue("color_native")
-        contenidoNuevo += '; font-family: Roboto; font-weight: bold; font-size: revert;">'
+        contenidoNuevo += '<select id="catSelect" style="background-color: ' + GM_getValue("bg_native") + '; padding: 6px 3px; border-radius: 3px; width: 9em; height: 3em; border-color: white; color: ' + GM_getValue("color_native")
+        contenidoNuevo += '; font-family: Roboto; font-weight: bold; font-size: 13px; box-sizing: border-box; vertical-align: middle;">'
         for (let i = 0; i < cats_temp.length; i++) {
             let tmp = ""
             if (cats_elo[urlParams.get('type')] === cats_temp[i]) {
@@ -7250,8 +7275,7 @@ self.onmessage = function (e) {
             }
             contenidoNuevo += "<option value='" + cats_temp[i] + "' " + tmp + ">" + cats_temp[i] + "</option>"
         }
-        contenidoNuevo += '</select>  <button class="btn-save" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button></td></tr>'
-
+        contenidoNuevo += '</select>  <button class="btn-save" style="color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size: 13px; height: 3em; padding: 0 10px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" id="eloCompareButton"><i class="bi bi-graph-up" style="font-style:normal;"> ELO Compare</i></button></td></tr>'
         //Team Stats data
         contenidoNuevo += '<tr style="margin: 0 auto; text-align: center; display:none;" id="trTeamStats"><td colspan="5">Stats: '
         contenidoNuevo += '<select id="statsSelect" style="background-color: ' + GM_getValue("bg_native") + '; padding: 6px 3px; border-radius: 3px; width: 9em; border-color: white; color: ' + GM_getValue("color_native")
