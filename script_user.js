@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.297
+// @version      0.298
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -6681,9 +6681,6 @@ self.onmessage = function (e) {
 
 
 
-
-
-
             (function (currentId, currentLSport, lang, currentCat) {
                 document.getElementById("graphDivision").addEventListener('click', function () {
                     let url_sport = ""
@@ -9007,7 +9004,7 @@ self.onmessage = function (e) {
                         }
                         let resultado = textos.join(',');
 
-                        let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?l="+window.lang+"&sport="
+                        let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?currency=" + GM_getValue("currency","EUR")+"&l="+window.lang+"&sport="
                             +window.sport+"&distance="+GM_getValue("marketDistance","3")+"&skills="+resultado
                         openWindow(url, 0.95, 1.25);
                     });
@@ -9540,7 +9537,7 @@ self.onmessage = function (e) {
                 }
                 let resultado = textos.join(',');
 
-                let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?l="+window.lang+"&sport="
+                let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?currency=" + GM_getValue("currency","EUR")+"&l="+window.lang+"&sport="
                     +window.sport+"&distance="+GM_getValue("marketDistance","3")+"&skills="+resultado
                 openWindow(url, 0.95, 1.25);
             });
@@ -15434,7 +15431,7 @@ self.onmessage = function (e) {
                     }
                     let resultado = textos.join(',');
 
-                    let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?l="+window.lang+"&sport="
+                    let url="https://statsxente.com/MZ1/View/marketPriceAnalysis.php?currency=" + GM_getValue("currency","EUR")+"&l="+window.lang+"&sport="
                         +window.sport+"&distance="+GM_getValue("marketDistance","3")+"&skills="+resultado
                     openWindow(url, 0.95, 1.25);
                 });
