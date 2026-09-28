@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.298
+// @version      0.299
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -1632,7 +1632,7 @@ self.onmessage = function (e) {
                     let enlace = el.querySelector('a[href^="/?p=team&tid="]');
                     let teamName = enlace ? enlace.textContent.trim() : null;
 
-                    let enlace1 = el.querySelector('img[src^="nocache-957/img/flags/15"]');
+                    let enlace1 = el.querySelector('img[src*="/img/flags/15"]');
                     let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
 
                     if (!excludedPlayers.has(player_id)) {
@@ -1656,7 +1656,7 @@ self.onmessage = function (e) {
                     let enlace = el.querySelector('a[href^="/?p=team&tid="]');
                     let teamName = enlace ? enlace.textContent.trim() : null;
 
-                    let enlace1 = el.querySelector('img[src^="nocache-957/img/flags/15"]');
+                    let enlace1 = el.querySelector('img[src*="/img/flags/15"]');
                     let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
 
 
@@ -2806,13 +2806,13 @@ self.onmessage = function (e) {
 
 
 
-
         let iColor = "white";
-        let excluded = []
-        let fieldIndexes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+        let excluded = [13,14]
+        let fieldIndexes = [1,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 
         if (window.sport === "hockey") {
-            fieldIndexes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            excluded = [1]
+            fieldIndexes = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         }
         let table = document.querySelector(".hitlist.alt-view-table-mobile")
         let isMobile = true;
@@ -8981,7 +8981,7 @@ self.onmessage = function (e) {
                 })(ids[0].textContent, team_id, window.sport, window.lang, "[undefined]", playerName);
 
                 document.getElementById("but_stx_notes_"+ids[0].textContent).addEventListener('click', async function () {
-                    let enlace1 = elementos1[i].querySelector('img[src^="nocache-957/img/flags/"]');
+                    let enlace1 = elementos1[i].querySelector('img[src*="/img/flags/"]');
                     let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
                     injectPlayerNoteModal(ids[0].textContent, elementos1[i].querySelector('.player_name').textContent,country)
                 });
@@ -9513,7 +9513,7 @@ self.onmessage = function (e) {
         })(ids[0].textContent, tid, window.sport, window.lang, "[undefined]", playerName);
 
         document.getElementById("but_stx_notes_"+ids[0].textContent).addEventListener('click', async function () {
-            let enlace1 = element.querySelector('img[src^="nocache-957/img/flags/"]');
+            let enlace1 = element.querySelector('img[src*="/img/flags/"]');
             let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
             injectPlayerNoteModal(ids[0].textContent,element.querySelector('.player_name').textContent,country)
         });
@@ -15407,7 +15407,7 @@ self.onmessage = function (e) {
 
 
             document.getElementById("but_stx_notes_"+ids[0].textContent).addEventListener('click', async function () {
-                let enlace1 = elementos1[i].querySelector('img[src^="nocache-957/img/flags/"]');
+                let enlace1 = elementos1[i].querySelector('img[src*="/img/flags/"]');
                 let country = enlace1.getAttribute('src').match(/([a-z]{2})\.png$/i)[1];
                 injectPlayerNoteModal(ids[0].textContent,elementos1[i].querySelector('.player_name').textContent,country)
             });
