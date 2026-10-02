@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.299
+// @version      0.300
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -98,6 +98,7 @@
     GM_setValue("bids"+window.sport, "[]")*/
 
     let tmPlayerLeagues = new Map(JSON.parse(GM_getValue("tmPlayerLeagues" + window.sport, "[]")));
+    let ownTMPlayers = new Map(JSON.parse(GM_getValue("ownTMPlayers" + window.sport, "[]")));
     let playersTacticsNT = new Map(JSON.parse(GM_getValue("playersTacticsNT"+window.sport, "[]")));
     let bids = new Map(JSON.parse(GM_getValue("bids"+window.sport, "[]")));
     let notes = new Map(JSON.parse(GM_getValue("notesPlayers_"+window.sport, "[]")));
@@ -2794,6 +2795,7 @@ self.onmessage = function (e) {
             }
 
             contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>`;
+            contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="on_tm" value="None">On Sale</label>`;
             contenidoNuevo += "</div>";
 
 
@@ -2846,6 +2848,27 @@ self.onmessage = function (e) {
 
 
         if (positionsColors) {
+
+
+            /* document.addEventListener('change', (e) => {
+                 if (!e.target.classList.contains('statsxente')) return;
+                 if (e.target.id === "posAll") {
+                     document.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
+                 } else {
+                     document.getElementById("posAll").checked = false;
+                 }
+                 const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
+                 const isAll = e.target.id === "posAll";
+                 const noneChecked = document.getElementById("posNone").checked;
+                 document.querySelectorAll('#squad_summary tr:not(#stx-avg-row)').forEach(tr => {
+                     const pos = tr.cells[nameIndex]?.dataset.pos;
+                     const show = isAll
+                         || selected.includes(pos)
+                         || (noneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
+                     tr.style.display = show ? "table-row" : "none";
+                 });
+             });*/
+
             document.addEventListener('change', (e) => {
                 if (!e.target.classList.contains('statsxente')) return;
                 if (e.target.id === "posAll") {
@@ -2856,14 +2879,20 @@ self.onmessage = function (e) {
                 const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
                 const isAll = e.target.id === "posAll";
                 const noneChecked = document.getElementById("posNone").checked;
+                const onTmChecked = document.getElementById("on_tm")?.checked; // nuevo
                 document.querySelectorAll('#squad_summary tr:not(#stx-avg-row)').forEach(tr => {
                     const pos = tr.cells[nameIndex]?.dataset.pos;
-                    const show = isAll
+                    const showByPos = isAll
                         || selected.includes(pos)
                         || (noneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
+                    const show = onTmChecked                      // nuevo
+                        ? tr.cells[nameIndex]?.dataset.market === "on_tm"
+                        : showByPos;
                     tr.style.display = show ? "table-row" : "none";
                 });
             });
+
+
         }
 
 
@@ -2893,6 +2922,14 @@ self.onmessage = function (e) {
                 }
                 cells[nameIndex].style.borderRadius = "3px";
                 cells[nameIndex].dataset.pos = pos;
+
+                if(ownTMPlayers.has(pid)){
+                    cells[nameIndex].dataset.market = "on_tm";
+                    cells[nameIndex].innerHTML="💰"+cells[nameIndex].innerHTML
+                    cells[nameIndex].style.whiteSpace = "nowrap";
+                    cells[nameIndex].querySelector('a')?.style.setProperty('display', 'inline', 'important');
+                }
+
             });
         }
 
@@ -8819,10 +8856,20 @@ self.onmessage = function (e) {
             }
             let elementos1 = document.getElementsByClassName('playerContainer');
             for (let i = 0; i < elementos1.length; i++) {
+
+
+
                 let ids = elementos1[i].getElementsByClassName('player_id_span');
                 currentPlayerIds.push(ids[0].textContent)
                 let playerName = elementos1[i].querySelector('.player_name').textContent
                 let elementos_ = elementos1[i].getElementsByClassName('p_sublinks');
+                const exists = !!elementos1[i].querySelector('a[href*="/?p=transfer&sub=players&u"]');
+                if(exists){
+                    ownTMPlayers.set(ids[0].textContent,"on_tm")
+                }
+
+
+
                 let txt = '<span id=but' + ids[0].textContent + ' class="player_icon_placeholder"><a href="#" onclick="return false"'
                 txt += 'title="Stats Xente" class="player_icon"><span class="player_icon_wrapper">'
                 txt += '<span class="player_icon_image" style="background-image: url(\'https://www.statsxente.com/MZ1/View/Images/main_icon_mini.png\'); width: 21px; height: 18px; background-size: auto;'
@@ -8850,6 +8897,9 @@ self.onmessage = function (e) {
 
                 const spanShare = elementos1[i].querySelector('span.player_icon_placeholder.player_share_skills');
                 let player_span = elementos1[i].querySelector('.player_name')
+                if(exists){
+                    player_span.dataset.market = "on_tm";
+                }
                 if ((GM_getValue("positionsColors")) && (spanShare !== null)) {
                     let pos = playerPositions.get(ids[0].textContent);
                     let c = playerPosColors.get(pos)
@@ -8877,6 +8927,10 @@ self.onmessage = function (e) {
                     }
 
                 }
+
+
+
+
 
 
 
@@ -9088,6 +9142,8 @@ self.onmessage = function (e) {
         if(toDelete){
             GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
         }
+
+        GM_setValue("ownTMPlayers"+ window.sport, JSON.stringify([...ownTMPlayers]));
     }
     async function maximizationsPlayersPage() {
         let elementos1 = document.getElementsByClassName('weeklyReportBox weeklyReportBoxResponsive');
@@ -9235,6 +9291,7 @@ self.onmessage = function (e) {
             }
 
             contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="posNone" value="None">Unasigned</label>`;
+            contenidoNuevo += `<label><input class="statsxente" type="checkbox" id="on_tm" value="None">On Sale</label>`;
             contenidoNuevo += "</div>";
 
 
@@ -15714,7 +15771,6 @@ self.onmessage = function (e) {
     }
     function filterPosition(triggeredElement) {
         const container = document.getElementById('positionsFilter');
-
         if (triggeredElement && triggeredElement.id === "posAll") {
             container.querySelectorAll('.statsxente:not(#posAll)').forEach(cb => cb.checked = false);
         } else if (triggeredElement) {
@@ -15724,14 +15780,13 @@ self.onmessage = function (e) {
         const selected = [...document.querySelectorAll('.statsxente:checked')].map(el => el.value);
         const posAllChecked = document.getElementById("posAll")?.checked;
         const posNoneChecked = document.getElementById("posNone")?.checked;
-
+        const onTmChecked = document.getElementById("on_tm")?.checked;
         document.querySelectorAll('.playerContainer').forEach(player => {
             const pos = player.querySelector('.player_name')?.dataset.pos;
             const showByPos = posAllChecked
                 || selected.includes(pos)
                 || (posNoneChecked && (pos === "None" || pos === undefined || pos === "undefined"));
-
-            player._showByPos = showByPos;
+            player._showByPos = onTmChecked? player.querySelector('.player_name')?.dataset.market === "on_tm": showByPos;
         });
 
         applyFilters();
