@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.300
+// @version      0.301
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -93,9 +93,10 @@
     getUsernameData()
     checkScriptVersion().then()
     getSelects().then()
+
     /*GM_setValue("tmPlayerLeagues" + window.sport, "[]")
     GM_setValue("monitoredTeams_" + window.sport,[])
-    GM_setValue("bids"+window.sport, "[]")*/
+    GM_setValue("bids"+window.sport, "[]");*/
 
     let tmPlayerLeagues = new Map(JSON.parse(GM_getValue("tmPlayerLeagues" + window.sport, "[]")));
     let ownTMPlayers = new Map(JSON.parse(GM_getValue("ownTMPlayers" + window.sport, "[]")));
@@ -104,6 +105,7 @@
     let notes = new Map(JSON.parse(GM_getValue("notesPlayers_"+window.sport, "[]")));
     let excludedPlayers = new Map(JSON.parse(GM_getValue("excludedPlayers_"+window.sport, "[]")));
     let autoDeleteDaysLimit=parseInt(GM_getValue("autoDeleteDaysLimit","-1"))
+    let partialsSkills = new Map(JSON.parse(GM_getValue("partialsSkills_"+window.sport, "[]")));
     let filtered
     if(window.sport==="soccer"){
         filtered = new Map([...playerPositions].filter(([key, value]) => typeof value === "string" && !value.includes("_hockey") && value !== "Center"));
@@ -433,7 +435,31 @@
             waitToDOMById(showChips, "tc_chips", 5000)
         }
 
-        waitToDOMById(setUsernameData, "header-username", 5000)
+
+
+        if (urlParams.has('p') && urlParams.get('p') === 'match' && ['scheduled', 'played'].includes(urlParams.get('sub'))) {
+            let selectElements = document.getElementsByName('limit');
+            if (selectElements.length > 0) {
+                let selectElement = selectElements[0];
+                selectElement.addEventListener('change', function () {
+                    waitToDOM(insertWeekdayNames, ".group", 0, 7000)
+
+                });
+            }
+            selectElements = document.getElementsByName('selectType');
+            if (selectElements.length > 0) {
+                let selectElement = selectElements[0];
+                selectElement.addEventListener('change', function () {
+                    waitToDOM(insertWeekdayNames, ".group", 0, 7000)
+                });
+            }
+            insertWeekdayNames()
+        }
+
+
+
+
+        //waitToDOMById(setUsernameData, "header-username", 5000)
     }, 1000);
 
 
@@ -959,7 +985,23 @@ self.onmessage = function (e) {
 
             });
     }
-
+    // Insert weekday names
+    function insertWeekdayNames(){
+        let color="#03a9f48a";
+        if(window.sport=="soccer"){
+            color="#50ff72a3"
+        }
+        document.querySelectorAll('dd.group').forEach(dd => {
+            const texto = dd.textContent.trim();
+            const m = texto.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (!m) return;
+            const [, d, mes, a] = m;
+            const fecha = new Date(a, mes - 1, d);
+            let dia = fecha.toLocaleDateString(navigator.language, { weekday: 'long' });
+            dia = dia.charAt(0).toLocaleUpperCase(navigator.language) + dia.slice(1);
+            dd.innerHTML = `${texto} (<span style='background-color:${color};'>${dia}</span>)`;
+        });
+    }
     //Training percentages
     async function trainingReportPercentages() {
         skillIndex = await trainingSkillsIndex()
@@ -1057,9 +1099,9 @@ self.onmessage = function (e) {
         const results = [];
         let chunkSize = 2
         let initial_index = 0, final_index = chunkSize;
-        let players_arr = Array.from(players)
-        for (let i = 0; i < players.length; i += chunkSize) {
-            const chunk = Array.from(players).slice(i, i + chunkSize);
+        let players_arr = Array.from(players);
+        for (let i = 0; i < players_arr.length; i += chunkSize) {
+            const chunk = players_arr.slice(i, i + chunkSize);
 
             const promises = chunk.map(async (player) => {
                 const playerId = player.querySelector('.player_id_span').textContent.trim();
@@ -1068,21 +1110,8 @@ self.onmessage = function (e) {
 
             const chunkResults = await Promise.all(promises);
             results.push(...chunkResults);
-            if (final_index > results.length) {
-                final_index = results.length
-            }
-            let contIndex = 0;
-            for (let j = initial_index; j < final_index; j++) {
-                let player = players_arr[j]
-                processPartialSkills(player, results[contIndex])
-                contIndex++;
-            }
 
-
-
-            initial_index += chunkSize;
-            final_index += chunkSize;
-
+            chunk.forEach((player, k) => processPartialSkills(player, chunkResults[k]));
         }
     }
     //Telegram players monitors
@@ -2769,10 +2798,6 @@ self.onmessage = function (e) {
             positionsColors=false
             nationalTeam=true;
         }
-
-
-
-
         if ((positionsColors) && (!document.getElementById("positionsFilter"))) {
 
 
@@ -2803,11 +2828,6 @@ self.onmessage = function (e) {
                 .insertAdjacentHTML('beforebegin', contenidoNuevo);
 
         }
-
-
-
-
-
         let iColor = "white";
         let excluded = [13,14]
         let fieldIndexes = [1,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
@@ -2841,11 +2861,7 @@ self.onmessage = function (e) {
             table = document.getElementById('playerAltViewTable');
             isMobile = false;
         }
-
         if (!table) { return; }
-
-
-
 
         if (positionsColors) {
 
@@ -2929,6 +2945,9 @@ self.onmessage = function (e) {
                     cells[nameIndex].style.whiteSpace = "nowrap";
                     cells[nameIndex].querySelector('a')?.style.setProperty('display', 'inline', 'important');
                 }
+
+
+                //partialsSkills.set(playerId,partials)
 
             });
         }
@@ -3084,6 +3103,59 @@ self.onmessage = function (e) {
 
         table.querySelector('thead').appendChild(avgRow);
         table.style.borderCollapse = 'collapse';
+
+
+        let txt='</br><center><button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showPartials"><i class="bi bi-circle-half" style="font-style:normal;"> Partials</i></button></center>'
+        document.getElementById("positionsFilter").insertAdjacentHTML('afterend',txt);
+        document.getElementById('showPartials').addEventListener('click', function (e) {
+            table.querySelectorAll('tbody tr').forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const a = cells[nameIndex].querySelector('a');
+                const href = a.getAttribute('href');
+                const params = new URLSearchParams(href.split('?')[1]);
+                const pid = params.get('pid');
+                let init=6
+                let fin=4
+                let skillsCount=0;
+                if(window.sport=="soccer"){
+                    init=6
+                    fin=4
+                    let skillsCount=0;
+                    if (window.stx_device === "mobile") {
+                        init=3
+                        fin=4
+                    }
+
+                }else{
+
+                    init=7
+                    fin=2
+                    skillsCount=0;
+                    if (window.stx_device === "mobile") {
+
+                        init=3
+                        fin=2
+                    }
+
+                }
+
+                let skills=partialsSkills.get(pid)
+                let total=0;
+                for (let i = init; i < cells.length-fin; i++) {
+                    const actual = parseFloat(cells[i].textContent.trim());
+                    const resultado = actual + parseFloat(skills[skillsCount]);
+                    cells[i].textContent = Math.round(resultado * 100) / 100;
+                    total+=skills[skillsCount]
+                    skillsCount++;
+                }
+                const actual = parseFloat(cells[cells.length-2].textContent.trim());
+                const resultado = actual + total;
+                cells[cells.length-2].textContent=Math.round(resultado * 100) / 100;
+            });
+
+        });
+
+
         //if ((urlParams1.has('p')) && (urlParams1.get('p') !== 'national_teams')) {
         altTableEventListeners(table, fieldIndexes, isMobile)
         // }
@@ -5105,7 +5177,8 @@ self.onmessage = function (e) {
 
         let elems = document.getElementsByClassName("group");
         Array.from(elems).forEach(function (elem) {
-            initialDate = getParsedValidDateText(elem.innerText)
+            let limpio = elem.innerText.replace(/\([^)]*\)/g, '').trim();
+            initialDate = getParsedValidDateText(limpio);
         });
 
         getUsernameData()
@@ -8738,6 +8811,7 @@ self.onmessage = function (e) {
     }
     //Players page
     async function playersPage() {
+        let ownTMPlayersCont=0;
         let currentPlayerIds=[]
         let colors = ['Goalkeeper_hockey', 'Defender_hockey', 'Center', 'Wing_hockey', 'None',];
         if (window.sport === "soccer") {
@@ -8866,6 +8940,7 @@ self.onmessage = function (e) {
                 const exists = !!elementos1[i].querySelector('a[href*="/?p=transfer&sub=players&u"]');
                 if(exists){
                     ownTMPlayers.set(ids[0].textContent,"on_tm")
+                    ownTMPlayersCont++;
                 }
 
 
@@ -9142,8 +9217,11 @@ self.onmessage = function (e) {
         if(toDelete){
             GM_setValue("playersPositions", JSON.stringify([...playerPositions]));
         }
-
-        GM_setValue("ownTMPlayers"+ window.sport, JSON.stringify([...ownTMPlayers]));
+        if(ownTMPlayersCont==0){
+            GM_setValue("ownTMPlayers"+ window.sport,"[]");
+        }else{
+            GM_setValue("ownTMPlayers"+ window.sport, JSON.stringify([...ownTMPlayers]));
+        }
     }
     async function maximizationsPlayersPage() {
         let elementos1 = document.getElementsByClassName('weeklyReportBox weeklyReportBoxResponsive');
@@ -15648,9 +15726,13 @@ self.onmessage = function (e) {
             trainingHistoryArr = Array.from(trainingHistoryMap);
         }
         let init_index = -1;
-        if (window.sport === "hockey") { init_index = 0 }
+        let contSport=11
+        if (window.sport === "hockey") { init_index = 0; contSport=10; }
+        let cont1=0;
+        var partials=[]
         skills.forEach(skill => {
-            if ((cont > init_index) && (cont < 11)) {
+            if ((cont > init_index) && (cont < contSport)) {
+                if((window.sport=="hockey")&&(cont1==0)){cont-=1; cont1++;}
                 if (trainingHistoryMap !== undefined) {
                     if (trainingHistoryArr[cont][1]["green"]["tp"] >= 100) {
                         trainingHistoryArr[cont][1]["green"]["tp"] = 0;
@@ -15659,24 +15741,29 @@ self.onmessage = function (e) {
                     if (trainingHistoryArr[cont][1]["green"]["all_time_sum"] === 0) {
                         if (trainingHistoryArr[cont][1]["red"]["all_time_sum"] > 0) {
                             partial -= (trainingHistoryArr[cont][1]["red"]["tp"] / 100)
+                            partials.push((-trainingHistoryArr[cont][1]["red"]["tp"] / 100));
                         } else {
                             const width = skill.style.width;
                             const widthNumber = parseFloat(width);
                             partial += widthNumber * 0.125;
+                            partials.push(widthNumber * 0.125);
                         }
                     } else {
                         partial += (trainingHistoryArr[cont][1]["green"]["tp"] / 100)
+                        partials.push(trainingHistoryArr[cont][1]["green"]["tp"] / 100);
                     }
-
                 } else {
                     const width = skill.style.width;
                     const widthNumber = parseFloat(width);
                     partial += widthNumber * 0.125;
+                    partials.push(widthNumber * 0.125);
                 }
             }
             cont++;
         });
+        partialsSkills.set(playerId,partials)
 
+        GM_setValue("partialsSkills_" + window.sport,JSON.stringify([...partialsSkills]));
         let aux = player
         if (window.stx_device === "mobile") {
             aux = elSkills
