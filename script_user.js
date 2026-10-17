@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.301
+// @version      0.302
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -356,6 +356,9 @@
             getTacticsUseNationalTeam()
         }
 
+
+
+
         if ((urlParams.has('p')) && (urlParams.get('p') === 'transfer') && (GM_getValue("transfersFilterFlag"))) {
             deletePasedExcludedPLayers()
             getCurrencies()
@@ -437,7 +440,7 @@
 
 
 
-        if (urlParams.has('p') && urlParams.get('p') === 'match' && ['scheduled', 'played'].includes(urlParams.get('sub'))) {
+        if (urlParams.has('p') && urlParams.get('p') === 'match' && ['scheduled', 'played'].includes(urlParams.get('sub')) && (GM_getValue("daysNames"))) {
             let selectElements = document.getElementsByName('limit');
             if (selectElements.length > 0) {
                 let selectElement = selectElements[0];
@@ -968,7 +971,6 @@ self.onmessage = function (e) {
     self.postMessage({ players:players, lines: [...new Set(lines)], gk_line:gk_line, su_line:su_line, tacticsList: [...new Set(tacticsList)], skillsNames:skillsNames });
 };
 `;
-
     //Show training chips
     function showChips(){
         fetch('https://www.managerzone.com/ajax.php?p=event&sub=chips-content&sport='+window.sport,{
@@ -1113,6 +1115,33 @@ self.onmessage = function (e) {
 
             chunk.forEach((player, k) => processPartialSkills(player, chunkResults[k]));
         }
+    }
+    async function playerPartialSkillsAlternative() {
+        skillIndex = await trainingSkillsIndex()
+        const res = await fetch("https://www.managerzone.com/?p=players", {
+            method: "GET",
+            credentials: "include"
+        });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const players = doc.querySelectorAll('.playerContainer');
+
+        let init_index = -1;
+        const results = [];
+        let chunkSize = 2
+        let initial_index = 0, final_index = chunkSize;
+        let players_arr = Array.from(players);
+        for (let i = 0; i < players_arr.length; i += chunkSize) {
+            const chunk = players_arr.slice(i, i + chunkSize);
+            const promises = chunk.map(async (player) => {
+                const playerId = player.querySelector('.player_id_span').textContent.trim();
+                return await getTrainingHistory(playerId);
+            });
+            const chunkResults = await Promise.all(promises);
+            results.push(...chunkResults);
+            chunk.forEach((player, k) => processPartialSkills(player, chunkResults[k]));
+        }
+        document.getElementById("hp_loader").remove()
     }
     //Telegram players monitors
     function insertPlayerMonitor(link) {
@@ -3105,8 +3134,19 @@ self.onmessage = function (e) {
         table.style.borderCollapse = 'collapse';
 
 
-        let txt='</br><center><button class="btn-save" style="width: 6.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showPartials"><i class="bi bi-circle-half" style="font-style:normal;"> Partials</i></button></center>'
+        let txt='</br><center><div id="buttonsPartials"><button class="btn-save" style="width: 7.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="showPartials"><i class="bi bi-circle-half" style="font-style:normal;"> Partials</i></button>'
+        txt+='  <button class="btn-save" style="width: 7.6em; height:1.75em; padding: 0 0; color:' + GM_getValue("color_native") + '; background-color:' + GM_getValue("bg_native") + '; font-family: \'Roboto\'; font-weight:bold; font-size:revert;" id="getPartials"><i class="bi bi-arrow-repeat" style="font-style:normal;"> Refresh Data</i></button></div></center>'
+
         document.getElementById("positionsFilter").insertAdjacentHTML('afterend',txt);
+
+
+        document.getElementById('getPartials').addEventListener('click', function (e) {
+            let clase = "loader-" + window.sport
+            document.getElementById("buttonsPartials").insertAdjacentHTML("afterend", "<div id='hp_loader'></br></br></br><div style='width:50%; margin: 0 auto; text-align: center;'><b>Loading...</b><div id='loader' class='" + clase + "' style='height:25px'></div></div></div>");
+            playerPartialSkillsAlternative()
+
+        });
+
         document.getElementById('showPartials').addEventListener('click', function (e) {
             table.querySelectorAll('tbody tr').forEach(row => {
                 const cells = row.querySelectorAll('td');
@@ -14479,7 +14519,7 @@ self.onmessage = function (e) {
 }
     `;
         document.head.appendChild(style);
-        const defaults = {
+        const defaults = { daysNames:true,
             playerPrice:true,leagueFlag: true, matchFlag: true, matchForfeit: true, matchForm: true, federationFlag: true,
             playersFlag: true, countryRankFlag: true, eloNextMatchesFlag: true,
             eloPlayedMatchesFlag: true, teamPageFlag: true, trainingReportFlag: true,
@@ -14575,6 +14615,10 @@ self.onmessage = function (e) {
             { key: 'playerSaleLeague', id: 'playerSaleLeague', label: 'Players on sale' },
             { key: 'monitorTeams', id: 'monitorTeams', label: 'Monitor Teams' },
             { key: 'playerPrice', id: 'playerPrice', label: 'Player Price Analyzer' },
+
+            { key: 'daysNames', id: 'daysNames', label: 'Weekday Names' },
+
+
 
         ];
 
@@ -15762,7 +15806,6 @@ self.onmessage = function (e) {
             cont++;
         });
         partialsSkills.set(playerId,partials)
-
         GM_setValue("partialsSkills_" + window.sport,JSON.stringify([...partialsSkills]));
         let aux = player
         if (window.stx_device === "mobile") {
