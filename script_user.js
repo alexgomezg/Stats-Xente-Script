@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stats Xente Script
 // @namespace    http://tampermonkey.net/
-// @version      0.302
+// @version      0.303
 // @description  Stats Xente Script for inject own data on Managerzone site
 // @author       xente
 // @match        https://www.managerzone.com/*
@@ -275,6 +275,9 @@
                 }
                 if (GM_getValue("eloPlayedMatchesFlag")) {
                     waitToDOM(lastMatchesELO, ".group", 0, 7000)
+                }
+                if (GM_getValue("forfeitMatches")) {
+                    waitToDOM(lastMatchesForfeit, ".group", 0, 7000)
                 }
 
                 if (GM_getValue("eloNextMatchesFlag")) {
@@ -4141,6 +4144,12 @@ self.onmessage = function (e) {
             if (GM_getValue("eloPlayedMatchesFlag")) {
                 waitToDOM(lastMatchesELO, ".group", 0, 7000)
             }
+
+            if (GM_getValue("forfeitMatches")) {
+                waitToDOM(lastMatchesForfeit, ".group", 0, 7000)
+            }
+
+
         });
 
         let my_team_id = ""
@@ -5166,6 +5175,34 @@ self.onmessage = function (e) {
 
 
     }
+
+    //Las matches forfeits
+
+    function lastMatchesForfeit(){
+        let elems = document.getElementsByClassName("bold score-cell-wrapper textCenter flex-grow-0");
+        Array.from(elems).forEach(function (elem) {
+            let links = elem.getElementsByClassName('score-hidden gray');
+            let href = links[0].getAttribute('href');
+            let urlParams = new URLSearchParams(href.split('?')[1]);
+            let mid = parseInt(urlParams.get('mid'));
+            let result = elem.getElementsByClassName('score-shown');
+            let marcador = result[0].textContent.replace(/\s+/g, '');
+            if (['5-0', '0-5', '0-0'].includes(marcador)) {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: 'https://statsxente.com/MZ1/Functions/tamper_forfeit.php?sport='+window.sport+'&match_id='+mid,
+                    onload: function (res) {
+                        const data = JSON.parse(res.responseText);
+                        if (data.response === true) {
+                            result[0].style.backgroundImage = 'repeating-linear-gradient(45deg, rgba(225,225,225,0.65) 0 6px, transparent 6px 12px)';
+                        }
+                    }
+                });
+            }
+        });
+
+    }
+
     //Last matches page
     function lastMatchesELO() {
         let urlParamsAux = new URLSearchParams(window.location.search);
@@ -5184,6 +5221,11 @@ self.onmessage = function (e) {
                 if (GM_getValue("eloPlayedMatchesFlag")) {
                     waitToDOM(lastMatchesELO, ".group", 0, 7000)
                 }
+
+
+                if (GM_getValue("forfeitMatches")) {
+                    waitToDOM(lastMatchesForfeit, ".group", 0, 7000)
+                }
             });
         }
         selectElements = document.getElementsByName('selectType');
@@ -5199,6 +5241,12 @@ self.onmessage = function (e) {
                 if (GM_getValue("eloPlayedMatchesFlag")) {
                     waitToDOM(lastMatchesELO, ".group", 0, 7000)
                 }
+
+
+                if (GM_getValue("forfeitMatches")) {
+                    waitToDOM(lastMatchesForfeit, ".group", 0, 7000)
+                }
+
             });
         }
 
@@ -5249,6 +5297,8 @@ self.onmessage = function (e) {
 
         });
 
+
+
         GM_xmlhttpRequest({
             method: "GET",
             url: "https://statsxente.com/MZ1/Functions/tamper_elo_matches.php?stx_u="+GM_getValue("stx_u","")+"&sport=" + window.sport + "&team_id=" + team_id + "&initial_date=" + initialDate + "&final_date=" + finalDate,
@@ -5263,6 +5313,10 @@ self.onmessage = function (e) {
                 Array.from(elems).forEach(function (elem) {
 
                     let links = elem.getElementsByClassName('score-hidden gray');
+
+
+
+
                     let href = links[0].getAttribute('href');
                     let urlParams = new URLSearchParams(href.split('?')[1]);
                     let mid = parseInt(urlParams.get('mid'));
@@ -14533,7 +14587,7 @@ self.onmessage = function (e) {
             transfersTaxFlag: true, showSkillsResume: false, tacticsSkillsResume: true, teamsFinancialMarket: true,
             onlySinglePages: false, eloChangeCalendar: true, trainingPercentages: true, partialSkills: true, onlySinglePagesSkills: true,
             positionsColors: true, positionsColorsBG: false, collapseLeagueButtons: false, transfersPlayerCompare: true, floatingDropdown: true,
-            telegramNotifications: true,gameNotifications:true,playerSaleLeague:true,monitorTeams:true
+            telegramNotifications: true,gameNotifications:true,playerSaleLeague:true,monitorTeams:true,forfeitMatches:false
         };
         Object.entries(defaults).forEach(([k, v]) => {
             if (GM_getValue(k) === undefined) GM_setValue(k, v);
@@ -14617,6 +14671,10 @@ self.onmessage = function (e) {
             { key: 'playerPrice', id: 'playerPrice', label: 'Player Price Analyzer' },
 
             { key: 'daysNames', id: 'daysNames', label: 'Weekday Names' },
+
+            { key: 'forfeitMatches', id: 'forfeitMatches', label: 'Forfeit Matches' },
+
+
 
 
 
